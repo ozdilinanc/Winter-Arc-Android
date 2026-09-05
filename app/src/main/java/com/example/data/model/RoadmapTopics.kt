@@ -67,7 +67,9 @@ object RoadmapDataStore {
                         TopicCheckItem("asp_serialization", "Serialization (System.Text.Json)", "JSON serializer options, converter'lar"),
                         TopicCheckItem("asp_errors", "Global Error & Exception Handling", "ProblemDetails, IExceptionHandler, global middleware"),
                         TopicCheckItem("asp_logging", "Logging (Serilog / ILogger)", "Structured logging, log seviyeleri (Info, Warn, Error)"),
-                        TopicCheckItem("asp_swagger", "Swagger / OpenAPI Dokümantasyonu", "Swashbuckle, XML comments, API test arayüzü")
+                        TopicCheckItem("asp_swagger", "Swagger / OpenAPI Dokümantasyonu", "Swashbuckle, XML comments, API test arayüzü"),
+                        TopicCheckItem("asp_versioning", "API Sürümleme (Asp.Versioning)", "URL, Query veya Header tabanlı API versiyonlama (v1, v2) ve geriye uyumluluk"),
+                        TopicCheckItem("asp_signalr", "Real-Time İletişim (SignalR)", "Hub mimarisi, gruplar, WebSockets/SSE fallback ve anlık canlı bildirimler")
                     )
                 ),
                 TopicSection(
@@ -84,7 +86,9 @@ object RoadmapDataStore {
                         TopicCheckItem("db_efcore", "Entity Framework Core (EF Core)", "DbContext, DbSet, Fluent API konfigürasyonu"),
                         TopicCheckItem("db_migrations", "EF Core Migrations", "dotnet ef migrations add, database update pratikleri"),
                         TopicCheckItem("db_tracking", "Change Tracker & AsNoTracking", "Performans için AsNoTracking kullanımı, entity state"),
-                        TopicCheckItem("db_linq_sql", "LINQ ➔ SQL Mantığı (Expression Trees)", "IQueryable vs IEnumerable, N+1 problemi & AsSplitQuery")
+                        TopicCheckItem("db_linq_sql", "LINQ ➔ SQL Mantığı (Expression Trees)", "IQueryable vs IEnumerable, N+1 problemi & AsSplitQuery"),
+                        TopicCheckItem("db_dapper", "Dapper & Hibrit Veri Erişimi", "Mikro-ORM kullanımı, yüksek performanslı SELECT sorguları, EF Core + Dapper hibrit mimari"),
+                        TopicCheckItem("db_advanced_ef", "Global Query Filters & Interceptors", "Soft Delete filtreleri, Audit Trail (Created/Updated By/At) ve SaveChanges Interceptor")
                     )
                 ),
                 TopicSection(
@@ -95,8 +99,11 @@ object RoadmapDataStore {
                         TopicCheckItem("arch_layered", "Katmanlı Mimari (N-Tier)", "Presentation, Business, Data Access katmanları"),
                         TopicCheckItem("arch_clean", "Clean Architecture", "Domain, Application, Infrastructure, Presentation ayrımı"),
                         TopicCheckItem("arch_onion", "Onion Architecture", "Core domain merkezli bağımlılık yönü (Inward Dependency)"),
+                        TopicCheckItem("arch_cqrs_mediatr", "CQRS & MediatR", "Command ve Query ayrımı, IRequest<T>, IRequestHandler ve MediatR Pipeline Behaviors"),
+                        TopicCheckItem("arch_result_pattern", "Result Pattern (ErrorOr / FluentResults)", "İş mantığında throw Exception yerine Result<T> dönme, tip güvenli hata yönetimi"),
                         TopicCheckItem("arch_repo_service", "Repository & Service Pattern", "Generic repository, iş mantığının servislere izolasyonu"),
                         TopicCheckItem("arch_dto", "DTO & AutoMapper/Mapster", "Entity - DTO dönüşümleri, domain nesnelerini dışarı açmama"),
+                        TopicCheckItem("arch_mapping", "Modern Mapping: Mapster / Mapperly", "AutoMapper yerine modern Source Generator (Mapperly) ve Mapster ile DTO projeksiyonları"),
                         TopicCheckItem("arch_patterns", "Design Patterns (GoF)", "Factory, Strategy, Singleton, Decorator, Mediator"),
                         TopicCheckItem("arch_domain", "Domain Mantığı & Zengin Modeller", "Anemic domain modelden kaçınma, iş kuralları"),
                         TopicCheckItem("arch_testability", "Test Edilebilir Kod Tasarımı", "Mocking (Moq/NSubstitute), bağımlılıkların soyutlanması")
@@ -123,7 +130,10 @@ object RoadmapDataStore {
                         TopicCheckItem("prod_logging", "Structured Logging & Serilog", "Kayıtların JSON formatında merkezi log sistemlerine hazır olması"),
                         TopicCheckItem("prod_bg_jobs", "Background Jobs (Hangfire / IHostedService)", "Zamanlanmış görevler, periyodik veri işleme"),
                         TopicCheckItem("prod_caching", "Caching Stratejileri (Memory & Redis)", "In-memory cache, Distributed Redis cache, Cache Invalidation"),
+                        TopicCheckItem("prod_resilience", "Dayanıklılık & Polly (Resilience)", "Retry Policy, Circuit Breaker, Timeout ve Microsoft.Extensions.Resilience entegrasyonu"),
                         TopicCheckItem("prod_rate_limit", "Rate Limiting & Throttling", "API abuse ve DoS saldırılarına karşı istek sınırlama"),
+                        TopicCheckItem("prod_notifications", "E-Posta & Bildirim Dağıtımı (MailKit & FCM)", "MailKit ile SMTP e-posta gönderimi, HTML şablonları (Razor/Fluid) ve Push bildirim servisi"),
+                        TopicCheckItem("prod_storage", "Dosya & Medya Yönetimi (S3 / MinIO)", "IFormFile işleme, S3 / MinIO uyumlu presigned URL yükleme akışı ve dosya doğrulama"),
                         TopicCheckItem("prod_health", "Health Checks", "Veritabanı ve dış servis sağlık durum kontrolleri (/health)")
                     )
                 )

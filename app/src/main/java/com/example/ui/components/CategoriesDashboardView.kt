@@ -39,9 +39,9 @@ private val careerSubItems = listOf(
     CategorySubItem(
         id = "sub_backend_dotnet",
         title = "Backend / .NET",
-        subtitle = "C#, ASP.NET Core, EF Core & Microservices",
+        subtitle = "C#, ASP.NET Core, EF Core, CQRS & Mimari",
         emoji = "⚡",
-        description = "Modern RESTful API'ler, Clean Architecture, Dependency Injection, CQRS & Entity Framework Core pratikleri.",
+        description = "Modern RESTful API'ler, Clean Architecture, MediatR/CQRS, Dapper, SignalR, Polly & Redis pratikleri.",
         tag = "ASP.NET Core"
     ),
     CategorySubItem(
