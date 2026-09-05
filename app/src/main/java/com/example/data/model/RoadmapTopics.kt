@@ -140,7 +140,7 @@ object RoadmapDataStore {
                         TopicCheckItem("arch_mapping", "Modern Mapping: Mapster / Mapperly", "AutoMapper yerine modern Source Generator (Mapperly) ve Mapster ile DTO projeksiyonları", practiceTask = "Source generator tabanlı Mapperly ile derleme zamanında type-safe DTO mapping sınıfı oluştur."),
                         TopicCheckItem("arch_patterns", "Design Patterns (GoF)", "Factory, Strategy, Singleton, Decorator, Mediator", practiceTask = "Ödeme sağlayıcıları (Stripe, Iyzico) için Strategy Pattern veya bildirim göndericileri için Factory Pattern uygula."),
                         TopicCheckItem("arch_domain", "Domain Mantığı & Zengin Modeller", "Anemic domain modelden kaçınma, iş kuralları", practiceTask = "Anemic modeldeki public setter'ları private yap; entity içine DeactivateUser() ve UpdateEmail() domain metodları ekle."),
-                        TopicCheckItem("arch_testability", "Test Edilebilir Kod Tasarımı", "Mocking (Moq/NSubstitute), bağımlılıkların soyutlanması", practiceTask = "Moq kullanarak UserService.Register() metoduna unit test yaz; e-posta servisinin tam bir kez çağrıldığını Verify et.")
+                        TopicCheckItem("arch_testability", "Test Edilebilir Kod Tasarımı (Loosely Coupled)", "Dependency Inversion ile sıkı bağımlılıklardan (tight coupling) kaçınma ve test edilebilir mimari", practiceTask = "Sıkı bağımlı doğrudan 'new EmailService()' çağrısını IEmailService arayüzü ve constructor injection ile refactor et.")
                     )
                 ),
                 TopicSection(
@@ -160,7 +160,8 @@ object RoadmapDataStore {
                     title = "PRODUCTION-READY BACKEND",
                     emoji = "🚀",
                     items = listOf(
-                        TopicCheckItem("prod_testing", "Unit & Integration Testing (xUnit)", "xUnit, FluentAssertions, WebApplicationFactory", practiceTask = "WebApplicationFactory kullanarak /api/products endpoint'ine gerçek HTTP isteği atan integration testi yaz."),
+                        TopicCheckItem("prod_unit_testing", "Unit Testing & Mocking (xUnit + Moq)", "Arrange-Act-Assert (AAA) pattern, [Fact] ve [Theory] testleri, Moq ile bağımlılık izolasyonu", practiceTask = "Moq kullanarak UserService.Register() metodunda bağımlılıkları izole et; başarılı ve hatalı senaryoları [Fact] ve [Theory] ile doğrula."),
+                        TopicCheckItem("prod_integration_testing", "Integration Testing (WebApplicationFactory)", "In-memory test server (WebApplicationFactory) ile endpoint'leri, route'ları ve DB pipeline'ını test etme", practiceTask = "WebApplicationFactory<Program> kullanarak /api/products endpoint'ine gerçek HTTP POST isteği atan integration testi yaz."),
                         TopicCheckItem("prod_logging", "Structured Logging & Serilog", "Kayıtların JSON formatında merkezi log sistemlerine hazır olması", practiceTask = "Serilog RequestLogging middleware ekleyerek her HTTP isteğinin method, path, status ve süresini JSON log olarak üret."),
                         TopicCheckItem("prod_bg_jobs", "Background Jobs (Hangfire / IHostedService)", "Zamanlanmış görevler, periyodik veri işleme", practiceTask = "BackgroundService (IHostedService) miras alarak periyodik olarak süresi dolmuş token'ları temizleyen worker yaz."),
                         TopicCheckItem("prod_caching", "Caching Stratejileri (Memory & Redis)", "In-memory cache, Distributed Redis cache, Cache Invalidation", practiceTask = "StackExchange.Redis kütüphanesiyle ürün listesini Redis'e kaydet (10 dk TTL); yeni ürün eklendiğinde cache'i temizle."),
@@ -495,6 +496,14 @@ object RoadmapDataStore {
                         TopicCheckItem("swe_creational", "Creational Patterns", "Factory Method, Abstract Factory, Builder, Singleton"),
                         TopicCheckItem("swe_structural", "Structural Patterns", "Adapter, Decorator, Facade, Proxy"),
                         TopicCheckItem("swe_behavioral", "Behavioral Patterns", "Strategy, Observer, Command, Chain of Responsibility")
+                    )
+                ),
+                TopicSection(
+                    title = "TEST KÜLTÜRÜ & KALİTE",
+                    emoji = "🧪",
+                    items = listOf(
+                        TopicCheckItem("swe_test_pyramid", "Test Piramidi & Test Türleri", "Unit Test, Integration Test ve E2E Test dengesi, piramit kuralı ve ROI dengesi", practiceTask = "Geliştirdiğin bir projede hangi mantıkların Unit Test, hangilerinin Integration Test ile kapsanması gerektiğini analiz et."),
+                        TopicCheckItem("swe_unit_principles", "Unit Test & AAA Pattern", "Arrange-Act-Assert kalıbı, bağımsız/hızlı testler, Mock vs Stub ayrımı", practiceTask = "Temel bir hesaplama/iş mantığı fonksiyonu seçip AAA (Arrange-Act-Assert) pattern uygulayarak izole unit testini yaz.")
                     )
                 )
             )
