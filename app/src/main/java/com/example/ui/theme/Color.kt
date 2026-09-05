@@ -18,6 +18,7 @@ val AccentPurple = Color(0xFFA855F7)       // Purple-500
 val AccentViolet = Color(0xFFC084FC)
 val AccentAmber = Color(0xFFF59E0B)        // Amber-500 for XP & Badges
 val AccentGold = Color(0xFFFBBF24)         // Amber-400 for Achievement Crowns
+val AccentEmerald = Color(0xFF10B981)      // Emerald-500 for completion
 
 
 // Status Colors (Matching Elegant Dark badges & completion tags)

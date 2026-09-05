@@ -1,14 +1,78 @@
 package com.example.ui.components.school
 
+enum class AttendanceStatus {
+    ATTENDED,   // Katıldı ✅
+    ABSENT,     // Katılmadı (Devamsız) ❌
+    NOT_HELD,   // Tatil / Ders Yapılmadı ⏸️
+    PENDING     // Beklemede ⚪
+}
+
+data class CourseAttendanceWeek(
+    val weekNumber: Int,
+    val label: String,
+    val status: AttendanceStatus = AttendanceStatus.PENDING,
+    val note: String = ""
+)
+
+data class GradeWeights(
+    val midtermWeight: Int = 30,          // %30 varsayılan
+    val secondAssessmentWeight: Int = 20, // %20 varsayılan
+    val finalWeight: Int = 50             // %50 varsayılan
+)
+
 data class SchoolCourse(
     val id: String,
     val code: String,
     val name: String,
     val credits: Int,
     val semester: String,
-    val grade: String = "Devam Ediyor",
+    val midtermGrade: Double? = null,
+    val secondAssessmentGrade: Double? = null,
+    val finalGrade: Double? = null,
+    val weights: GradeWeights = GradeWeights(),
+    val letterGrade: String = "Devam",
+    val maxAbsenceWeeks: Int = 4,
+    val attendance: List<CourseAttendanceWeek> = defaultAttendanceWeeks(),
     val isCompleted: Boolean = false
-)
+) {
+    val calculatedAverage: Double?
+        get() {
+            var totalWeight = 0
+            var weightedSum = 0.0
+            midtermGrade?.let {
+                weightedSum += it * weights.midtermWeight
+                totalWeight += weights.midtermWeight
+            }
+            secondAssessmentGrade?.let {
+                weightedSum += it * weights.secondAssessmentWeight
+                totalWeight += weights.secondAssessmentWeight
+            }
+            finalGrade?.let {
+                weightedSum += it * weights.finalWeight
+                totalWeight += weights.finalWeight
+            }
+            return if (totalWeight > 0) weightedSum / totalWeight else null
+        }
+
+    val absentCount: Int
+        get() = attendance.count { it.status == AttendanceStatus.ABSENT }
+
+    val attendedCount: Int
+        get() = attendance.count { it.status == AttendanceStatus.ATTENDED }
+}
+
+fun defaultAttendanceWeeks(): List<CourseAttendanceWeek> {
+    return (1..16).map { week ->
+        val label = when (week) {
+            in 1..7 -> "Hafta $week (Vize Öncesi)"
+            8 -> "Hafta 8 (🎯 Vize Haftası)"
+            in 9..15 -> "Hafta $week (Vize Sonrası)"
+            16 -> "Hafta 16 (🏁 Final Haftası)"
+            else -> "Hafta $week"
+        }
+        CourseAttendanceWeek(weekNumber = week, label = label)
+    }
+}
 
 data class TrackedBook(
     val id: String,
