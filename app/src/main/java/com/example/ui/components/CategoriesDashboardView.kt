@@ -10,7 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.BranchId
 import com.example.data.model.EngineeringProject
 import com.example.data.model.SkillNode
+import com.example.ui.components.school.SchoolHubView
 import com.example.ui.theme.*
 
 data class CategoryMeta(
@@ -41,6 +42,16 @@ fun CategoriesDashboardView(
     modifier: Modifier = Modifier,
     onCategorySelected: (CategoryMeta) -> Unit = {}
 ) {
+    var activeCategory by remember { mutableStateOf<String?>(null) }
+
+    if (activeCategory == "cat_school") {
+        SchoolHubView(
+            onBackToCategories = { activeCategory = null },
+            modifier = modifier
+        )
+        return
+    }
+
     val categories = listOf(
         CategoryMeta(
             id = "cat_school",
@@ -133,7 +144,13 @@ fun CategoriesDashboardView(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
                     .border(1.dp, BorderSubtle, RoundedCornerShape(14.dp))
-                    .clickable { onCategorySelected(cat) },
+                    .clickable {
+                        if (cat.id == "cat_school") {
+                            activeCategory = "cat_school"
+                        } else {
+                            onCategorySelected(cat)
+                        }
+                    },
                 colors = CardDefaults.cardColors(containerColor = PanelNavyElevated)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
