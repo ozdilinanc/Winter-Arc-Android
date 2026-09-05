@@ -42,7 +42,6 @@ fun SchoolBooksView(
 ) {
     var books by remember { mutableStateOf(defaultTrackedBooks()) }
     var selectedBookId by remember { mutableStateOf<String?>(null) }
-    var selectedStatusFilter by remember { mutableStateOf<BookReadingStatus?>(null) }
     var editingBookId by remember { mutableStateOf<String?>(null) }
     var pageInputText by remember { mutableStateOf("") }
 
@@ -111,10 +110,6 @@ fun SchoolBooksView(
         )
     } else {
         // Main Books Catalog View
-        val filteredBooks = remember(books, selectedStatusFilter) {
-            if (selectedStatusFilter == null) books
-            else books.filter { it.status == selectedStatusFilter }
-        }
 
         // Global statistics
         val totalBooksCount = books.size
@@ -277,41 +272,8 @@ fun SchoolBooksView(
                 }
             }
 
-            // Filter Chips Row
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    FilterChipButton(
-                        label = "Tümü (${books.size})",
-                        isSelected = selectedStatusFilter == null,
-                        onClick = { selectedStatusFilter = null },
-                        modifier = Modifier.weight(1f)
-                    )
-                    FilterChipButton(
-                        label = "Okunuyor",
-                        isSelected = selectedStatusFilter == BookReadingStatus.READING,
-                        onClick = { selectedStatusFilter = BookReadingStatus.READING },
-                        modifier = Modifier.weight(1.1f)
-                    )
-                    FilterChipButton(
-                        label = "Bitti",
-                        isSelected = selectedStatusFilter == BookReadingStatus.COMPLETED,
-                        onClick = { selectedStatusFilter = BookReadingStatus.COMPLETED },
-                        modifier = Modifier.weight(0.9f)
-                    )
-                    FilterChipButton(
-                        label = "Başlanmadı",
-                        isSelected = selectedStatusFilter == BookReadingStatus.NOT_STARTED,
-                        onClick = { selectedStatusFilter = BookReadingStatus.NOT_STARTED },
-                        modifier = Modifier.weight(1.2f)
-                    )
-                }
-            }
-
             // Book Cards
-            items(filteredBooks, key = { it.id }) { book ->
+            items(books, key = { it.id }) { book ->
                 BookCatalogCard(
                     book = book,
                     onOpenDetail = { selectedBookId = book.id },
@@ -432,37 +394,6 @@ private fun StatItem(
     }
 }
 
-@Composable
-private fun FilterChipButton(
-    label: String,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        shape = RoundedCornerShape(8.dp),
-        color = if (isSelected) AccentCyan else PanelNavyElevated,
-        border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            if (isSelected) AccentCyan else BorderSubtle
-        ),
-        modifier = modifier.clickable { onClick() }
-    ) {
-        Box(
-            modifier = Modifier.padding(vertical = 7.dp, horizontal = 4.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                    color = if (isSelected) Color.White else TextSecondary,
-                    fontSize = 11.sp
-                )
-            )
-        }
-    }
-}
 
 @Composable
 private fun BookCatalogCard(
