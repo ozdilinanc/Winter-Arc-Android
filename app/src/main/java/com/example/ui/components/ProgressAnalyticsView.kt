@@ -33,8 +33,8 @@ fun ProgressAnalyticsView(
     modifier: Modifier = Modifier
 ) {
     val xp = uiState.userXp
-    val progressToNextLevel = if (xp.xpToNextLevel > 0) {
-        xp.currentLevelXp.toFloat() / xp.xpToNextLevel.toFloat()
+    val progressToNextLevel = if (xp.xpForNextLevel > 0) {
+        xp.currentLevelXp.toFloat() / xp.xpForNextLevel.toFloat()
     } else 1f
 
     LazyColumn(
@@ -113,7 +113,7 @@ fun ProgressAnalyticsView(
                                     )
                                 )
                                 Text(
-                                    text = xp.levelTitle,
+                                    text = xp.rankTitle,
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         fontWeight = FontWeight.Bold,
                                         color = TextPrimary
@@ -155,7 +155,7 @@ fun ProgressAnalyticsView(
                             )
                         )
                         Text(
-                            text = "${xp.currentLevelXp} / ${xp.xpToNextLevel} XP",
+                            text = "${xp.currentLevelXp} / ${xp.xpForNextLevel} XP",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 color = TextSecondary,
                                 fontWeight = FontWeight.SemiBold,
