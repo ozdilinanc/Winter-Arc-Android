@@ -1,0 +1,6 @@
+{
+  "name": "SkillTree",
+  "description": "Personal software engineering skill-tree and interactive knowledge roadmap dashboard for computer engineering students.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
