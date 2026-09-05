@@ -167,12 +167,12 @@ fun SchoolHubView(
                 // Option 2: Bitirme Projesi
                 item {
                     SchoolOptionCard(
-                        emoji = "🔬",
+                        emoji = "🎓",
                         title = "Bitirme Projesi",
-                        subtitle = "LLM KV Cache & v-Attention Optimizasyonu",
-                        description = "Sistem araştırması, C++ çekirdek geliştirme, benchmarklar ve tez yazım aşamaları.",
-                        tag = "Tez & Araştırma",
-                        accentColor = BranchGraduation,
+                        subtitle = "Mezuniyet & Araştırma Projesi",
+                        description = "Proje konusu, danışman bilgisi, sistem mimarisi ve tez adımları daha sonra belirlenecektir.",
+                        tag = "Sonradan Eklenecek",
+                        accentColor = AccentAmber,
                         onClick = { currentSubScreen = SchoolSubScreen.GRADUATION_PROJECT }
                     )
                 }
