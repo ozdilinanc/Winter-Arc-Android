@@ -1,11 +1,44 @@
 package com.example.data.model
 
+enum class TopicProgressState(
+    val key: String,
+    val label: String,
+    val shortLabel: String,
+    val emoji: String,
+    val weight: Float
+) {
+    NOT_STARTED("not_started", "Başlanmadı", "Başlanmadı", "⚪", 0f),
+    THEORY("theory", "Teori Tamam", "Teori", "📘", 0.35f),
+    PRACTICED("practiced", "Pratik Yapıldı", "Pratik", "🛠️", 0.70f),
+    COMPLETED("completed", "Tamamlandı", "Tamamlandı", "✅", 1.0f);
+
+    fun next(): TopicProgressState = when (this) {
+        NOT_STARTED -> THEORY
+        THEORY -> PRACTICED
+        PRACTICED -> COMPLETED
+        COMPLETED -> NOT_STARTED
+    }
+
+    companion object {
+        fun fromKey(key: String?): TopicProgressState {
+            if (key.isNullOrBlank()) return NOT_STARTED
+            return entries.find { it.key.equals(key, ignoreCase = true) || it.name.equals(key, ignoreCase = true) } ?: NOT_STARTED
+        }
+    }
+}
+
 data class TopicCheckItem(
     val id: String,
     val title: String,
     val description: String = "",
-    val isCompleted: Boolean = false
-)
+    val isCompleted: Boolean = false,
+    val practiceTask: String = ""
+) {
+    fun effectivePracticeTask(): String {
+        if (practiceTask.isNotBlank()) return practiceTask
+        return "$title konusunu pekiştirmek için mini bir sandbox projesi veya test senaryosu kodla."
+    }
+}
 
 data class TopicSection(
     val title: String,
@@ -41,100 +74,100 @@ object RoadmapDataStore {
                     title = "PROGRAMLAMA (C#)",
                     emoji = "💻",
                     items = listOf(
-                        TopicCheckItem("cs_syntax", "C# Temel Sözdizimi (Syntax)", "Veri tipleri, değişkenler, operatörler ve kontrol yapıları"),
-                        TopicCheckItem("cs_oop", "OOP (Nesne Yönelimli Programlama)", "Encapsulation, Inheritance, Polymorphism, Abstraction"),
-                        TopicCheckItem("cs_collections", "Collections & Generic Yapılar", "List, Dictionary, HashSet, IEnumerable, ICollection"),
-                        TopicCheckItem("cs_generics", "Generics & Generic Constraints", "Type-safe kod yazımı, where T : class/struct"),
-                        TopicCheckItem("cs_linq", "LINQ (Language Integrated Query)", "Select, Where, GroupBy, SelectMany, Any, All"),
-                        TopicCheckItem("cs_async", "Async / Await & Concurrency", "Task, Task<T>, ThreadPool, ConfigureAwait, deadlock önleme"),
-                        TopicCheckItem("cs_delegates", "Delegates & Events", "Action, Func, Predicate, EventHandler pratikleri"),
-                        TopicCheckItem("cs_exceptions", "Exception Handling", "try-catch-finally, custom exception sınıfları"),
-                        TopicCheckItem("cs_memory", "Memory & GC (Garbage Collector) Mantığı", "Stack vs Heap, Value vs Reference types, IDisposable")
+                        TopicCheckItem("cs_syntax", "C# Temel Sözdizimi (Syntax)", "Veri tipleri, değişkenler, operatörler ve kontrol yapıları", practiceTask = "Pattern matching (switch expression) ve record tipleri kullanarak immutable sipariş modeli ve indirim hesaplayıcı kodla."),
+                        TopicCheckItem("cs_oop", "OOP (Nesne Yönelimli Programlama)", "Encapsulation, Inheritance, Polymorphism, Abstraction", practiceTask = "IPaymentProcessor arayüzü tanımlayıp CreditCardPayment ve CryptoPayment sınıfları üzerinden polymorphism ve dependency inversion uygula."),
+                        TopicCheckItem("cs_collections", "Collections & Generic Yapılar", "List, Dictionary, HashSet, IEnumerable, ICollection", practiceTask = "100.000 kayıtlık bir veri kümesinde List.Contains vs HashSet.Contains arama sürelerini Stopwatch ile ölçüp raporla."),
+                        TopicCheckItem("cs_generics", "Generics & Generic Constraints", "Type-safe kod yazımı, where T : class/struct", practiceTask = "IRepository<TEntity, TId> where TEntity : BaseEntity generic sözleşmesini ve generic GetAll/GetById metodlarını yaz."),
+                        TopicCheckItem("cs_linq", "LINQ (Language Integrated Query)", "Select, Where, GroupBy, SelectMany, Any, All", practiceTask = "Müşteri ve sipariş listesi üzerinde GroupBy, SelectMany ve Sum kullanarak müşteri bazlı harcama raporu çıkaran LINQ sorgusu yaz."),
+                        TopicCheckItem("cs_async", "Async / Await & Concurrency", "Task, Task<T>, ThreadPool, ConfigureAwait, deadlock önleme", practiceTask = "3 farklı web servisine paralel istek atan, CancellationTokenSource(3000) ile timeout korumalı koşan Task.WhenAll metodu yaz."),
+                        TopicCheckItem("cs_delegates", "Delegates & Events", "Action, Func, Predicate, EventHandler pratikleri", practiceTask = "Action ve Func parametresi alan, verilen bir metodun çalışma süresini loglayan yüksek mertebeden ExecutionTimer sarmalayıcısı yaz."),
+                        TopicCheckItem("cs_exceptions", "Exception Handling", "try-catch-finally, custom exception sınıfları", practiceTask = "NotFoundException ve ValidationException özel sınıflarını yaz; hata durumunda hassas StackTrace sızdırmayan akış oluştur."),
+                        TopicCheckItem("cs_memory", "Memory & GC (Garbage Collector) Mantığı", "Stack vs Heap, Value vs Reference types, IDisposable", practiceTask = "IDisposable ve Dispose(bool) modelini kullanarak unmanaged dosya akışını (FileStream) güvenle serbest bırakan sınıf tasarla.")
                     )
                 ),
                 TopicSection(
                     title = "ASP.NET CORE",
                     emoji = "🌐",
                     items = listOf(
-                        TopicCheckItem("asp_http_rest", "HTTP Protokolü & RESTful İlkeler", "HTTP metodları (GET, POST, PUT, DELETE), Status kodları"),
-                        TopicCheckItem("asp_api_design", "API Tasarımı & Endpoint Hijyeni", "Resource isimlendirme, URI versiyonlama, standart response formatları"),
-                        TopicCheckItem("asp_controllers", "Controllers & Minimal APIs", "ControllerBase, ActionResults, Endpoint routing"),
-                        TopicCheckItem("asp_middleware", "Middleware Pipeline Mantığı", "Custom middleware yazımı, Request/Response akışı"),
-                        TopicCheckItem("asp_di", "Dependency Injection (DI)", "Transient, Scoped, Singleton yaşam döngüleri"),
-                        TopicCheckItem("asp_config", "Configuration & AppSettings", "IOptions<T> pattern, environment değişkenleri"),
-                        TopicCheckItem("asp_routing", "Routing & Model Binding", "Route constraints, FromRoute, FromQuery, FromBody"),
-                        TopicCheckItem("asp_validation", "Validation (FluentValidation)", "Model validasyonu, custom validator sınıfları"),
-                        TopicCheckItem("asp_serialization", "Serialization (System.Text.Json)", "JSON serializer options, converter'lar"),
-                        TopicCheckItem("asp_errors", "Global Error & Exception Handling", "ProblemDetails, IExceptionHandler, global middleware"),
-                        TopicCheckItem("asp_logging", "Logging (Serilog / ILogger)", "Structured logging, log seviyeleri (Info, Warn, Error)"),
-                        TopicCheckItem("asp_swagger", "Swagger / OpenAPI Dokümantasyonu", "Swashbuckle, XML comments, API test arayüzü"),
-                        TopicCheckItem("asp_versioning", "API Sürümleme (Asp.Versioning)", "URL, Query veya Header tabanlı API versiyonlama (v1, v2) ve geriye uyumluluk"),
-                        TopicCheckItem("asp_signalr", "Real-Time İletişim (SignalR)", "Hub mimarisi, gruplar, WebSockets/SSE fallback ve anlık canlı bildirimler")
+                        TopicCheckItem("asp_http_rest", "HTTP Protokolü & RESTful İlkeler", "HTTP metodları (GET, POST, PUT, DELETE), Status kodları", practiceTask = "REST kurallarına tam uyan CRUD endpoint'leri hazırla; POST isteğinde 201 Created ve Location header dön."),
+                        TopicCheckItem("asp_api_design", "API Tasarımı & Endpoint Hijyeni", "Resource isimlendirme, URI versiyonlama, standart response formatları", practiceTask = "Tüm API yanıtlarını sarmalayan standart ApiResponse<T> (Data, Success, Errors) formatı ve /api/v1/ prefix yapısı kur."),
+                        TopicCheckItem("asp_controllers", "Controllers & Minimal APIs", "ControllerBase, ActionResults, Endpoint routing", practiceTask = "Tek bir Program.cs dosyası içinde app.MapGroup(\"/api/products\") ile Minimal API endpoint'leri yaz."),
+                        TopicCheckItem("asp_middleware", "Middleware Pipeline Mantığı", "Custom middleware yazımı, Request/Response akışı", practiceTask = "Gelen her isteğe X-Correlation-Id header'ı ekleyen ve response süresini loglayan custom middleware yaz."),
+                        TopicCheckItem("asp_di", "Dependency Injection (DI)", "Transient, Scoped, Singleton yaşam döngüleri", practiceTask = "Transient, Scoped ve Singleton servisler enjekte et; tek bir HTTP isteği içinde GUID değerlerinin nasıl değiştiğini logla."),
+                        TopicCheckItem("asp_config", "Configuration & AppSettings", "IOptions<T> pattern, environment değişkenleri", practiceTask = "appsettings.json'daki JwtSettings bölümünü IOptionsSnapshot<JwtSettings> ile strongly-typed olarak servise inject et."),
+                        TopicCheckItem("asp_routing", "Routing & Model Binding", "Route constraints, FromRoute, FromQuery, FromBody", practiceTask = "Route constraint ({id:int:min(1)}) ve FromQuery/FromBody model bağlayıcılarını içeren gelişmiş arama endpoint'i aç."),
+                        TopicCheckItem("asp_validation", "Validation (FluentValidation)", "Model validasyonu, custom validator sınıfları", practiceTask = "CreateUserRequest için FluentValidation ile şifre karmaşıklığı ve e-posta kontrolü yaz; geçersiz veride 400 Bad Request dön."),
+                        TopicCheckItem("asp_serialization", "Serialization (System.Text.Json)", "JSON serializer options, converter'lar", practiceTask = "DateTime için custom JsonConverter yazarak tarihleri 'yyyy-MM-dd HH:mm' formatında serileştir."),
+                        TopicCheckItem("asp_errors", "Global Error & Exception Handling", "ProblemDetails, IExceptionHandler, global middleware", practiceTask = "IExceptionHandler (ASP.NET 8) implemente ederek RFC 7807 ProblemDetails formatında hata dönen global handler yaz."),
+                        TopicCheckItem("asp_logging", "Logging (Serilog / ILogger)", "Structured logging, log seviyeleri (Info, Warn, Error)", practiceTask = "Serilog'u yapılandırıp logları hem konsola hem de structured JSON formatında dosyaya yönlendir."),
+                        TopicCheckItem("asp_swagger", "Swagger / OpenAPI Dokümantasyonu", "Swashbuckle, XML comments, API test arayüzü", practiceTask = "Swagger UI'a JWT Bearer auth desteği ekle ve XML comments (summary) ile dokümantasyonu zenginleştir."),
+                        TopicCheckItem("asp_versioning", "API Sürümleme (Asp.Versioning)", "URL, Query veya Header tabanlı API versiyonlama (v1, v2) ve geriye uyumluluk", practiceTask = "Asp.Versioning.Http ile v1.0 ve v2.0 endpoint'leri aç; v2'de response modeline yeni bir alan ekleyip geriye uyumluluğu koru."),
+                        TopicCheckItem("asp_signalr", "Real-Time İletişim (SignalR)", "Hub mimarisi, gruplar, WebSockets/SSE fallback ve anlık canlı bildirimler", practiceTask = "NotificationHub açarak istemcilerin gruplara katıldığı ve gruba anlık bildirim fırlatan canlı akış kodla.")
                     )
                 ),
                 TopicSection(
                     title = "DATABASE & EF CORE",
                     emoji = "🗄️",
                     items = listOf(
-                        TopicCheckItem("db_sql", "SQL Temelleri & Sorgu Yetkinliği", "SELECT, JOIN, Aggregations, Subqueries"),
-                        TopicCheckItem("db_postgres", "PostgreSQL Yönetimi", "PostgreSQL veri tipleri, sequence'lar, psql kullanımı"),
-                        TopicCheckItem("db_design", "Database Tasarımı & Modelleme", "Tablo ilişkileri (1-1, 1-N, N-N), Foreign Keys"),
-                        TopicCheckItem("db_normalization", "Normalizasyon (1NF, 2NF, 3NF)", "Veri tekrarını önleme, tutarlı şema tasarımı"),
-                        TopicCheckItem("db_indexes", "İndeksleme & Sorgu Optimizasyonu", "B-tree index, Composite index, EXPLAIN ANALYZE"),
-                        TopicCheckItem("db_transactions", "Transactions & ACID Prensipleri", "Atomicity, Consistency, Isolation, Durability"),
-                        TopicCheckItem("db_concurrency", "Concurrency & Isolation Seviyeleri", "Read Committed, Serializable, Optimistic/Pessimistic Locking"),
-                        TopicCheckItem("db_efcore", "Entity Framework Core (EF Core)", "DbContext, DbSet, Fluent API konfigürasyonu"),
-                        TopicCheckItem("db_migrations", "EF Core Migrations", "dotnet ef migrations add, database update pratikleri"),
-                        TopicCheckItem("db_tracking", "Change Tracker & AsNoTracking", "Performans için AsNoTracking kullanımı, entity state"),
-                        TopicCheckItem("db_linq_sql", "LINQ ➔ SQL Mantığı (Expression Trees)", "IQueryable vs IEnumerable, N+1 problemi & AsSplitQuery"),
-                        TopicCheckItem("db_dapper", "Dapper & Hibrit Veri Erişimi", "Mikro-ORM kullanımı, yüksek performanslı SELECT sorguları, EF Core + Dapper hibrit mimari"),
-                        TopicCheckItem("db_advanced_ef", "Global Query Filters & Interceptors", "Soft Delete filtreleri, Audit Trail (Created/Updated By/At) ve SaveChanges Interceptor")
+                        TopicCheckItem("db_sql", "SQL Temelleri & Sorgu Yetkinliği", "SELECT, JOIN, Aggregations, Subqueries", practiceTask = "PostgreSQL'de INNER JOIN, LEFT JOIN ve HAVING içeren 3 tabloluk analitik bir SQL sorgusu yaz ve çalıştır."),
+                        TopicCheckItem("db_postgres", "PostgreSQL Yönetimi", "PostgreSQL veri tipleri, sequence'lar, psql kullanımı", practiceTask = "Docker üzerinde PostgreSQL container'ı ayağa kaldırıp psql veya DBeaver ile bağlan ve yeni database oluştur."),
+                        TopicCheckItem("db_design", "Database Tasarımı & Modelleme", "Tablo ilişkileri (1-1, 1-N, N-N), Foreign Keys", practiceTask = "E-ticaret için User, Order, OrderItem, Product tablolarını foreign key ve cascade kurallarıyla modelle."),
+                        TopicCheckItem("db_normalization", "Normalizasyon (1NF, 2NF, 3NF)", "Veri tekrarını önleme, tutarlı şema tasarımı", practiceTask = "Tek tabloda tutulan müşteri ve sipariş verilerini 3. Normal Form'a (3NF) ayrıştırarak ilişkisel şema çıkar."),
+                        TopicCheckItem("db_indexes", "İndeksleme & Sorgu Optimizasyonu", "B-tree index, Composite index, EXPLAIN ANALYZE", practiceTask = "100.000 kayıt içeren tabloda filtre kolonuna Composite B-tree Index ekle; EXPLAIN ANALYZE ile sorgu süresi farkını gözlemle."),
+                        TopicCheckItem("db_transactions", "Transactions & ACID Prensipleri", "Atomicity, Consistency, Isolation, Durability", practiceTask = "Banka havalesi senaryosunda iki bakiye güncellemesini BeginTransactionAsync ve CommitAsync ile atomik yap; hata olursa Rollback yap."),
+                        TopicCheckItem("db_concurrency", "Concurrency & Isolation Seviyeleri", "Read Committed, Serializable, Optimistic/Pessimistic Locking", practiceTask = "EF Core'da [Timestamp] attribute ile Optimistic Concurrency kontrolü yap ve çakışma anında DbUpdateConcurrencyException yakala."),
+                        TopicCheckItem("db_efcore", "Entity Framework Core (EF Core)", "DbContext, DbSet, Fluent API konfigürasyonu", practiceTask = "DbContext içinde Fluent API (modelBuilder) kullanarak 1-N ve N-N ilişkileri ve required alanları yapılandır."),
+                        TopicCheckItem("db_migrations", "EF Core Migrations", "dotnet ef migrations add, database update pratikleri", practiceTask = "dotnet ef migrations add InitialCreate ve dotnet ef database update komutlarıyla şemayı PostgreSQL'e yansıt."),
+                        TopicCheckItem("db_tracking", "Change Tracker & AsNoTracking", "Performans için AsNoTracking kullanımı, entity state", practiceTask = "Sadece okuma yapılan sorgularda AsNoTracking() kullanarak bellek ve işlemci tasarrufunu gözlemle."),
+                        TopicCheckItem("db_linq_sql", "LINQ ➔ SQL Mantığı (Expression Trees)", "IQueryable vs IEnumerable, N+1 problemi & AsSplitQuery", practiceTask = "Include() ile alt koleksiyon çekerken oluşan N+1 sorgusunu veya Cartesian patlamayı AsSplitQuery() kullanarak çöz."),
+                        TopicCheckItem("db_dapper", "Dapper & Hibrit Veri Erişimi", "Mikro-ORM kullanımı, yüksek performanslı SELECT sorguları, EF Core + Dapper hibrit mimari", practiceTask = "EF Core DbContext ile Dapper IDbConnection'ı aynı projede kullan; yoğun bir liste sorgusunu Dapper QueryAsync ile çek."),
+                        TopicCheckItem("db_advanced_ef", "Global Query Filters & Interceptors", "Soft Delete filtreleri, Audit Trail (Created/Updated By/At) ve SaveChanges Interceptor", practiceTask = "Soft Delete için IsDeleted global query filter ekle; SaveChangesInterceptor ile CreatedAt ve UpdatedAt değerlerini otomatik doldur.")
                     )
                 ),
                 TopicSection(
                     title = "MİMARİ & YAZILIM TASARIMI",
                     emoji = "🏛️",
                     items = listOf(
-                        TopicCheckItem("arch_solid", "SOLID Prensipleri", "Single Responsibility, Open-Closed, Liskov, Interface Segregation, Dependency Inversion"),
-                        TopicCheckItem("arch_layered", "Katmanlı Mimari (N-Tier)", "Presentation, Business, Data Access katmanları"),
-                        TopicCheckItem("arch_clean", "Clean Architecture", "Domain, Application, Infrastructure, Presentation ayrımı"),
-                        TopicCheckItem("arch_onion", "Onion Architecture", "Core domain merkezli bağımlılık yönü (Inward Dependency)"),
-                        TopicCheckItem("arch_cqrs_mediatr", "CQRS & MediatR", "Command ve Query ayrımı, IRequest<T>, IRequestHandler ve MediatR Pipeline Behaviors"),
-                        TopicCheckItem("arch_result_pattern", "Result Pattern (ErrorOr / FluentResults)", "İş mantığında throw Exception yerine Result<T> dönme, tip güvenli hata yönetimi"),
-                        TopicCheckItem("arch_repo_service", "Repository & Service Pattern", "Generic repository, iş mantığının servislere izolasyonu"),
-                        TopicCheckItem("arch_dto", "DTO & AutoMapper/Mapster", "Entity - DTO dönüşümleri, domain nesnelerini dışarı açmama"),
-                        TopicCheckItem("arch_mapping", "Modern Mapping: Mapster / Mapperly", "AutoMapper yerine modern Source Generator (Mapperly) ve Mapster ile DTO projeksiyonları"),
-                        TopicCheckItem("arch_patterns", "Design Patterns (GoF)", "Factory, Strategy, Singleton, Decorator, Mediator"),
-                        TopicCheckItem("arch_domain", "Domain Mantığı & Zengin Modeller", "Anemic domain modelden kaçınma, iş kuralları"),
-                        TopicCheckItem("arch_testability", "Test Edilebilir Kod Tasarımı", "Mocking (Moq/NSubstitute), bağımlılıkların soyutlanması")
+                        TopicCheckItem("arch_solid", "SOLID Prensipleri", "Single Responsibility, Open-Closed, Liskov, Interface Segregation, Dependency Inversion", practiceTask = "Liskov Substitution ve Interface Segregation ihlali barındıran spagetti bir kod parçasını SOLID'e uygun şekilde refactor et."),
+                        TopicCheckItem("arch_layered", "Katmanlı Mimari (N-Tier)", "Presentation, Business, Data Access katmanları", practiceTask = "Presentation, Service ve Data Access katmanlarını barındıran temiz bir N-Tier proje iskeleti kur."),
+                        TopicCheckItem("arch_clean", "Clean Architecture", "Domain, Application, Infrastructure, Presentation ayrımı", practiceTask = "Domain, Application, Infrastructure ve WebApi projelerini kur; bağımlılık yönünün Domain merkezli olduğunu doğrula."),
+                        TopicCheckItem("arch_onion", "Onion Architecture", "Core domain merkezli bağımlılık yönü (Inward Dependency)", practiceTask = "Domain modelini çekirdeğe alıp veritabanı bağımlılığını Infrastructure katmanına taşıyarak Inward Dependency kuralını sağla."),
+                        TopicCheckItem("arch_cqrs_mediatr", "CQRS & MediatR", "Command ve Query ayrımı, IRequest<T>, IRequestHandler ve MediatR Pipeline Behaviors", practiceTask = "CreateProductCommand ve GetProductsQuery için MediatR handler ve FluentValidation pipeline behavior yaz."),
+                        TopicCheckItem("arch_result_pattern", "Result Pattern (ErrorOr / FluentResults)", "İş mantığında throw Exception yerine Result<T> dönme, tip güvenli hata yönetimi", practiceTask = "ErrorOr kütüphanesiyle exception fırlatmak yerine ErrorOr<User> dön ve controller'da Match() ile tip güvenli karşıla."),
+                        TopicCheckItem("arch_repo_service", "Repository & Service Pattern", "Generic repository, iş mantığının servislere izolasyonu", practiceTask = "Generic IRepository yerine entity'ye özel IOrderRepository yaz; iş mantığını OrderService içinde topla."),
+                        TopicCheckItem("arch_dto", "DTO & AutoMapper/Mapster", "Entity - DTO dönüşümleri, domain nesnelerini dışarı açmama", practiceTask = "AutoMapper veya Mapster ile Entity -> DTO profil eşlemesi oluştur; hassas parola alanının dışarı sızmasını engelle."),
+                        TopicCheckItem("arch_mapping", "Modern Mapping: Mapster / Mapperly", "AutoMapper yerine modern Source Generator (Mapperly) ve Mapster ile DTO projeksiyonları", practiceTask = "Source generator tabanlı Mapperly ile derleme zamanında type-safe DTO mapping sınıfı oluştur."),
+                        TopicCheckItem("arch_patterns", "Design Patterns (GoF)", "Factory, Strategy, Singleton, Decorator, Mediator", practiceTask = "Ödeme sağlayıcıları (Stripe, Iyzico) için Strategy Pattern veya bildirim göndericileri için Factory Pattern uygula."),
+                        TopicCheckItem("arch_domain", "Domain Mantığı & Zengin Modeller", "Anemic domain modelden kaçınma, iş kuralları", practiceTask = "Anemic modeldeki public setter'ları private yap; entity içine DeactivateUser() ve UpdateEmail() domain metodları ekle."),
+                        TopicCheckItem("arch_testability", "Test Edilebilir Kod Tasarımı", "Mocking (Moq/NSubstitute), bağımlılıkların soyutlanması", practiceTask = "Moq kullanarak UserService.Register() metoduna unit test yaz; e-posta servisinin tam bir kez çağrıldığını Verify et.")
                     )
                 ),
                 TopicSection(
                     title = "AUTH & GÜVENLİK",
                     emoji = "🔐",
                     items = listOf(
-                        TopicCheckItem("sec_authn_authz", "Authentication vs Authorization", "Kimlik doğrulama ile yetkilendirme farkı"),
-                        TopicCheckItem("sec_jwt", "JWT (JSON Web Token)", "Header, Payload, Signature, Access & Refresh Token döngüsü"),
-                        TopicCheckItem("sec_password", "Password Hashing (BCrypt / Argon2)", "Salt, hash maliyet faktörü, güvenli parola saklama"),
-                        TopicCheckItem("sec_roles_claims", "Roles & Claims-Based Authorization", "Policy tabanlı yetkilendirme, [Authorize(Policy = ...)]"),
-                        TopicCheckItem("sec_oauth", "OAuth2 & OpenID Connect Temelleri", "Token exchange, SSO ve üçüncü parti giriş mantığı"),
-                        TopicCheckItem("sec_cors_https", "CORS & HTTPS Güvenliği", "Allowed origins, headers, SSL/TLS sertifikaları"),
-                        TopicCheckItem("sec_vulns", "Genel Güvenlik Açıkları (OWASP)", "SQL Injection, XSS, CSRF, Mass Assignment önleme")
+                        TopicCheckItem("sec_authn_authz", "Authentication vs Authorization", "Kimlik doğrulama ile yetkilendirme farkı", practiceTask = "Anonim erişime açık /login endpoint'i ile [Authorize] yetkisi gerektiren /profile endpoint'inin farkını doğrula."),
+                        TopicCheckItem("sec_jwt", "JWT (JSON Web Token)", "Header, Payload, Signature, Access & Refresh Token döngüsü", practiceTask = "HMAC-SHA256 ile sign edilen Access Token (15 dk) ve Refresh Token (7 gün) üreten TokenService yaz."),
+                        TopicCheckItem("sec_password", "Password Hashing (BCrypt / Argon2)", "Salt, hash maliyet faktörü, güvenli parola saklama", practiceTask = "BCrypt.Net kütüphanesiyle şifre hashleme ve şifre doğrulama (BCrypt.Verify) fonksiyonu yaz."),
+                        TopicCheckItem("sec_roles_claims", "Roles & Claims-Based Authorization", "Policy tabanlı yetkilendirme, [Authorize(Policy = ...)]", practiceTask = "RequireClaim(\"department\", \"IT\") kuralı içeren özel bir Authorization Policy tanımla ve controller'a bağla."),
+                        TopicCheckItem("sec_oauth", "OAuth2 & OpenID Connect Temelleri", "Token exchange, SSO ve üçüncü parti giriş mantığı", practiceTask = "Google ile Giriş (Google OAuth2) akışını .NET Authentication middleware ile yapılandır."),
+                        TopicCheckItem("sec_cors_https", "CORS & HTTPS Güvenliği", "Allowed origins, headers, SSL/TLS sertifikaları", practiceTask = "Sadece belirlediğin frontend origin'ine (localhost:3000) izin veren CORS policy yaz ve HSTS'i aktif et."),
+                        TopicCheckItem("sec_vulns", "Genel Güvenlik Açıkları (OWASP)", "SQL Injection, XSS, CSRF, Mass Assignment önleme", practiceTask = "Kullanıcı girdisini raw SQL sorgusuna birleştirmek yerine parameterized query kullanarak SQL Injection açığını kapat.")
                     )
                 ),
                 TopicSection(
                     title = "PRODUCTION-READY BACKEND",
                     emoji = "🚀",
                     items = listOf(
-                        TopicCheckItem("prod_testing", "Unit & Integration Testing (xUnit)", "xUnit, FluentAssertions, WebApplicationFactory"),
-                        TopicCheckItem("prod_logging", "Structured Logging & Serilog", "Kayıtların JSON formatında merkezi log sistemlerine hazır olması"),
-                        TopicCheckItem("prod_bg_jobs", "Background Jobs (Hangfire / IHostedService)", "Zamanlanmış görevler, periyodik veri işleme"),
-                        TopicCheckItem("prod_caching", "Caching Stratejileri (Memory & Redis)", "In-memory cache, Distributed Redis cache, Cache Invalidation"),
-                        TopicCheckItem("prod_resilience", "Dayanıklılık & Polly (Resilience)", "Retry Policy, Circuit Breaker, Timeout ve Microsoft.Extensions.Resilience entegrasyonu"),
-                        TopicCheckItem("prod_rate_limit", "Rate Limiting & Throttling", "API abuse ve DoS saldırılarına karşı istek sınırlama"),
-                        TopicCheckItem("prod_notifications", "E-Posta & Bildirim Dağıtımı (MailKit & FCM)", "MailKit ile SMTP e-posta gönderimi, HTML şablonları (Razor/Fluid) ve Push bildirim servisi"),
-                        TopicCheckItem("prod_storage", "Dosya & Medya Yönetimi (S3 / MinIO)", "IFormFile işleme, S3 / MinIO uyumlu presigned URL yükleme akışı ve dosya doğrulama"),
-                        TopicCheckItem("prod_health", "Health Checks", "Veritabanı ve dış servis sağlık durum kontrolleri (/health)")
+                        TopicCheckItem("prod_testing", "Unit & Integration Testing (xUnit)", "xUnit, FluentAssertions, WebApplicationFactory", practiceTask = "WebApplicationFactory kullanarak /api/products endpoint'ine gerçek HTTP isteği atan integration testi yaz."),
+                        TopicCheckItem("prod_logging", "Structured Logging & Serilog", "Kayıtların JSON formatında merkezi log sistemlerine hazır olması", practiceTask = "Serilog RequestLogging middleware ekleyerek her HTTP isteğinin method, path, status ve süresini JSON log olarak üret."),
+                        TopicCheckItem("prod_bg_jobs", "Background Jobs (Hangfire / IHostedService)", "Zamanlanmış görevler, periyodik veri işleme", practiceTask = "BackgroundService (IHostedService) miras alarak periyodik olarak süresi dolmuş token'ları temizleyen worker yaz."),
+                        TopicCheckItem("prod_caching", "Caching Stratejileri (Memory & Redis)", "In-memory cache, Distributed Redis cache, Cache Invalidation", practiceTask = "StackExchange.Redis kütüphanesiyle ürün listesini Redis'e kaydet (10 dk TTL); yeni ürün eklendiğinde cache'i temizle."),
+                        TopicCheckItem("prod_resilience", "Dayanıklılık & Polly (Resilience)", "Retry Policy, Circuit Breaker, Timeout ve Microsoft.Extensions.Resilience entegrasyonu", practiceTask = "Microsoft.Extensions.Resilience ile dış HTTP servisine 3 tekrarlı exponential backoff Retry ve Circuit Breaker bağla."),
+                        TopicCheckItem("prod_rate_limit", "Rate Limiting & Throttling", "API abuse ve DoS saldırılarına karşı istek sınırlama", practiceTask = "ASP.NET Core RateLimiter middleware ile IP başına dakikada maksimum 60 isteğe izin veren FixedWindow kuralı tanımla."),
+                        TopicCheckItem("prod_notifications", "E-Posta & Bildirim Dağıtımı (MailKit & FCM)", "MailKit ile SMTP e-posta gönderimi, HTML şablonları (Razor/Fluid) ve Push bildirim servisi", practiceTask = "MailKit ile HTML formatında hoş geldin e-postası gönder; Firebase Admin SDK ile FCM push bildirimi fırlat."),
+                        TopicCheckItem("prod_storage", "Dosya & Medya Yönetimi (S3 / MinIO)", "IFormFile işleme, S3 / MinIO uyumlu presigned URL yükleme akışı ve dosya doğrulama", practiceTask = "MinIO container'ı ayağa kaldırıp AWS SDK (S3Client) ile dosya yükleme ve süreli Presigned URL oluşturma akışı yaz."),
+                        TopicCheckItem("prod_health", "Health Checks", "Veritabanı ve dış servis sağlık durum kontrolleri (/health)", practiceTask = "AspNetCore.HealthChecks kütüphanesiyle PostgreSQL ve Redis bağlantılarını kontrol eden /healthz endpoint'i ekle.")
                     )
                 )
             )
@@ -155,49 +188,54 @@ object RoadmapDataStore {
                     title = "CONTAINERS (DOCKER)",
                     emoji = "🐳",
                     items = listOf(
-                        TopicCheckItem("doc_fundamentals", "Docker Temelleri", "Container vs Sanal Makine, Docker daemon, Image vs Container"),
-                        TopicCheckItem("doc_dockerfile", "Dockerfile Yazımı (.NET için)", "Multi-stage build, minimal image boyutları (alpine/chiseled)"),
-                        TopicCheckItem("doc_compose", "Docker Compose", "Çoklu servis orkestrasyonu (.NET + Postgres + Redis + RabbitMQ)"),
-                        TopicCheckItem("doc_volumes", "Volumes & Kalıcı Depolama", "Named volumes, bind mounts, veritabanı verisi saklama"),
-                        TopicCheckItem("doc_networks", "Docker Networks", "Bridge network, container'lar arası DNS ve haberleşme")
+                        TopicCheckItem("doc_fundamentals", "Docker Temelleri", "Container vs Sanal Makine, Docker daemon, Image vs Container", practiceTask = "Terminalden docker run, docker ps, docker stop ve docker logs komutlarıyla bir nginx container'ının yaşam döngüsünü yönet."),
+                        TopicCheckItem("doc_dockerfile", "Dockerfile Yazımı (.NET için)", "Multi-stage build, minimal image boyutları (alpine/chiseled)", practiceTask = ".NET 8 Web API için SDK ve runtime katmanlarını ayıran multi-stage Dockerfile yaz ve image oluştur."),
+                        TopicCheckItem("doc_compose", "Docker Compose", "Çoklu servis orkestrasyonu (.NET + Postgres + Redis + RabbitMQ)", practiceTask = "docker-compose.yml içinde Web API, PostgreSQL, Redis ve RabbitMQ servislerini tek komutla (docker compose up -d) ayağa kaldır."),
+                        TopicCheckItem("doc_volumes", "Volumes & Kalıcı Depolama", "Named volumes, bind mounts, veritabanı verisi saklama", practiceTask = "PostgreSQL verisinin container silinse bile kaybolmaması için docker-compose'da named volume tanımla."),
+                        TopicCheckItem("doc_networks", "Docker Networks", "Bridge network, container'lar arası DNS ve haberleşme", practiceTask = "İki farklı container'ı aynı Docker bridge network'üne bağla ve container adıyla ping atarak DNS çözümlemesini test et.")
                     )
                 ),
                 TopicSection(
                     title = "MESSAGING & QUEUES (RABBITMQ)",
                     emoji = "📨",
                     items = listOf(
-                        TopicCheckItem("msg_concept", "Message Queue Mantığı & Neden?", "Asenkron işleme, servis ayrışması (decoupling), yük dengeleme"),
-                        TopicCheckItem("msg_rabbitmq", "RabbitMQ Çekirdek Kavramları", "Producer, Consumer, Exchange, Queue, Routing Key"),
-                        TopicCheckItem("msg_exchanges", "Exchange Tipleri", "Direct, Topic, Fanout, Headers exchange modelleri"),
-                        TopicCheckItem("msg_retry_dlq", "Retry & Dead Letter Queue (DLQ)", "Hatalı mesajların tekrar denenmesi ve DLQ'ya aktarımı")
+                        TopicCheckItem("msg_concept", "Message Queue Mantığı & Neden?", "Asenkron işleme, servis ayrışması (decoupling), yük dengeleme", practiceTask = "Kullanıcı kayıt olduğunda hoş geldin e-postasını senkron bekletmek yerine kuyruğa atıp asenkron işleten mimariyi tasarla."),
+                        TopicCheckItem("msg_rabbitmq", "RabbitMQ Çekirdek Kavramları", "Producer, Consumer, Exchange, Queue, Routing Key", practiceTask = "RabbitMQ yönetim paneline (localhost:15672) bağlan; exchange, queue ve binding tanımlayıp test mesajı gönder."),
+                        TopicCheckItem("msg_exchanges", "Exchange Tipleri", "Direct, Topic, Fanout, Headers exchange modelleri", practiceTask = "Direct, Fanout ve Topic exchange modelleri için birer producer ve birden fazla consumer yazıp mesaj dağılımını izle."),
+                        TopicCheckItem("msg_retry_dlq", "Retry & Dead Letter Queue (DLQ)", "Hatalı mesajların tekrar denenmesi ve DLQ'ya aktarımı", practiceTask = "3 kez hata alan bir mesajın x-dead-letter-exchange üzerinden dead-letter queue'ya aktarılışını simüle et."),
+                        TopicCheckItem("msg_masstransit_outbox", "MassTransit & Transactional Outbox", ".NET için kurumsal mesajlaşma soyutlaması, Outbox pattern ile mesaj kaybını önleme", practiceTask = "MassTransit ile Outbox pattern kur; DbContext transaction'ı commit olduğunda RabbitMQ'ya event fırlatıldığını doğrula.")
                     )
                 ),
                 TopicSection(
                     title = "MICROSERVICES",
                     emoji = "🧩",
                     items = listOf(
-                        TopicCheckItem("ms_monolith", "Monolith vs Modular Monolith vs Microservices", "Ne zaman hangisi seçilmeli? Dağıtık monolit tuzağı"),
-                        TopicCheckItem("ms_comm", "Servisler Arası Haberleşme", "Senkron (REST/gRPC) vs Asenkron (Event-Driven / Pub-Sub)"),
-                        TopicCheckItem("ms_gateway", "API Gateway (Ocelot / YARP)", "Ters proxy, routing, merkezi kimlik denetimi"),
-                        TopicCheckItem("ms_saga", "Dağıtık Transaction & Saga Pattern", "2PC yerine koreografi / orkestrasyon tabanlı tutarlılık")
+                        TopicCheckItem("ms_monolith", "Monolith vs Modular Monolith vs Microservices", "Ne zaman hangisi seçilmeli? Dağıtık monolit tuzağı", practiceTask = "Modüler monolit yapısında Order ve User modüllerini birbirinden bağımsız internal paketler olarak tasarla."),
+                        TopicCheckItem("ms_comm", "Servisler Arası Haberleşme", "Senkron (REST/gRPC) vs Asenkron (Event-Driven / Pub-Sub)", practiceTask = "Sipariş servisi ile Ödeme servisi arasında gRPC ile senkron, RabbitMQ ile asenkron event haberleşmesini karşılaştır."),
+                        TopicCheckItem("ms_gateway", "API Gateway (Ocelot / YARP)", "Ters proxy, routing, merkezi kimlik denetimi", practiceTask = "YARP (Yet Another Reverse Proxy) kütüphanesini kullanarak mikroservislerin önüne tek bir giriş kapısı (API Gateway) kur."),
+                        TopicCheckItem("ms_saga", "Dağıtık Transaction & Saga Pattern", "2PC yerine koreografi / orkestrasyon tabanlı tutarlılık", practiceTask = "Sipariş verme akışında Ödeme -> Stok Düşme -> Kargo adımları için hata durumunda ters işlem (compensating) işleten Saga kurgula.")
                     )
                 ),
                 TopicSection(
                     title = "KUBERNETES & MONITORING",
                     emoji = "☸️",
                     items = listOf(
-                        TopicCheckItem("k8s_basics", "Kubernetes Kavramları", "Cluster, Node, Pod, Deployment, ReplicaSet"),
-                        TopicCheckItem("k8s_networking", "K8s Servisleri & Ingress", "ClusterIP, NodePort, LoadBalancer, Ingress Controller"),
-                        TopicCheckItem("k8s_lens", "Kubernetes Yönetimi & Lens", "K8s cluster'ını görsel arayüzle izleme ve pod logları"),
-                        TopicCheckItem("k8s_monitoring", "Prometheus & Grafana", "Metrik toplama, panolar, CPU/bellek ve istek sayısı takibi")
+                        TopicCheckItem("k8s_basics", "Kubernetes Kavramları", "Cluster, Node, Pod, Deployment, ReplicaSet", practiceTask = "kubectl get pods, kubectl get services ve kubectl describe pod komutlarıyla çalışan küme durumunu incele."),
+                        TopicCheckItem("k8s_networking", "K8s Servisleri & Ingress", "ClusterIP, NodePort, LoadBalancer, Ingress Controller", practiceTask = "Deployment için bir ClusterIP ve dış dünyaya açmak için Ingress kuralı tanımlayan YAML manifest dosyası yaz."),
+                        TopicCheckItem("k8s_probes", "K8s Probes (Liveness & Readiness)", "Pod trafik kontrolü, ASP.NET Core /health/live ve /health/ready entegrasyonu", practiceTask = "Pod manifestine livenessProbe ve readinessProbe HTTP get kontrollerini ekle; endpoint 500 dönünce pod'un restart olduğunu gör."),
+                        TopicCheckItem("k8s_config_secrets", "ConfigMaps & Secrets", "Hassas şifreleri ve ayarları kod dışından pod'a environment variable olarak enjekte etme", practiceTask = "kubectl create secret generic ile veritabanı şifresi oluştur; pod manifestinde envFrom ile pod'a enjekte et."),
+                        TopicCheckItem("k8s_lens", "Kubernetes Yönetimi & Lens", "K8s cluster'ını görsel arayüzle izleme ve pod logları", practiceTask = "Lens uygulamasını açıp local Kubernetes kümesine (k3s/minikube) bağlan; pod loglarını ve terminal oturumunu izle."),
+                        TopicCheckItem("k8s_monitoring", "Prometheus & Grafana", "Metrik toplama, panolar, CPU/bellek ve istek sayısı takibi", practiceTask = "Prometheus ile uygulamanın /metrics endpoint'ini scrape et; Grafana'da CPU ve HTTP istek hızı panosu oluştur."),
+                        TopicCheckItem("k8s_tracing", "Distributed Tracing & CorrelationId", "OpenTelemetry / Jaeger ile isteklerin servisler arası şelale (waterfall) takibi", practiceTask = "OpenTelemetry .NET SDK ile servislere ActivitySource ekle; Jaeger arayüzünde isteklerin şelale izlerini (trace) incele.")
                     )
                 ),
                 TopicSection(
                     title = "CLOUD & CI/CD",
                     emoji = "☁️",
                     items = listOf(
-                        TopicCheckItem("cloud_azure", "Azure Temelleri", "App Service, Azure SQL, Blob Storage mantığı"),
-                        TopicCheckItem("cloud_cicd", "CI/CD Pipeline (GitHub Actions)", "Otomatik test koşumu, build alma ve container push")
+                        TopicCheckItem("cloud_azure", "Azure Temelleri", "App Service, Azure SQL, Blob Storage mantığı", practiceTask = "Azure Portal'da ücretsiz App Service ve Azure SQL kaynağı oluştur veya mimari şemasını incele."),
+                        TopicCheckItem("cloud_keyvault", "Azure Key Vault & Managed Identity", "Connection string ve API anahtarlarının bulutta güvenli saklanması ve otomatik çekilmesi", practiceTask = "Azure Key Vault'a gizli bir connection string ekle; .NET uygulamasında Azure.Security.KeyVault.Secrets ile oku."),
+                        TopicCheckItem("cloud_cicd", "CI/CD Pipeline (GitHub Actions)", "Otomatik test koşumu, build alma ve container push", practiceTask = ".github/workflows/ci.yml dosyası yazarak her commit atıldığında dotnet test ve docker build çalıştıran pipeline kur.")
                     )
                 )
             )
