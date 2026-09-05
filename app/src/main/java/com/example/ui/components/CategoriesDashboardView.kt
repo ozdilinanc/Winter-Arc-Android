@@ -54,11 +54,11 @@ private val careerSubItems = listOf(
     ),
     CategorySubItem(
         id = "sub_android",
-        title = "Android",
-        subtitle = "Kotlin, Jetpack Compose, MVVM & Coroutines",
+        title = "Native Android (XML)",
+        subtitle = "Kotlin, XML Layouts, ViewBinding & MVVM",
         emoji = "🤖",
-        description = "Modern Android uygulama geliştirme, State Management, Room DB, Retrofit & Jetpack Compose UI kütüphanesi.",
-        tag = "Native Android"
+        description = "Geleneksel XML View sistemi, ConstraintLayout, ViewBinding, RecyclerView, MVVM, Room DB, Hilt ve Retrofit mimarisi.",
+        tag = "Kotlin & XML"
     ),
     CategorySubItem(
         id = "sub_personal_projects",

@@ -89,7 +89,8 @@ object RoadmapDataStore {
                     title = "ASP.NET CORE",
                     emoji = "🌐",
                     items = listOf(
-                        TopicCheckItem("asp_http_rest", "HTTP Protokolü & RESTful İlkeler", "HTTP metodları (GET, POST, PUT, DELETE), Status kodları", practiceTask = "REST kurallarına tam uyan CRUD endpoint'leri hazırla; POST isteğinde 201 Created ve Location header dön."),
+                        TopicCheckItem("asp_http_rest", "HTTP Protokolü & RESTful İlkeler", "HTTP metodları (GET, POST, PUT, DELETE), Request & Response anatomisi, URI yapısı", practiceTask = "REST kurallarına tam uyan CRUD endpoint'leri hazırla; POST isteğinde 201 Created ve Location header dön."),
+                        TopicCheckItem("asp_status_codes", "HTTP Status Kodları & REST Semantiği", "2xx (200, 201, 204), 4xx (400, 401, 403, 404, 409, 422) ve 5xx (500, 502, 503, 504) anlamları ve doğru API dönüşleri", practiceTask = "Endpoint'lerde duruma göre doğru status kodlarını dönen (201 Created, 204 NoContent, 404 NotFound, 409 Conflict, 422 Unprocessable, 502 Bad Gateway) kapsamlı bir Controller veya Minimal API senaryosu yaz."),
                         TopicCheckItem("asp_api_design", "API Tasarımı & Endpoint Hijyeni", "Resource isimlendirme, URI versiyonlama, standart response formatları", practiceTask = "Tüm API yanıtlarını sarmalayan standart ApiResponse<T> (Data, Success, Errors) formatı ve /api/v1/ prefix yapısı kur."),
                         TopicCheckItem("asp_controllers", "Controllers & Minimal APIs", "ControllerBase, ActionResults, Endpoint routing", practiceTask = "Tek bir Program.cs dosyası içinde app.MapGroup(\"/api/products\") ile Minimal API endpoint'leri yaz."),
                         TopicCheckItem("asp_middleware", "Middleware Pipeline Mantığı", "Custom middleware yazımı, Request/Response akışı", practiceTask = "Gelen her isteğe X-Correlation-Id header'ı ekleyen ve response süresini loglayan custom middleware yaz."),
@@ -242,46 +243,68 @@ object RoadmapDataStore {
         ),
 
         // ==========================================
-        // 3. ANDROID (NATIVE)
+        // 3. ANDROID (NATIVE - KOTLIN & XML)
         // ==========================================
         "sub_android" to SubItemRoadmap(
             subItemId = "sub_android",
-            title = "Native Android",
-            subtitle = "Kotlin, Jetpack Compose, MVVM & Hilt",
+            title = "Native Android (Kotlin & XML)",
+            subtitle = "Kotlin, XML Layouts, ViewBinding, MVVM & Hilt",
             emoji = "🤖",
-            targetLevel = "Hedef: Bağımsız Mobil Ürün Geliştirme & Play Store",
-            overview = "Backend uzmanlığına paralel olarak cebinde native Android üretim gücünü korumak; AI agent'ları ile küçük, şık ve üretime hazır uygulamalar geliştirip Play Store'da yayınlamak.",
+            targetLevel = "Hedef: Bağımsız Mobil Ürün Geliştirme (XML & Clean Architecture)",
+            overview = "Klasik Android View sistemine (XML, ViewBinding, ConstraintLayout, Fragments) tam hakim, modern Jetpack bileşenleriyle (ViewModel, Room, Hilt, Coroutines/Flow) offline-first ve üretime hazır uygulamalar geliştirip Play Store'da yayınlayan bir Android mühendisi olmak.",
             sections = listOf(
                 TopicSection(
                     title = "KOTLIN DİL YETKİNLİĞİ",
                     emoji = "💎",
                     items = listOf(
-                        TopicCheckItem("kt_fundamentals", "Kotlin Temelleri & Null Safety", "val vs var, nullables (?), safe calls (?.), elvis operator (?:)"),
-                        TopicCheckItem("kt_oop", "Kotlin OOP (Data Classes, Sealed Classes)", "data class, sealed interface/class ile State modelleme"),
-                        TopicCheckItem("kt_coroutines", "Coroutines & Asenkron Programlama", "suspend fonksiyonlar, launch, async, Dispatchers.IO/Main"),
-                        TopicCheckItem("kt_flow", "Flow & StateFlow / SharedFlow", "Reaktif veri akışları, UI state yönetimi ve collectAsState"),
-                        TopicCheckItem("kt_extensions", "Extension Functions & Scope Functions", "let, run, apply, also ve custom extension'lar")
+                        TopicCheckItem("kt_fundamentals", "Kotlin Temelleri & Null Safety", "val vs var, nullables (?), safe calls (?.), elvis operator (?:)", practiceTask = "Null olabilecek bir API yanıt modelini elvis operatörü (?:) ve safe call (?.) ile güvenli şekilde varsayılan değerlere map eden fonksiyon yaz."),
+                        TopicCheckItem("kt_oop", "Kotlin OOP (Data Classes, Sealed Classes)", "data class, sealed interface/class ile UI State modelleme", practiceTask = "Bir ekranın durumunu temsil eden sealed interface UiState (Loading, Success<T>, Error(val msg: String)) modelini tasarla."),
+                        TopicCheckItem("kt_coroutines", "Coroutines & Asenkron Programlama", "suspend fonksiyonlar, launch, async, Dispatchers.IO/Main", practiceTask = "withContext(Dispatchers.IO) ile veritabanı okuyup Dispatchers.Main üzerinde UI güncelleyen suspend fonksiyon yaz."),
+                        TopicCheckItem("kt_flow", "Flow & StateFlow / SharedFlow", "Reaktif veri akışları, UI state yönetimi, repeatOnLifecycle", practiceTask = "MutableStateFlow ile counter veya arama filtresi tut; Fragment içinde viewLifecycleOwner.repeatOnLifecycle ile güvenle dinle."),
+                        TopicCheckItem("kt_extensions", "Extension Functions & Scope Functions", "let, run, apply, also ve View extension'ları", practiceTask = "View sınıfına .visible(), .gone(), .invisibleIf(condition) extension fonksiyonları yazıp UI kodunu temizle.")
                     )
                 ),
                 TopicSection(
-                    title = "ANDROID & JETPACK",
-                    emoji = "📱",
+                    title = "XML & ANDROID VIEW SİSTEMİ",
+                    emoji = "🎨",
                     items = listOf(
-                        TopicCheckItem("and_lifecycle", "Activity & Yaşam Döngüsü (Lifecycle)", "Lifecycle states, konfigürasyon değişiklikleri"),
-                        TopicCheckItem("and_compose", "Jetpack Compose Modern UI", "Composables, State hoisting, LazyColumn, Canvas, Material 3"),
-                        TopicCheckItem("and_viewmodel", "ViewModel & UI State Mimarisi", "Ekran döndürmede veri koruma, unidirectional data flow (UDF)"),
-                        TopicCheckItem("and_retrofit", "Retrofit & REST API Entegrasyonu", "HTTP istekleri, Moshi/Gson serialization, Interceptors"),
-                        TopicCheckItem("and_room", "Room Database (Offline-First)", "Entity, Dao, SQLite işlemleri, reaktif veri tabanı akışları"),
-                        TopicCheckItem("and_nav", "Navigation Component", "Compose Navigation, deeplinks ve ekranlar arası parametre geçişi")
+                        TopicCheckItem("xml_constraint", "ConstraintLayout & Gelişmiş Hizalama", "Guidelines, Barriers, Chains, dikey/yatay oranlar, flat hiyerarşi", practiceTask = "Guideline ve Barrier kullanarak dikey ve yatay ekran modlarına uyumlu, iç içe layout barındırmayan tek bir ConstraintLayout tasarımı yap."),
+                        TopicCheckItem("xml_viewbinding", "ViewBinding & DataBinding", "findViewById yerine type-safe layout erişimi, binding adapter'lar", practiceTask = "Activity ve Fragment'ta ViewBinding entegrasyonu yap; binding nesnesini onDestroyView'da null yaparak bellek sızıntısını önle."),
+                        TopicCheckItem("xml_recyclerview", "RecyclerView & ListAdapter + DiffUtil", "ViewHolder pattern, item animasyonları, çoklu view tipleri", practiceTask = "ListAdapter ve DiffUtil.ItemCallback kullanarak yüksek performanslı ve otomatik animasyonlu bir ürün listesi adapter'ı kodla."),
+                        TopicCheckItem("xml_fragments", "Fragments & Yaşam Döngüsü", "FragmentContainerView, FragmentManager, Backstack yönetimi", practiceTask = "FragmentContainerView kullanarak iki fragment arası geçişi ve backstack'e ekleme akışını kodla."),
+                        TopicCheckItem("xml_navigation", "Jetpack Navigation & Safe Args", "nav_graph.xml, NavHostFragment, tip güvenli argüman aktarımı", practiceTask = "nav_graph.xml içinde iki ekran bağla; Safe Args (Directions) ile tıklandığında detay ekranına Parcelable model aktar."),
+                        TopicCheckItem("xml_material", "Material Components & CoordinatorLayout", "MaterialCardView, TextInputLayout, BottomNavigationView, CollapsingToolbar", practiceTask = "CoordinatorLayout ve AppBarLayout kullanarak yukarı kaydırdıkça küçülen CollapsingToolbarLayout ekranı tasarla."),
+                        TopicCheckItem("xml_drawables", "Custom Drawables, Selector & Dark Mode", "VectorDrawables, shape, state selector, temalar ve gece modu", practiceTask = "Tıklama durumuna göre (pressed, focused, default) renk değiştiren selector XML drawable ve koyu tema (night) renk paleti hazırla.")
                     )
                 ),
                 TopicSection(
-                    title = "MİMARİ & ÜRETİM DÖNGÜSÜ",
+                    title = "MİMARİ & JETPACK (OFFLINE-FIRST)",
+                    emoji = "🏛️",
+                    items = listOf(
+                        TopicCheckItem("and_viewmodel", "ViewModel & SavedStateHandle", "Ekran döndürmede veri koruma, process death kurtarma", practiceTask = "SavedStateHandle enjekte edilen bir ViewModel yazarak sistem tarafından process öldürüldüğünde bile son arama metnini kurtar."),
+                        TopicCheckItem("and_clean_mvvm", "MVVM & Clean Architecture", "Data Layer (Repository), Domain Layer (UseCases), Presentation", practiceTask = "GetUsersUseCase ve UserRepository arayüzü tanımlayarak iş mantığını ViewModel'den bağımsız Domain katmanına izole et."),
+                        TopicCheckItem("and_hilt", "Dependency Injection (Hilt)", "@AndroidEntryPoint, @HiltViewModel, Network/Database modülleri", practiceTask = "@HiltAndroidApp kurup AppModule içinde Retrofit ve Room bağımlılıklarını @Provides ve @Singleton ile inject et."),
+                        TopicCheckItem("and_room", "Room Database (Offline-First)", "Entity, Dao, SQLite işlemleri, reaktif veri tabanı akışları (Flow)", practiceTask = "Room Entity ve DAO yaz; verileri Flow<List<Entity>> olarak dönüp repository üzerinden ViewModel'e ilet."),
+                        TopicCheckItem("and_datastore", "Jetpack DataStore", "Preferences DataStore ile anahtar-değer saklama", practiceTask = "Kullanıcının karanlık mod tercihini veya Auth token'ını DataStore ile asenkron okuyup yazan SessionManager yaz.")
+                    )
+                ),
+                TopicSection(
+                    title = "NETWORKING & ARKA PLAN",
+                    emoji = "🌐",
+                    items = listOf(
+                        TopicCheckItem("and_retrofit_okhttp", "Retrofit & OkHttp", "HTTP istekleri, Interceptor, BaseUrl, JSON serialization", practiceTask = "HttpLoggingInterceptor ve AuthInterceptor (Bearer token) içeren OkHttpClient ile Retrofit API servisi kur."),
+                        TopicCheckItem("and_auth_token", "Auth & Refresh Token Akışı (Authenticator)", "OkHttp Authenticator ile 401 anında otomatik token yenileme", practiceTask = "401 Unauthorized alındığında otomatik olarak refresh token endpoint'ine gidip yeni access token alan OkHttp Authenticator yaz."),
+                        TopicCheckItem("and_workmanager", "WorkManager & Arka Plan Senkronizasyonu", "CoroutineWorker, Constraints (Şarj, WiFi), periyodik işler", practiceTask = "Sadece Wi-Fi bağlıyken ve şarjdayken çalışan, günde bir kez offline verileri sunucuya senkronize eden PeriodicWorkRequest kur."),
+                        TopicCheckItem("and_notifications", "Push Bildirimleri (FCM) & NotificationChannel", "NotificationChannel, NotificationCompat, Android 13+ izinleri", practiceTask = "Android 13+ POST_NOTIFICATIONS iznini kontrol eden ve yüksek öncelikli NotificationChannel üzerinden bildirim fırlatan servis yaz.")
+                    )
+                ),
+                TopicSection(
+                    title = "TEST & PLAY STORE YAYINI",
                     emoji = "🚀",
                     items = listOf(
-                        TopicCheckItem("and_mvvm_clean", "MVVM & Clean Architecture", "Data Layer (Repository), Domain Layer (UseCases), UI Layer"),
-                        TopicCheckItem("and_di", "Dependency Injection (Hilt / Koin)", "Android sınıflarına bağımlılık enjeksiyonu"),
-                        TopicCheckItem("and_release", "Play Store Yayın Süreci", "Keystore imzalama, App Bundle (.aab), gizlilik politikası ve sürüm yayını")
+                        TopicCheckItem("and_testing", "Unit Testing (JUnit & MockK)", "ViewModel testleri, Coroutine test dispatcher, Turbine", practiceTask = "MockK ve Turbine kütüphanelerini kullanarak ViewModel'in StateFlow çıktısına unit test yaz."),
+                        TopicCheckItem("and_r8_proguard", "ProGuard & R8 Optimizasyonu", "minifyEnabled, shrinkResources, proguard-rules.pro", practiceTask = "Release build için R8 minification'ı aç; Retrofit ve Data class modellerinin silinmemesi için ProGuard kurallarını yaz."),
+                        TopicCheckItem("and_release", "Play Store Yayın Süreci", "Keystore imzalama, App Bundle (.aab), Google Play Console", practiceTask = "Release Keystore dosyası oluştur; gradle signingConfigs yapılandırıp imzalı bir app-release.aab paketi üret.")
                     )
                 )
             )
