@@ -1,7 +1,6 @@
 package com.example.ui.components.school
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -40,6 +39,9 @@ fun SchoolCoursesView(
     var activeWeightsDialogCourseId by remember { mutableStateOf<String?>(null) }
     var isAddDialogOpen by remember { mutableStateOf(false) }
 
+    // Optional semester filter (0 = all)
+    var selectedSemesterFilter by remember { mutableStateOf(0) }
+
     // System Back handling
     BackHandler {
         if (activeAttendanceCourseId != null) {
@@ -63,6 +65,12 @@ fun SchoolCoursesView(
             )
             return
         }
+    }
+
+    val filteredCourses = if (selectedSemesterFilter == 0) {
+        courses
+    } else {
+        courses.filter { it.semester == selectedSemesterFilter }
     }
 
     LazyColumn(
@@ -107,7 +115,11 @@ fun SchoolCoursesView(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 12.dp)
+                ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(text = "📚", fontSize = 22.sp)
                         Spacer(modifier = Modifier.width(8.dp))
@@ -122,8 +134,8 @@ fun SchoolCoursesView(
                     }
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Vize, 2. Değerlendirme, Final & 16 Haftalık Yoklama Takibi",
-                        style = MaterialTheme.typography.bodySmall.copy(color = TextSecondary, fontSize = 11.5.sp)
+                        text = "Derslerini, notlarını ve 16 haftalık yoklamanı yönet",
+                        style = MaterialTheme.typography.bodySmall.copy(color = TextSecondary, fontSize = 12.sp)
                     )
                 }
 
@@ -131,11 +143,18 @@ fun SchoolCoursesView(
                     onClick = { isAddDialogOpen = true },
                     shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = AccentCyan),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+                    modifier = Modifier.wrapContentWidth()
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.White)
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = "Ders Ekle", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    Text(
+                        text = "Ders Ekle",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        maxLines = 1
+                    )
                 }
             }
         }
@@ -178,6 +197,31 @@ fun SchoolCoursesView(
                                 fontSize = 16.sp
                             )
                             Text(text = "Toplam Devamsızlık", style = MaterialTheme.typography.labelSmall.copy(color = TextMuted, fontSize = 10.5.sp))
+                        }
+                    }
+                }
+            }
+
+            // Semester Filter Chips (if multiple semesters exist)
+            val availableSemesters = courses.map { it.semester }.distinct().sorted()
+            if (availableSemesters.size > 1) {
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        SemesterFilterChip(
+                            label = "Tümü (${courses.size})",
+                            isSelected = selectedSemesterFilter == 0,
+                            onClick = { selectedSemesterFilter = 0 }
+                        )
+                        availableSemesters.forEach { sem ->
+                            val count = courses.count { it.semester == sem }
+                            SemesterFilterChip(
+                                label = "$sem. Dönem ($count)",
+                                isSelected = selectedSemesterFilter == sem,
+                                onClick = { selectedSemesterFilter = sem }
+                            )
                         }
                     }
                 }
@@ -225,7 +269,7 @@ fun SchoolCoursesView(
                         Spacer(modifier = Modifier.height(6.dp))
 
                         Text(
-                            text = "Bu dönem alacağın dersleri ekle; vize, 2. değerlendirme, final notlarını gir ve 16 haftalık yoklamanı tek tıkla takip et.",
+                            text = "Bu dönem alacağın dersleri ekle; vize, 2. değerlendirme ve final notlarını gir. 4 devamsızlık hakkını 16 haftalık çizelgede takip et.",
                             style = MaterialTheme.typography.bodySmall.copy(
                                 color = TextSecondary,
                                 fontSize = 12.sp,
@@ -251,7 +295,7 @@ fun SchoolCoursesView(
         }
 
         // Courses List
-        items(courses, key = { it.id }) { course ->
+        items(filteredCourses, key = { it.id }) { course ->
             CourseCardItem(
                 course = course,
                 onOpenAttendance = { activeAttendanceCourseId = course.id },
@@ -316,18 +360,43 @@ fun SchoolCoursesView(
     if (isAddDialogOpen) {
         AddNewCourseDialog(
             onDismiss = { isAddDialogOpen = false },
-            onAddCourse = { code, name, credits, semester, maxAbsence ->
+            onAddCourse = { name, credits, semester ->
                 val newCourse = SchoolCourse(
                     id = UUID.randomUUID().toString(),
-                    code = code,
                     name = name,
                     credits = credits,
-                    semester = semester,
-                    maxAbsenceWeeks = maxAbsence
+                    semester = semester
                 )
                 courses = courses + newCourse
                 isAddDialogOpen = false
             }
+        )
+    }
+}
+
+@Composable
+private fun SemesterFilterChip(
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = if (isSelected) AccentCyan.copy(alpha = 0.2f) else PanelNavy,
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            if (isSelected) AccentCyan else BorderSubtle
+        ),
+        modifier = Modifier.clickable { onClick() }
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                color = if (isSelected) AccentCyan else TextMuted,
+                fontSize = 11.sp
+            )
         )
     }
 }
@@ -340,8 +409,8 @@ private fun CourseCardItem(
     onOpenWeights: () -> Unit,
     onDelete: () -> Unit
 ) {
-    val isOverAbsenceLimit = course.absentCount >= course.maxAbsenceWeeks
-    val isNearAbsenceLimit = course.absentCount == course.maxAbsenceWeeks - 1 && course.maxAbsenceWeeks > 1
+    val isFailed = course.isFailedDueToAbsence
+    val isWarning = course.isLastAbsenceWarning
 
     Card(
         modifier = Modifier
@@ -349,40 +418,29 @@ private fun CourseCardItem(
             .clip(RoundedCornerShape(14.dp))
             .border(
                 1.dp,
-                if (isOverAbsenceLimit) Color(0xFFEF4444).copy(alpha = 0.5f) else BorderSubtle,
+                if (isFailed) Color(0xFFEF4444).copy(alpha = 0.5f) else BorderSubtle,
                 RoundedCornerShape(14.dp)
             ),
         colors = CardDefaults.cardColors(containerColor = PanelNavyElevated)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Header Row: Code, Credits, Semester & Delete
+            // Header Row: Course Name & Delete
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = PanelNavy,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, AccentCyan.copy(alpha = 0.4f))
-                    ) {
-                        Text(
-                            text = course.code,
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                color = AccentCyan,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp
-                            ),
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
                     Text(
-                        text = "${course.credits} Kredi • ${course.semester}",
-                        style = MaterialTheme.typography.labelSmall.copy(color = TextMuted, fontSize = 11.sp)
+                        text = course.name,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary,
+                            fontSize = 15.5.sp
+                        )
                     )
                 }
 
@@ -399,17 +457,44 @@ private fun CourseCardItem(
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
-            // Course Name
-            Text(
-                text = course.name,
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary,
-                    fontSize = 15.sp
-                )
-            )
+            // Badges Row: Semester & Credits
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = PanelNavy,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, AccentCyan.copy(alpha = 0.35f))
+                ) {
+                    Text(
+                        text = course.semesterLabel,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            color = AccentCyan,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 10.5.sp
+                        ),
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.5.dp)
+                    )
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = PanelNavy,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, BorderSubtle)
+                ) {
+                    Text(
+                        text = "${course.credits} Kredi",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            color = TextMuted,
+                            fontSize = 10.5.sp
+                        ),
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.5.dp)
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -542,28 +627,28 @@ private fun CourseCardItem(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Absence Badge
+                // Absence Badge with fixed 4-right rule
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = "Devamsızlık: ",
                         style = MaterialTheme.typography.bodySmall.copy(color = TextMuted, fontSize = 11.5.sp)
                     )
                     Text(
-                        text = "${course.absentCount} / ${course.maxAbsenceWeeks} hafta",
+                        text = when {
+                            isFailed -> "🚨 KALDI (${course.absentCount} / 4 Hak)"
+                            isWarning -> "⚠️ SON HAK (4 / 4)"
+                            else -> "${course.absentCount} / 4 Hak"
+                        },
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
                             color = when {
-                                isOverAbsenceLimit -> Color(0xFFEF4444)
-                                isNearAbsenceLimit -> AccentAmber
+                                isFailed -> Color(0xFFEF4444)
+                                isWarning -> AccentAmber
                                 else -> AccentEmerald
                             },
                             fontSize = 11.5.sp
                         )
                     )
-                    if (isOverAbsenceLimit) {
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(text = "🚨", fontSize = 11.sp)
-                    }
                 }
 
                 // Open 16 Weeks Attendance
@@ -612,7 +697,8 @@ private fun CourseAttendanceDetailView(
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val isOverLimit = course.absentCount >= course.maxAbsenceWeeks
+    val isFailed = course.isFailedDueToAbsence
+    val isWarning = course.isLastAbsenceWarning
 
     LazyColumn(
         modifier = modifier
@@ -655,7 +741,7 @@ private fun CourseAttendanceDetailView(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .border(1.dp, if (isOverLimit) Color(0xFFEF4444).copy(alpha = 0.5f) else BorderSubtle, RoundedCornerShape(16.dp)),
+                    .border(1.dp, if (isFailed) Color(0xFFEF4444).copy(alpha = 0.5f) else BorderSubtle, RoundedCornerShape(16.dp)),
                 colors = CardDefaults.cardColors(containerColor = PanelNavyElevated)
             ) {
                 Column(modifier = Modifier.padding(18.dp)) {
@@ -672,7 +758,7 @@ private fun CourseAttendanceDetailView(
                                     border = androidx.compose.foundation.BorderStroke(1.dp, AccentCyan.copy(alpha = 0.4f))
                                 ) {
                                     Text(
-                                        text = course.code,
+                                        text = course.semesterLabel,
                                         style = MaterialTheme.typography.labelSmall.copy(
                                             color = AccentCyan,
                                             fontWeight = FontWeight.Bold
@@ -702,7 +788,7 @@ private fun CourseAttendanceDetailView(
 
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    // Status Summary Pills
+                    // Status Summary Pills (Fixed 4 rights)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceAround
@@ -710,17 +796,22 @@ private fun CourseAttendanceDetailView(
                         AttendanceStatPill("Katıldı", "${course.attendedCount} Hafta", AccentEmerald)
                         AttendanceStatPill(
                             "Devamsızlık",
-                            "${course.absentCount} / ${course.maxAbsenceWeeks} Hafta",
-                            if (isOverLimit) Color(0xFFEF4444) else AccentAmber
+                            "${course.absentCount} / 4 Hak",
+                            when {
+                                isFailed -> Color(0xFFEF4444)
+                                isWarning -> AccentAmber
+                                else -> AccentEmerald
+                            }
                         )
                         AttendanceStatPill(
                             "Kalan Hak",
-                            "${maxOf(0, course.maxAbsenceWeeks - course.absentCount)} Hafta",
-                            if (isOverLimit) Color(0xFFEF4444) else TextSecondary
+                            "${course.remainingAbsenceRights} Hafta",
+                            if (isFailed) Color(0xFFEF4444) else TextSecondary
                         )
                     }
 
-                    if (isOverLimit) {
+                    // Warning / Failure Banner
+                    if (isFailed) {
                         Spacer(modifier = Modifier.height(10.dp))
                         Surface(
                             shape = RoundedCornerShape(8.dp),
@@ -729,15 +820,38 @@ private fun CourseAttendanceDetailView(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(text = "🚨", fontSize = 14.sp)
-                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(text = "🚨", fontSize = 16.sp)
+                                Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "Devamsızlık sınırını aştın! Ders kalma riski var.",
+                                    text = "5. devamsızlık yapıldı! 4 hak aşıldığı için dersten devamsızlıkla kalındı.",
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         color = Color(0xFFEF4444),
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                )
+                            }
+                        }
+                    } else if (isWarning) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = AccentAmber.copy(alpha = 0.15f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, AccentAmber.copy(alpha = 0.4f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(text = "⚠️", fontSize = 16.sp)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "4 devamsızlık hakkının tamamı doldu! 1 hafta daha gitmezsen dersten kalırsın.",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        color = AccentAmber,
                                         fontWeight = FontWeight.Bold
                                     )
                                 )
@@ -748,9 +862,9 @@ private fun CourseAttendanceDetailView(
             }
         }
 
-        // Section 1: 📝 VİZE ÖNCESİ (Hafta 1 - 7)
+        // Section 1: 1 – 7. HAFTA
         item {
-            AttendanceSectionTitle("📝 VİZE ÖNCESİ (HAFTA 1 - 7)")
+            AttendanceSectionTitle("1 – 7. HAFTA")
         }
         items(course.attendance.filter { it.weekNumber in 1..7 }, key = { it.weekNumber }) { week ->
             AttendanceWeekRow(
@@ -764,9 +878,9 @@ private fun CourseAttendanceDetailView(
             )
         }
 
-        // Section 2: 🎯 VİZE HAFTASI (Hafta 8)
+        // Section 2: VİZE HAFTASI
         item {
-            AttendanceSectionTitle("🎯 VİZE HAFTASI (HAFTA 8)")
+            AttendanceSectionTitle("VİZE HAFTASI")
         }
         items(course.attendance.filter { it.weekNumber == 8 }, key = { it.weekNumber }) { week ->
             AttendanceWeekRow(
@@ -781,9 +895,9 @@ private fun CourseAttendanceDetailView(
             )
         }
 
-        // Section 3: 📝 VİZE SONRASI (Hafta 9 - 15)
+        // Section 3: 9 – 15. HAFTA
         item {
-            AttendanceSectionTitle("📝 VİZE SONRASI (HAFTA 9 - 15)")
+            AttendanceSectionTitle("9 – 15. HAFTA")
         }
         items(course.attendance.filter { it.weekNumber in 9..15 }, key = { it.weekNumber }) { week ->
             AttendanceWeekRow(
@@ -797,9 +911,9 @@ private fun CourseAttendanceDetailView(
             )
         }
 
-        // Section 4: 🏁 FİNAL HAFTASI (Hafta 16)
+        // Section 4: FİNAL HAFTASI
         item {
-            AttendanceSectionTitle("🏁 FİNAL HAFTASI (HAFTA 16)")
+            AttendanceSectionTitle("FİNAL HAFTASI")
         }
         items(course.attendance.filter { it.weekNumber == 16 }, key = { it.weekNumber }) { week ->
             AttendanceWeekRow(
@@ -896,15 +1010,20 @@ private fun AttendanceWeekRow(
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontWeight = if (isHighlight) FontWeight.Bold else FontWeight.Medium,
                         color = if (isHighlight) TextPrimary else TextSecondary,
-                        fontSize = 12.5.sp
+                        fontSize = 13.sp
                     )
                 )
             }
 
-            // Quick Status Buttons
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                AttendanceStatusButton(
-                    label = "Katıldım",
+            // Quick Status Buttons: Tik (✓), Çarpı (✕), Tatil
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Tik (Katıldım)
+                AttendanceIconButton(
+                    icon = Icons.Default.Check,
+                    contentDescription = "Katıldım",
                     isSelected = week.status == AttendanceStatus.ATTENDED,
                     selectedColor = AccentEmerald,
                     onClick = {
@@ -913,8 +1032,10 @@ private fun AttendanceWeekRow(
                         )
                     }
                 )
-                AttendanceStatusButton(
-                    label = "Gitmedim",
+                // Çarpı (Gitmedim)
+                AttendanceIconButton(
+                    icon = Icons.Default.Close,
+                    contentDescription = "Gitmedim",
                     isSelected = week.status == AttendanceStatus.ABSENT,
                     selectedColor = Color(0xFFEF4444),
                     onClick = {
@@ -923,7 +1044,8 @@ private fun AttendanceWeekRow(
                         )
                     }
                 )
-                AttendanceStatusButton(
+                // Tatil
+                AttendanceTextButton(
                     label = "Tatil",
                     isSelected = week.status == AttendanceStatus.NOT_HELD,
                     selectedColor = AccentAmber,
@@ -939,7 +1061,37 @@ private fun AttendanceWeekRow(
 }
 
 @Composable
-private fun AttendanceStatusButton(
+private fun AttendanceIconButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    contentDescription: String,
+    isSelected: Boolean,
+    selectedColor: Color,
+    onClick: () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = if (isSelected) selectedColor.copy(alpha = 0.22f) else PanelNavy,
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            if (isSelected) selectedColor else BorderSubtle
+        ),
+        modifier = Modifier
+            .size(width = 34.dp, height = 30.dp)
+            .clickable { onClick() }
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                tint = if (isSelected) selectedColor else TextMuted.copy(alpha = 0.6f),
+                modifier = Modifier.size(16.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun AttendanceTextButton(
     label: String,
     isSelected: Boolean,
     selectedColor: Color,
@@ -947,22 +1099,28 @@ private fun AttendanceStatusButton(
 ) {
     Surface(
         shape = RoundedCornerShape(8.dp),
-        color = if (isSelected) selectedColor.copy(alpha = 0.2f) else PanelNavy,
+        color = if (isSelected) selectedColor.copy(alpha = 0.22f) else PanelNavy,
         border = androidx.compose.foundation.BorderStroke(
             1.dp,
             if (isSelected) selectedColor else BorderSubtle
         ),
-        modifier = Modifier.clickable { onClick() }
+        modifier = Modifier
+            .height(30.dp)
+            .clickable { onClick() }
     ) {
-        Text(
-            text = label,
-            modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
-            style = MaterialTheme.typography.labelSmall.copy(
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                color = if (isSelected) selectedColor else TextMuted,
-                fontSize = 10.5.sp
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.padding(horizontal = 10.dp)
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                    color = if (isSelected) selectedColor else TextMuted.copy(alpha = 0.7f),
+                    fontSize = 11.sp
+                )
             )
-        )
+        }
     }
 }
 
@@ -987,7 +1145,7 @@ private fun EditGradesDialog(
         containerColor = PanelNavyElevated,
         title = {
             Text(
-                text = "${course.code} Notlarını Düzenle",
+                text = "${course.name} Notlarını Düzenle",
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, color = TextPrimary)
             )
         },
@@ -1133,7 +1291,7 @@ private fun EditWeightsDialog(
         containerColor = PanelNavyElevated,
         title = {
             Text(
-                text = "${course.code} Not Ağırlıkları (%)",
+                text = "${course.name} Not Ağırlıkları (%)",
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, color = TextPrimary)
             )
         },
@@ -1229,18 +1387,16 @@ private fun EditWeightsDialog(
 }
 
 // -------------------------------------------------------------
-// ADD NEW COURSE DIALOG
+// ADD NEW COURSE DIALOG (8 Semesters selection, No Code, Fixed 4 absences)
 // -------------------------------------------------------------
 @Composable
 private fun AddNewCourseDialog(
     onDismiss: () -> Unit,
-    onAddCourse: (String, String, Int, String, Int) -> Unit
+    onAddCourse: (String, Int, Int) -> Unit
 ) {
-    var code by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
     var creditsText by remember { mutableStateOf("3") }
-    var semesterText by remember { mutableStateOf("Güz Dönemi") }
-    var maxAbsenceText by remember { mutableStateOf("4") }
+    var selectedSemester by remember { mutableStateOf(7) } // Default: 7. Dönem (Senior Güz)
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1249,20 +1405,7 @@ private fun AddNewCourseDialog(
             Text("Yeni Ders Ekle", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, color = TextPrimary))
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(
-                    value = code,
-                    onValueChange = { code = it },
-                    label = { Text("Ders Kodu (Örn: CENG 401)", fontSize = 12.sp) },
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = AccentCyan,
-                        unfocusedBorderColor = BorderSubtle,
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary
-                    )
-                )
-
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
@@ -1276,42 +1419,12 @@ private fun AddNewCourseDialog(
                     )
                 )
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = creditsText,
-                        onValueChange = { creditsText = it },
-                        label = { Text("Kredi", fontSize = 12.sp) },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = AccentCyan,
-                            unfocusedBorderColor = BorderSubtle,
-                            focusedTextColor = TextPrimary,
-                            unfocusedTextColor = TextPrimary
-                        )
-                    )
-                    OutlinedTextField(
-                        value = maxAbsenceText,
-                        onValueChange = { maxAbsenceText = it },
-                        label = { Text("Devamsızlık Hak (Hafta)", fontSize = 12.sp) },
-                        modifier = Modifier.weight(1.5f),
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = AccentCyan,
-                            unfocusedBorderColor = BorderSubtle,
-                            focusedTextColor = TextPrimary,
-                            unfocusedTextColor = TextPrimary
-                        )
-                    )
-                }
-
                 OutlinedTextField(
-                    value = semesterText,
-                    onValueChange = { semesterText = it },
-                    label = { Text("Dönem (Örn: 7. Dönem / Güz)", fontSize = 12.sp) },
+                    value = creditsText,
+                    onValueChange = { creditsText = it },
+                    label = { Text("Kredi (Örn: 3, 4)", fontSize = 12.sp) },
                     singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = AccentCyan,
                         unfocusedBorderColor = BorderSubtle,
@@ -1319,15 +1432,74 @@ private fun AddNewCourseDialog(
                         unfocusedTextColor = TextPrimary
                     )
                 )
+
+                Column {
+                    Text(
+                        text = "Dönem Seçimi (Toplam 8 Dönem):",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, color = TextMuted)
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    // 1..4 Dönem Row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        (1..4).forEach { sem ->
+                            SemesterSelectChip(
+                                semester = sem,
+                                isSelected = selectedSemester == sem,
+                                onSelect = { selectedSemester = sem },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    // 5..8 Dönem Row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        (5..8).forEach { sem ->
+                            SemesterSelectChip(
+                                semester = sem,
+                                isSelected = selectedSemester == sem,
+                                onSelect = { selectedSemester = sem },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = PanelNavy,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, BorderSubtle)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = "ℹ️", fontSize = 12.sp)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Devamsızlık hakkı fix 4 hafta olarak takip edilir. 5. devamsızlıkta kalınır.",
+                            style = MaterialTheme.typography.labelSmall.copy(color = TextMuted, fontSize = 10.5.sp)
+                        )
+                    }
+                }
             }
         },
         confirmButton = {
             Button(
                 onClick = {
-                    if (code.isNotBlank() && name.isNotBlank()) {
+                    if (name.isNotBlank()) {
                         val c = creditsText.toIntOrNull() ?: 3
-                        val ma = maxAbsenceText.toIntOrNull() ?: 4
-                        onAddCourse(code.trim(), name.trim(), c, semesterText.trim(), ma)
+                        onAddCourse(name.trim(), c, selectedSemester)
                     }
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = AccentCyan)
@@ -1341,4 +1513,36 @@ private fun AddNewCourseDialog(
             }
         }
     )
+}
+
+@Composable
+private fun SemesterSelectChip(
+    semester: Int,
+    isSelected: Boolean,
+    onSelect: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = if (isSelected) AccentCyan else PanelNavy,
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            if (isSelected) AccentCyan else BorderSubtle
+        ),
+        modifier = modifier.clickable { onSelect() }
+    ) {
+        Box(
+            modifier = Modifier.padding(vertical = 7.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "$semester. D.",
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                    color = if (isSelected) Color.White else TextSecondary,
+                    fontSize = 11.sp
+                )
+            )
+        }
+    }
 }

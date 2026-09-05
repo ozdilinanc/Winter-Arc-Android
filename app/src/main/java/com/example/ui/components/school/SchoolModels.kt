@@ -2,7 +2,7 @@ package com.example.ui.components.school
 
 enum class AttendanceStatus {
     ATTENDED,   // Katıldı ✅
-    ABSENT,     // Katılmadı (Devamsız) ❌
+    ABSENT,     // Gitmedi (Devamsız) ❌
     NOT_HELD,   // Tatil / Ders Yapılmadı ⏸️
     PENDING     // Beklemede ⚪
 }
@@ -22,19 +22,20 @@ data class GradeWeights(
 
 data class SchoolCourse(
     val id: String,
-    val code: String,
     val name: String,
     val credits: Int,
-    val semester: String,
+    val semester: Int = 7,                // 1..8 (Toplam 8 dönem)
     val midtermGrade: Double? = null,
     val secondAssessmentGrade: Double? = null,
     val finalGrade: Double? = null,
     val weights: GradeWeights = GradeWeights(),
     val letterGrade: String = "Devam",
-    val maxAbsenceWeeks: Int = 4,
     val attendance: List<CourseAttendanceWeek> = defaultAttendanceWeeks(),
     val isCompleted: Boolean = false
 ) {
+    val semesterLabel: String
+        get() = "$semester. Dönem"
+
     val calculatedAverage: Double?
         get() {
             var totalWeight = 0
@@ -59,16 +60,26 @@ data class SchoolCourse(
 
     val attendedCount: Int
         get() = attendance.count { it.status == AttendanceStatus.ATTENDED }
+
+    // 4 hak var, 5. olanda kalır
+    val isFailedDueToAbsence: Boolean
+        get() = absentCount >= 5
+
+    val isLastAbsenceWarning: Boolean
+        get() = absentCount == 4
+
+    val remainingAbsenceRights: Int
+        get() = maxOf(0, 4 - absentCount)
 }
 
 fun defaultAttendanceWeeks(): List<CourseAttendanceWeek> {
     return (1..16).map { week ->
         val label = when (week) {
-            in 1..7 -> "Hafta $week (Vize Öncesi)"
-            8 -> "Hafta 8 (🎯 Vize Haftası)"
-            in 9..15 -> "Hafta $week (Vize Sonrası)"
-            16 -> "Hafta 16 (🏁 Final Haftası)"
-            else -> "Hafta $week"
+            in 1..7 -> "$week. Hafta"
+            8 -> "Vize Haftası"
+            in 9..15 -> "$week. Hafta"
+            16 -> "Final Haftası"
+            else -> "$week. Hafta"
         }
         CourseAttendanceWeek(weekNumber = week, label = label)
     }
