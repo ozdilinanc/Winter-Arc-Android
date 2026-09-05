@@ -1,5 +1,6 @@
 package com.example.ui.components.school
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -33,6 +34,14 @@ fun SchoolHubView(
     modifier: Modifier = Modifier
 ) {
     var currentSubScreen by remember { mutableStateOf(SchoolSubScreen.OVERVIEW) }
+
+    BackHandler {
+        if (currentSubScreen != SchoolSubScreen.OVERVIEW) {
+            currentSubScreen = SchoolSubScreen.OVERVIEW
+        } else {
+            onBackToCategories()
+        }
+    }
 
     when (currentSubScreen) {
         SchoolSubScreen.COURSES -> {

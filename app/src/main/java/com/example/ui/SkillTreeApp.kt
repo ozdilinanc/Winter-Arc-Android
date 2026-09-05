@@ -22,6 +22,7 @@ import com.example.data.model.SkillNode
 import com.example.data.model.SkillStatus
 import com.example.ui.components.*
 import com.example.ui.theme.*
+import androidx.activity.compose.BackHandler
 import com.example.ui.util.rememberHapticEngine
 
 @Composable
@@ -31,6 +32,24 @@ fun SkillTreeApp(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val hapticEngine = rememberHapticEngine()
+
+    // Handle Back button for dialogs and sheets
+    BackHandler(enabled = uiState.activeRewardNotification != null) {
+        viewModel.dismissRewardNotification()
+    }
+    BackHandler(enabled = uiState.isAchievementsDialogOpen) {
+        viewModel.setAchievementsDialogVisible(false)
+    }
+    BackHandler(enabled = uiState.isAddProjectDialogOpen) {
+        viewModel.setAddProjectDialogVisible(false)
+    }
+    BackHandler(enabled = uiState.selectedSkill != null) {
+        viewModel.onSelectSkill(null)
+    }
+    // Return to root Tree Map tab if on another top-level tab
+    BackHandler(enabled = uiState.currentViewMode != SkillDashboardViewMode.TREE_MAP) {
+        viewModel.onSetViewMode(SkillDashboardViewMode.TREE_MAP)
+    }
 
     Scaffold(
         modifier = modifier
