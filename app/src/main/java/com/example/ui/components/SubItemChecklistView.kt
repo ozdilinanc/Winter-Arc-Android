@@ -20,6 +20,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.MenuBook
@@ -557,9 +558,88 @@ private fun TopicItemCard(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // 1. Direct State Selector Bar (Segmented Pills)
+                // 1. Sabit Hedef Görevi (Her konunun kalıcı uygulama hedefi - durumdan bağımsız)
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = PanelNavy,
+                    border = BorderStroke(
+                        1.dp,
+                        if (state == TopicProgressState.PRACTICED || state == TopicProgressState.COMPLETED)
+                            AccentEmerald.copy(alpha = 0.35f)
+                        else
+                            BorderSubtle
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(10.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Code,
+                                    contentDescription = null,
+                                    tint = AccentCyan,
+                                    modifier = Modifier.size(15.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "HEDEF UYGULAMA GÖREVİ",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = AccentCyan,
+                                        fontSize = 10.5.sp,
+                                        letterSpacing = 0.8.sp
+                                    )
+                                )
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = if (state == TopicProgressState.PRACTICED || state == TopicProgressState.COMPLETED)
+                                    AccentEmerald.copy(alpha = 0.15f)
+                                else
+                                    PanelNavyElevated,
+                                border = BorderStroke(
+                                    1.dp,
+                                    if (state == TopicProgressState.PRACTICED || state == TopicProgressState.COMPLETED)
+                                        AccentEmerald.copy(alpha = 0.4f)
+                                    else
+                                        BorderSubtle
+                                )
+                            ) {
+                                Text(
+                                    text = if (state == TopicProgressState.PRACTICED || state == TopicProgressState.COMPLETED) "✓ Kodlandı" else "⏳ Bekliyor",
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 9.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (state == TopicProgressState.PRACTICED || state == TopicProgressState.COMPLETED) AccentEmerald else TextMuted
+                                    )
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        Text(
+                            text = item.effectivePracticeTask(),
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = TextPrimary,
+                                fontSize = 11.5.sp,
+                                lineHeight = 16.sp
+                            )
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // 2. Kişisel Çalışma Aşaması (Senin İlerlemen)
                 Text(
-                    text = "DURUM SEÇİN",
+                    text = "ÇALIŞMA AŞAMAN",
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontWeight = FontWeight.Bold,
                         color = TextMuted,
@@ -570,10 +650,9 @@ private fun TopicItemCard(
 
                 Spacer(modifier = Modifier.height(6.dp))
 
+                // 4 Eşit Aşamalı Durum Seçici Stepper
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     TopicProgressState.entries.forEach { s ->
@@ -585,28 +664,39 @@ private fun TopicItemCard(
                             TopicProgressState.COMPLETED -> AccentEmerald
                         }
 
+                        val stageLabel = when (s) {
+                            TopicProgressState.NOT_STARTED -> "Başlanmadı"
+                            TopicProgressState.THEORY -> "Teori"
+                            TopicProgressState.PRACTICED -> "Pratik"
+                            TopicProgressState.COMPLETED -> "Bitti"
+                        }
+
                         Surface(
                             shape = RoundedCornerShape(6.dp),
-                            color = if (isSelected) pillColor.copy(alpha = 0.2f) else PanelNavy,
+                            color = if (isSelected) pillColor.copy(alpha = 0.22f) else PanelNavy,
                             border = BorderStroke(
-                                1.dp,
-                                if (isSelected) pillColor else BorderSubtle.copy(alpha = 0.6f)
+                                if (isSelected) 1.5.dp else 1.dp,
+                                if (isSelected) pillColor else BorderSubtle.copy(alpha = 0.5f)
                             ),
-                            modifier = Modifier.clickable { onUpdateState(s) }
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { onUpdateState(s) }
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                            Column(
+                                modifier = Modifier.padding(vertical = 6.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
                             ) {
-                                Text(text = s.emoji, fontSize = 10.sp)
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(text = s.emoji, fontSize = 11.sp)
+                                Spacer(modifier = Modifier.height(2.dp))
                                 Text(
-                                    text = s.shortLabel,
+                                    text = stageLabel,
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                         color = if (isSelected) pillColor else TextSecondary,
-                                        fontSize = 10.5.sp
-                                    )
+                                        fontSize = 10.sp
+                                    ),
+                                    maxLines = 1
                                 )
                             }
                         }
@@ -615,158 +705,123 @@ private fun TopicItemCard(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // 2. 🧪 Pratik Görevi (Hands-on Practice Box)
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = PanelNavy,
-                    border = BorderStroke(
-                        1.dp,
-                        if (state == TopicProgressState.PRACTICED || state == TopicProgressState.COMPLETED)
-                            AccentEmerald.copy(alpha = 0.35f)
-                        else
-                            AccentAmber.copy(alpha = 0.35f)
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(10.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                // 3. Sıradaki Adım Hızlı Aksiyon Butonu
+                when (state) {
+                    TopicProgressState.NOT_STARTED -> {
+                        OutlinedButton(
+                            onClick = { onUpdateState(TopicProgressState.THEORY) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(34.dp),
+                            shape = RoundedCornerShape(6.dp),
+                            border = BorderStroke(1.dp, Color(0xFF38BDF8).copy(alpha = 0.7f)),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = Color(0xFF38BDF8).copy(alpha = 0.12f)
+                            ),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp)
                         ) {
+                            Icon(
+                                imageVector = Icons.Default.MenuBook,
+                                contentDescription = null,
+                                tint = Color(0xFF38BDF8),
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "🧪 PRATİK GÖREVİ",
+                                text = "Teoriyi İnceledim Olarak İşaretle",
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.Bold,
-                                    color = if (state == TopicProgressState.PRACTICED || state == TopicProgressState.COMPLETED) AccentEmerald else AccentAmber,
-                                    fontSize = 10.sp,
-                                    letterSpacing = 1.sp
+                                    color = Color(0xFF38BDF8),
+                                    fontSize = 10.5.sp
                                 )
                             )
-
-                            Surface(
-                                shape = RoundedCornerShape(4.dp),
-                                color = if (state == TopicProgressState.PRACTICED || state == TopicProgressState.COMPLETED)
-                                    AccentEmerald.copy(alpha = 0.15f)
-                                else
-                                    AccentAmber.copy(alpha = 0.15f),
-                                border = BorderStroke(
-                                    1.dp,
-                                    if (state == TopicProgressState.PRACTICED || state == TopicProgressState.COMPLETED)
-                                        AccentEmerald.copy(alpha = 0.4f)
-                                    else
-                                        AccentAmber.copy(alpha = 0.4f)
-                                )
-                            ) {
-                                Text(
-                                    text = if (state == TopicProgressState.PRACTICED || state == TopicProgressState.COMPLETED) "✓ Uygulandı" else "⏳ Bekliyor",
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontSize = 9.5.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (state == TopicProgressState.PRACTICED || state == TopicProgressState.COMPLETED) AccentEmerald else AccentAmber
-                                    )
-                                )
-                            }
                         }
-
-                        Spacer(modifier = Modifier.height(6.dp))
-
-                        Text(
-                            text = item.effectivePracticeTask(),
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                color = TextSecondary,
-                                fontSize = 11.5.sp,
-                                lineHeight = 16.sp
+                    }
+                    TopicProgressState.THEORY -> {
+                        OutlinedButton(
+                            onClick = { onUpdateState(TopicProgressState.PRACTICED) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(34.dp),
+                            shape = RoundedCornerShape(6.dp),
+                            border = BorderStroke(1.dp, AccentAmber.copy(alpha = 0.7f)),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = AccentAmber.copy(alpha = 0.12f)
+                            ),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Build,
+                                contentDescription = null,
+                                tint = AccentAmber,
+                                modifier = Modifier.size(13.dp)
                             )
-                        )
-
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        // Quick Workflow Action Button
-                        when (state) {
-                            TopicProgressState.NOT_STARTED, TopicProgressState.THEORY -> {
-                                OutlinedButton(
-                                    onClick = { onUpdateState(TopicProgressState.PRACTICED) },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(34.dp),
-                                    shape = RoundedCornerShape(6.dp),
-                                    border = BorderStroke(1.dp, AccentAmber.copy(alpha = 0.7f)),
-                                    colors = ButtonDefaults.outlinedButtonColors(
-                                        containerColor = AccentAmber.copy(alpha = 0.12f)
-                                    ),
-                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Build,
-                                        contentDescription = null,
-                                        tint = AccentAmber,
-                                        modifier = Modifier.size(13.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = "Pratiği Tamamladım (Pratik Durumuna Geçir)",
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            color = AccentAmber,
-                                            fontSize = 10.5.sp
-                                        )
-                                    )
-                                }
-                            }
-                            TopicProgressState.PRACTICED -> {
-                                OutlinedButton(
-                                    onClick = { onUpdateState(TopicProgressState.COMPLETED) },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(34.dp),
-                                    shape = RoundedCornerShape(6.dp),
-                                    border = BorderStroke(1.dp, AccentEmerald.copy(alpha = 0.7f)),
-                                    colors = ButtonDefaults.outlinedButtonColors(
-                                        containerColor = AccentEmerald.copy(alpha = 0.12f)
-                                    ),
-                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.CheckCircle,
-                                        contentDescription = null,
-                                        tint = AccentEmerald,
-                                        modifier = Modifier.size(13.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = "Konuyu Tamamla (Tamamlandı Olarak İşaretle)",
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            color = AccentEmerald,
-                                            fontSize = 10.5.sp
-                                        )
-                                    )
-                                }
-                            }
-                            TopicProgressState.COMPLETED -> {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(vertical = 2.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Check,
-                                        contentDescription = null,
-                                        tint = AccentEmerald,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = "Tebrikler! Hem teori hem de pratik görevi başarıyla tamamlandı.",
-                                        style = MaterialTheme.typography.bodySmall.copy(
-                                            color = AccentEmerald,
-                                            fontSize = 10.5.sp,
-                                            fontWeight = FontWeight.Medium
-                                        )
-                                    )
-                                }
-                            }
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Görevi Kodladım & Uyguladım (Pratik Tamam)",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = AccentAmber,
+                                    fontSize = 10.5.sp
+                                )
+                            )
+                        }
+                    }
+                    TopicProgressState.PRACTICED -> {
+                        OutlinedButton(
+                            onClick = { onUpdateState(TopicProgressState.COMPLETED) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(34.dp),
+                            shape = RoundedCornerShape(6.dp),
+                            border = BorderStroke(1.dp, AccentEmerald.copy(alpha = 0.7f)),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = AccentEmerald.copy(alpha = 0.12f)
+                            ),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = AccentEmerald,
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Konuyu Tamamla (Tamamlandı Olarak İşaretle)",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = AccentEmerald,
+                                    fontSize = 10.5.sp
+                                )
+                            )
+                        }
+                    }
+                    TopicProgressState.COMPLETED -> {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(AccentEmerald.copy(alpha = 0.1f))
+                                .border(1.dp, AccentEmerald.copy(alpha = 0.25f), RoundedCornerShape(6.dp))
+                                .padding(horizontal = 10.dp, vertical = 7.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                tint = AccentEmerald,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Tebrikler! Hem teorisi hem de pratik görevi başarıyla tamamlandı.",
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    color = AccentEmerald,
+                                    fontSize = 10.5.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            )
                         }
                     }
                 }
