@@ -124,11 +124,11 @@ private val personalDevSubItems = listOf(
     ),
     CategorySubItem(
         id = "sub_second_language",
-        title = "2. Yabancı Dil",
-        subtitle = "İkinci Dil Temelleri & Pratik",
-        emoji = "🌍",
-        description = "Hedeflenen ikinci yabancı dilde temel gramer kuralları, günlük pratik ve kelime dağarcığı inşası.",
-        tag = "Language Learning"
+        title = "2. Yabancı Dil: İspanyolca",
+        subtitle = "Hobi & Kültür Dili (🔒 Kilitli - B2+ Sonrası)",
+        emoji = "🇪🇸",
+        description = "Hedeflenen ikinci yabancı dil olarak İspanyolca. İngilizce B2+ seviyesine oturduktan sonra stressiz bir hobi olarak açılacak.",
+        tag = "İspanyolca (🔒)"
     )
 )
 

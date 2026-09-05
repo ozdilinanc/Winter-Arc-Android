@@ -1,5 +1,6 @@
 package com.example.ui.components.school
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -28,15 +29,19 @@ fun GraduationProjectDetailView(
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    BackHandler {
+        onBack()
+    }
+
     var milestones by remember {
         mutableStateOf(
             listOf(
-                ProjectMilestone("m1", "Literatür Taraması & vLLM Mimarisi", "PagedAttention ve sanal bellek mekanizmalarının incelenmesi.", true),
-                ProjectMilestone("m2", "KV Cache Parçalanma Analizi", "Uzun bağlamlı LLM çıkarımlarında bellek israfının ölçümlenmesi.", true),
-                ProjectMilestone("m3", "C++ Paged KV Kernel Geliştirme", "Non-contiguous bellek tahsisi ve blok tabanlı önbellek motoru.", false),
-                ProjectMilestone("m4", "Karşılaştırmalı Benchmark & Testler", "Throughput, gecikme ve bellek tüketimi karşılaştırma grafikleri.", false),
-                ProjectMilestone("m5", "Bitirme Tezi Yazımı & Raporlama", "IEEE formatında akademik araştırma tezi ve mimari çizimler.", false),
-                ProjectMilestone("m6", "Jüri Sunumu & Bitirme Savunması", "Canlı demo ve jüri önünde akademik savunma.", false)
+                ProjectMilestone("m1", "vAttention & GPU VMM Literatür Taraması", "NVIDIA GPU Virtual Memory Management (VMM) ve paged memory analizleri.", true),
+                ProjectMilestone("m2", "KV Cache & Token Bellek Parçalanma Analizi", "Uzun bağlamlı LLM çıkarımlarında bellek israfının ve token paylaşımının ölçümü.", true),
+                ProjectMilestone("m3", "Linux OS Non-Contiguous Paging Mimarisi", "Bellek tahsisini OS düzeyinde yöneten C++ sanal bellek prototip motoru.", false),
+                ProjectMilestone("m4", "Ollama / LLaMA C++ Entegrasyonu", "Llama / Ollama çıkarım motoruna özel bellek yöneticisini bağlama.", false),
+                ProjectMilestone("m5", "Karşılaştırmalı Benchmark & Performans Testleri", "Throughput, latency ve GPU/RAM bellek optimizasyon ölçümleri.", false),
+                ProjectMilestone("m6", "IEEE Bitirme Tezi Raporu & Jüri Savunması", "Akademik tez yazımı, kod yayını ve canlı jüri sunumu.", false)
             )
         )
     }
@@ -144,7 +149,7 @@ fun GraduationProjectDetailView(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
-                        text = "Transformer modellerinde uzun context inference sırasında oluşan KV cache bellek parçalanmasını sanal bellek sayfalaması (paging) ile optimize eden yüksek performanslı C++ sistem araştırması.",
+                        text = "LLM'lerde token paylaşımında kullanılan vAttention yaklaşımını (non-contiguous sanal bellek sayfalaması) inceliyoruz. NVIDIA GPU VMM (Virtual Memory Management) driver çağrılarıyla yapılan bu bellek yönetimini Linux OS çekirdek ve bellek seviyesinde C++ ve Ollama/LLaMA entegrasyonu ile optimize etmeyi hedefleyen ileri seviye sistem mühendisliği tezi.",
                         style = MaterialTheme.typography.bodySmall.copy(
                             color = TextSecondary,
                             fontSize = 12.sp,
@@ -172,7 +177,7 @@ fun GraduationProjectDetailView(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        listOf("C++20", "Linux", "PagedAttention", "KV Cache", "CUDA").forEach { tag ->
+                        listOf("vAttention", "KV Cache", "C++", "Linux OS Paging", "Ollama/Llama").forEach { tag ->
                             Surface(
                                 shape = RoundedCornerShape(6.dp),
                                 color = PanelNavy,

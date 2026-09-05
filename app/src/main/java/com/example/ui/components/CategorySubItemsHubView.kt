@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.model.RoadmapDataStore
 import com.example.ui.theme.*
 import kotlinx.coroutines.launch
 
@@ -43,11 +44,26 @@ fun CategorySubItemsHubView(
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var selectedSubItemId by remember { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
     BackHandler {
-        onBack()
+        if (selectedSubItemId != null) {
+            selectedSubItemId = null
+        } else {
+            onBack()
+        }
+    }
+
+    if (selectedSubItemId != null) {
+        SubItemChecklistView(
+            subItemId = selectedSubItemId!!,
+            accentColor = accentColor,
+            onBack = { selectedSubItemId = null },
+            modifier = modifier
+        )
+        return
     }
 
     Scaffold(
@@ -181,8 +197,12 @@ fun CategorySubItemsHubView(
                         .clip(RoundedCornerShape(14.dp))
                         .border(1.dp, BorderSubtle, RoundedCornerShape(14.dp))
                         .clickable {
-                            coroutineScope.launch {
-                                snackbarHostState.showSnackbar("${item.title} detay sayfası sonraki adımda hazırlanacak 🚀")
+                            if (RoadmapDataStore.allRoadmaps.containsKey(item.id)) {
+                                selectedSubItemId = item.id
+                            } else {
+                                coroutineScope.launch {
+                                    snackbarHostState.showSnackbar("${item.title} detayları hazırlanıyor...")
+                                }
                             }
                         },
                     colors = CardDefaults.cardColors(containerColor = PanelNavyElevated)
