@@ -39,14 +39,10 @@ fun SkillTreeApp(
             .testTag("skilltree_main_scaffold"),
         containerColor = CanvasDark,
         topBar = {
-            StatsDashboardHeader(
-                uiState = uiState,
-                onSearchChange = viewModel::onSearchQueryChanged,
-                onBranchFilter = viewModel::onSelectBranchFilter,
-                onStatusFilter = viewModel::onSelectStatusFilter,
-                onViewModeChange = viewModel::onSetViewMode,
-                onOpenAchievements = { viewModel.setAchievementsDialogVisible(true) },
-                onRestoreDailyBanner = viewModel::showDailyBanner
+            MinimalDarkTopBar(
+                currentMode = uiState.currentViewMode,
+                userXp = uiState.userXp,
+                onOpenAchievements = { viewModel.setAchievementsDialogVisible(true) }
             )
         },
         bottomBar = {
@@ -56,81 +52,50 @@ fun SkillTreeApp(
             )
         }
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
                 .background(CanvasDark)
         ) {
-            // Daily Skill Focus Banner
-            DailySkillFocusBanner(
-                focusSkill = uiState.currentDailyFocusSkill,
-                inProgressCount = uiState.inProgressSkills.size,
-                currentIndex = uiState.dailyFocusSkillIndex,
-                isVisible = !uiState.isDailyBannerDismissed && uiState.currentDailyFocusSkill != null,
-                onCompleteSkill = { skill ->
-                    hapticEngine.vibrateSkillCompleted()
-                    viewModel.onUpdateSkillStatus(skill.id, SkillStatus.COMPLETED)
-                },
-                onOpenSkill = { skill ->
-                    viewModel.onSelectSkill(skill)
-                },
-                onCycleNextSkill = viewModel::cycleNextDailyFocusSkill,
-                onDismiss = viewModel::dismissDailyBanner
-            )
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .background(CanvasDark)
-            ) {
             when (uiState.currentViewMode) {
-                SkillDashboardViewMode.GRAPH_TREE -> {
+                SkillDashboardViewMode.TREE_MAP -> {
                     SkillTreeGraphView(
-                        skills = uiState.filteredSkills,
+                        skills = uiState.allSkills,
                         selectedSkill = uiState.selectedSkill,
                         onSkillClick = { skill -> viewModel.onSelectSkill(skill) }
                     )
                 }
 
-                SkillDashboardViewMode.BRANCH_LIST -> {
-                    BranchExplorerView(
-                        skills = uiState.filteredSkills,
-                        selectedBranchFilter = uiState.selectedBranchFilter,
-                        onSkillClick = { skill -> viewModel.onSelectSkill(skill) },
-                        onStatusToggle = { skill ->
-                            val next = when (skill.status) {
-                                SkillStatus.NOT_STARTED -> SkillStatus.IN_PROGRESS
-                                SkillStatus.IN_PROGRESS, SkillStatus.LEARNING -> SkillStatus.COMPLETED
-                                SkillStatus.PRACTICED -> SkillStatus.COMPLETED
-                                SkillStatus.COMPLETED -> SkillStatus.STRONG
-                                SkillStatus.STRONG -> SkillStatus.NOT_STARTED
-                            }
-                            if (next.isCompletedOrMastered) {
-                                hapticEngine.vibrateSkillCompleted()
-                            }
-                            viewModel.onCycleSkillStatus(skill.id)
-                        }
-                    )
-                }
-
-                SkillDashboardViewMode.PORTFOLIO_PIPELINE -> {
-                    PortfolioPipelineView(
+                SkillDashboardViewMode.CATEGORIES -> {
+                    CategoriesDashboardView(
+                        skills = uiState.allSkills,
                         projects = uiState.projects,
-                        onAdvanceStage = viewModel::advanceProjectStage,
-                        onAddNewProjectClick = { viewModel.setAddProjectDialogVisible(true) }
+                        onCategorySelected = { /* Deep category details to be added later */ }
                     )
                 }
 
-                SkillDashboardViewMode.KNOWLEDGE_LOOP -> {
-                    KnowledgeLoopView()
+                SkillDashboardViewMode.DAILY_TRACKER -> {
+                    DailyTrackerView(
+                        focusSkill = uiState.currentDailyFocusSkill,
+                        onCompleteSkill = { skill ->
+                            hapticEngine.vibrateSkillCompleted()
+                            viewModel.onUpdateSkillStatus(skill.id, SkillStatus.COMPLETED)
+                        },
+                        onCycleFocus = viewModel::cycleNextDailyFocusSkill
+                    )
+                }
+
+                SkillDashboardViewMode.PROGRESS_ANALYTICS -> {
+                    ProgressAnalyticsView(
+                        uiState = uiState,
+                        onOpenAchievements = { viewModel.setAchievementsDialogVisible(true) }
+                    )
                 }
             }
         }
-    }
 
-    // Skill Detail Sheet
+        // Skill Detail Sheet
         uiState.selectedSkill?.let { selected ->
             SkillDetailSheet(
                 skill = selected,
@@ -182,6 +147,89 @@ fun SkillTreeApp(
 }
 
 @Composable
+private fun MinimalDarkTopBar(
+    currentMode: SkillDashboardViewMode,
+    userXp: com.example.data.model.UserXpProfile,
+    onOpenAchievements: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(CanvasDark)
+            .border(1.dp, BorderSubtle.copy(alpha = 0.5f))
+            .padding(horizontal = 18.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column {
+            Text(
+                text = when (currentMode) {
+                    SkillDashboardViewMode.TREE_MAP -> "AĞAÇ HARİTASI"
+                    SkillDashboardViewMode.CATEGORIES -> "KATEGORİLER"
+                    SkillDashboardViewMode.DAILY_TRACKER -> "GÜNLÜK TAKİP"
+                    SkillDashboardViewMode.PROGRESS_ANALYTICS -> "İLERLEME"
+                },
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary,
+                    letterSpacing = 1.2.sp
+                )
+            )
+            Text(
+                text = when (currentMode) {
+                    SkillDashboardViewMode.TREE_MAP -> "Mühendislik Yetenek Ağacı"
+                    SkillDashboardViewMode.CATEGORIES -> "5 Temel Gelişim Sütunu"
+                    SkillDashboardViewMode.DAILY_TRACKER -> "Bugünün Rutinleri & Odak"
+                    SkillDashboardViewMode.PROGRESS_ANALYTICS -> "Seviye, Rozetler & İstatistik"
+                },
+                style = MaterialTheme.typography.labelSmall.copy(
+                    color = TextMuted,
+                    fontSize = 10.5.sp
+                )
+            )
+        }
+
+        // Quick Level/XP Pill
+        Surface(
+            shape = RoundedCornerShape(10.dp),
+            color = PanelNavyElevated,
+            border = androidx.compose.foundation.BorderStroke(1.dp, AccentCyan.copy(alpha = 0.4f)),
+            modifier = Modifier.clickable { onOpenAchievements() }
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "LVL ${userXp.level}",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = AccentCyan,
+                        fontSize = 11.sp
+                    )
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "•",
+                    color = TextDarkMuted,
+                    fontSize = 10.sp
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "${userXp.totalXp} XP",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = AccentAmber,
+                        fontSize = 11.sp
+                    )
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun ElegantDarkBottomNav(
     currentMode: SkillDashboardViewMode,
     onModeSelected: (SkillDashboardViewMode) -> Unit,
@@ -199,10 +247,10 @@ private fun ElegantDarkBottomNav(
         verticalAlignment = Alignment.CenterVertically
     ) {
         val navItems = listOf(
-            Triple(SkillDashboardViewMode.GRAPH_TREE, "🧭", "MAP"),
-            Triple(SkillDashboardViewMode.BRANCH_LIST, "🗂️", "MODULES"),
-            Triple(SkillDashboardViewMode.PORTFOLIO_PIPELINE, "🚀", "PROJECTS"),
-            Triple(SkillDashboardViewMode.KNOWLEDGE_LOOP, "📑", "JOURNAL")
+            Triple(SkillDashboardViewMode.TREE_MAP, "🌳", "AĞAÇ"),
+            Triple(SkillDashboardViewMode.CATEGORIES, "🗂️", "KATEGORİ"),
+            Triple(SkillDashboardViewMode.DAILY_TRACKER, "📅", "GÜNLÜK"),
+            Triple(SkillDashboardViewMode.PROGRESS_ANALYTICS, "📊", "İLERLEME")
         )
 
         navItems.forEach { (mode, icon, label) ->
@@ -227,8 +275,8 @@ private fun ElegantDarkBottomNav(
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontSize = 8.5.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                        letterSpacing = 1.6.sp,
-                        color = if (isSelected) AccentIndigo else TextDarkMuted
+                        letterSpacing = 1.4.sp,
+                        color = if (isSelected) AccentCyan else TextDarkMuted
                     )
                 )
             }

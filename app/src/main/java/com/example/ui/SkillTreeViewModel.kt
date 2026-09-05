@@ -10,11 +10,11 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.UUID
 
-enum class SkillDashboardViewMode(val label: String, val iconName: String) {
-    GRAPH_TREE("Skill Tree", "AccountTree"),
-    BRANCH_LIST("Branches", "ViewList"),
-    PORTFOLIO_PIPELINE("Portfolio & Projects", "RocketLaunch"),
-    KNOWLEDGE_LOOP("Knowledge Loop", "AutoStories")
+enum class SkillDashboardViewMode(val label: String, val iconEmoji: String) {
+    TREE_MAP("Ağaç", "🌳"),
+    CATEGORIES("Kategoriler", "🗂️"),
+    DAILY_TRACKER("Günlük", "📅"),
+    PROGRESS_ANALYTICS("İlerleme", "📊")
 }
 
 data class SkillTreeUiState(
@@ -25,7 +25,7 @@ data class SkillTreeUiState(
     val searchQuery: String = "",
     val selectedBranchFilter: BranchId? = null,
     val selectedStatusFilter: SkillStatus? = null,
-    val currentViewMode: SkillDashboardViewMode = SkillDashboardViewMode.GRAPH_TREE,
+    val currentViewMode: SkillDashboardViewMode = SkillDashboardViewMode.TREE_MAP,
     val isFilterSheetVisible: Boolean = false,
     val isAddProjectDialogOpen: Boolean = false,
     val userXp: UserXpProfile = UserXpProfile(),
@@ -77,7 +77,7 @@ class SkillTreeViewModel(application: Application) : AndroidViewModel(applicatio
     private val _selectedBranch = MutableStateFlow<BranchId?>(null)
     private val _selectedStatus = MutableStateFlow<SkillStatus?>(null)
     private val _selectedSkillId = MutableStateFlow<String?>(null)
-    private val _currentViewMode = MutableStateFlow(SkillDashboardViewMode.GRAPH_TREE)
+    private val _currentViewMode = MutableStateFlow(SkillDashboardViewMode.TREE_MAP)
     private val _isAddProjectDialogOpen = MutableStateFlow(false)
     private val _activeRewardNotification = MutableStateFlow<RewardNotification?>(null)
     private val _isAchievementsDialogOpen = MutableStateFlow(false)
