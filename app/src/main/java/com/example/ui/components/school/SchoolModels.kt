@@ -85,19 +85,57 @@ fun defaultAttendanceWeeks(): List<CourseAttendanceWeek> {
     }
 }
 
+enum class BookReadingStatus(val label: String, val emoji: String) {
+    NOT_STARTED("Başlanmadı", "⚪"),
+    READING("Okunuyor", "📖"),
+    COMPLETED("Tamamlandı", "✅")
+}
+
+data class BookChapterItem(
+    val id: String,
+    val chapterNumber: String,
+    val title: String,
+    val description: String = "",
+    val pageRange: String = "",
+    val isCompleted: Boolean = false
+)
+
+data class BookSection(
+    val id: String,
+    val title: String,
+    val emoji: String,
+    val chapters: List<BookChapterItem>
+)
+
 data class TrackedBook(
     val id: String,
     val title: String,
     val shortTitle: String,
+    val authors: String = "",
     val authorOrDomain: String,
     val whyItMatters: String,
     val totalPages: Int,
     val currentPage: Int,
-    val keyTopics: List<String>,
-    val coverEmoji: String
+    val coverEmoji: String,
+    val keyTopics: List<String> = emptyList(),
+    val status: BookReadingStatus = BookReadingStatus.READING,
+    val personalNotes: String = "",
+    val sections: List<BookSection> = emptyList()
 ) {
-    val progressPercent: Float
+    val totalChaptersCount: Int
+        get() = sections.sumOf { it.chapters.size }
+
+    val completedChaptersCount: Int
+        get() = sections.sumOf { it.chapters.count { ch -> ch.isCompleted } }
+
+    val chapterProgressPercent: Float
+        get() = if (totalChaptersCount > 0) (completedChaptersCount.toFloat() / totalChaptersCount.toFloat()).coerceIn(0f, 1f) else 0f
+
+    val pageProgressPercent: Float
         get() = if (totalPages > 0) (currentPage.toFloat() / totalPages.toFloat()).coerceIn(0f, 1f) else 0f
+
+    val progressPercent: Float
+        get() = if (totalChaptersCount > 0) chapterProgressPercent else pageProgressPercent
 }
 
 data class ProjectMilestone(
