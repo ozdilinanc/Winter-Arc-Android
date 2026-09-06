@@ -1,14 +1,14 @@
 package com.example.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,9 +46,9 @@ fun SkillTreeApp(
     BackHandler(enabled = uiState.selectedSkill != null) {
         viewModel.onSelectSkill(null)
     }
-    // Return to root Tree Map tab if on another top-level tab
-    BackHandler(enabled = uiState.currentViewMode != SkillDashboardViewMode.TREE_MAP) {
-        viewModel.onSetViewMode(SkillDashboardViewMode.TREE_MAP)
+    // Return to root Categories tab if on another top-level tab
+    BackHandler(enabled = uiState.currentViewMode != SkillDashboardViewMode.CATEGORIES) {
+        viewModel.onSetViewMode(SkillDashboardViewMode.CATEGORIES)
     }
 
     Scaffold(
@@ -80,10 +80,8 @@ fun SkillTreeApp(
         ) {
             when (uiState.currentViewMode) {
                 SkillDashboardViewMode.TREE_MAP -> {
-                    SkillTreeGraphView(
-                        skills = uiState.allSkills,
-                        selectedSkill = uiState.selectedSkill,
-                        onSkillClick = { skill -> viewModel.onSelectSkill(skill) }
+                    SkillTreeComingSoonView(
+                        onNavigateToCategories = { viewModel.onSetViewMode(SkillDashboardViewMode.CATEGORIES) }
                     )
                 }
 
@@ -202,7 +200,7 @@ private fun MinimalDarkTopBar(
             )
             Text(
                 text = when (currentMode) {
-                    SkillDashboardViewMode.TREE_MAP -> "Mühendislik Yetenek Ağacı"
+                    SkillDashboardViewMode.TREE_MAP -> "Yetenek Ağacı (Yakında Eklenecektir)"
                     SkillDashboardViewMode.CATEGORIES -> "5 Temel Gelişim Sütunu"
                     SkillDashboardViewMode.DAILY_TRACKER -> "Bugünün Rutinleri & Odak"
                     SkillDashboardViewMode.PROGRESS_ANALYTICS -> "Seviye, Rozetler & İstatistik"
@@ -307,3 +305,119 @@ private fun ElegantDarkBottomNav(
         }
     }
 }
+
+@Composable
+private fun SkillTreeComingSoonView(
+    onNavigateToCategories: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(CanvasDark)
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(20.dp))
+                .border(1.dp, BorderSubtle, RoundedCornerShape(20.dp)),
+            colors = CardDefaults.cardColors(containerColor = PanelNavyElevated)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                // Large Glowing Icon Box
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(CircleShape)
+                        .background(AccentCyan.copy(alpha = 0.12f))
+                        .border(1.5.dp, AccentCyan.copy(alpha = 0.35f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = "🌳", fontSize = 38.sp)
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = AccentAmber.copy(alpha = 0.15f),
+                    border = BorderStroke(1.dp, AccentAmber.copy(alpha = 0.4f))
+                ) {
+                    Text(
+                        text = "🚧 YAKINDA EKLENECEKTİR",
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = AccentAmber,
+                            fontSize = 11.sp,
+                            letterSpacing = 1.sp
+                        )
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Text(
+                    text = "Mühendislik Yetenek Ağacı",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary,
+                        fontSize = 18.sp
+                    ),
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "İnteraktif 2D düğüm grafiği ve yetenek dallanma görselleştirmesi daha akıcı bir deneyim için yeniden tasarlanıyor.",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        color = TextSecondary,
+                        fontSize = 13.sp,
+                        lineHeight = 19.sp
+                    ),
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "Tüm yol haritalarına, .NET & Android yetkinliklerine, projelere ve BTK Akademi diploma takibine şu an Kategoriler sekmesinden eksiksiz ulaşabilirsin.",
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = TextMuted,
+                        fontSize = 12.sp,
+                        lineHeight = 17.sp
+                    ),
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Button(
+                    onClick = onNavigateToCategories,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = AccentCyan),
+                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
+                ) {
+                    Text(
+                        text = "🗂️ Kategorilere Git",
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = CanvasDark,
+                            fontSize = 13.sp
+                        )
+                    )
+                }
+            }
+        }
+    }
+}
+

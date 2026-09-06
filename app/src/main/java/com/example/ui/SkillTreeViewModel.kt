@@ -25,7 +25,7 @@ data class SkillTreeUiState(
     val searchQuery: String = "",
     val selectedBranchFilter: BranchId? = null,
     val selectedStatusFilter: SkillStatus? = null,
-    val currentViewMode: SkillDashboardViewMode = SkillDashboardViewMode.TREE_MAP,
+    val currentViewMode: SkillDashboardViewMode = SkillDashboardViewMode.CATEGORIES,
     val isFilterSheetVisible: Boolean = false,
     val isAddProjectDialogOpen: Boolean = false,
     val userXp: UserXpProfile = UserXpProfile(),
