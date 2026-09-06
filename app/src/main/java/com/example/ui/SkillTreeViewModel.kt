@@ -71,7 +71,7 @@ data class SkillTreeUiState(
 
 class SkillTreeViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val repository = SkillTreeRepository(AppDatabase.getDatabase(application))
+    private val repository = SkillTreeRepository(AppDatabase.getDatabase(application), context = application)
 
     private val _searchQuery = MutableStateFlow("")
     private val _selectedBranch = MutableStateFlow<BranchId?>(null)

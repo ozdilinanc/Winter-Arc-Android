@@ -1,5 +1,6 @@
 package com.example.data.repository
 
+import android.content.Context
 import com.example.data.db.AppDatabase
 import com.example.data.db.ProjectEntity
 import com.example.data.model.*
@@ -13,7 +14,8 @@ import kotlinx.coroutines.withContext
 
 class SkillTreeRepository(
     private val database: AppDatabase,
-    private val staticSkills: List<SkillNode> = SkillTreeSeed.getInitialSkills()
+    private val staticSkills: List<SkillNode> = SkillTreeSeed.getInitialSkills(),
+    private val context: Context? = null
 ) {
 
     private val skillDao = database.skillDao()
@@ -25,28 +27,47 @@ class SkillTreeRepository(
     val rewardNotificationFlow: Flow<RewardNotification> = progressManager.rewardNotificationFlow
 
     val projectsFlow: Flow<List<EngineeringProject>> = skillDao.getAllProjects().map { entities ->
-        if (entities.isEmpty()) {
-            // If empty, return initial seed projects
-            SkillTreeSeed.initialProjects
-        } else {
-            entities.map { entity ->
-                val stage = try {
-                    ProjectWorkflowStage.valueOf(entity.stageName)
-                } catch (e: Exception) {
-                    ProjectWorkflowStage.IDEA
+        if (entities.isEmpty() && context != null) {
+            val prefs = context.getSharedPreferences("winter_arc_projects_seed", Context.MODE_PRIVATE)
+            val alreadySeeded = prefs.getBoolean("is_projects_seeded_v1", false)
+            if (!alreadySeeded) {
+                val initialEntities = SkillTreeSeed.initialProjects.map { project ->
+                    ProjectEntity(
+                        id = project.id,
+                        title = project.title,
+                        description = project.description,
+                        category = project.category,
+                        stageName = project.currentStage.name,
+                        githubRepo = project.githubRepo,
+                        mediumArticleUrl = project.mediumArticleUrl,
+                        notes = project.notes,
+                        tagsCsv = project.tags.joinToString(","),
+                        updatedAt = System.currentTimeMillis()
+                    )
                 }
-                EngineeringProject(
-                    id = entity.id,
-                    title = entity.title,
-                    description = entity.description,
-                    category = entity.category,
-                    currentStage = stage,
-                    githubRepo = entity.githubRepo,
-                    mediumArticleUrl = entity.mediumArticleUrl,
-                    notes = entity.notes,
-                    tags = if (entity.tagsCsv.isNotBlank()) entity.tagsCsv.split(",") else emptyList()
-                )
+                skillDao.insertAllProjects(initialEntities)
+                prefs.edit().putBoolean("is_projects_seeded_v1", true).apply()
+                return@map SkillTreeSeed.initialProjects
             }
+        }
+
+        entities.map { entity ->
+            val stage = try {
+                ProjectWorkflowStage.valueOf(entity.stageName)
+            } catch (e: Exception) {
+                ProjectWorkflowStage.IDEA
+            }
+            EngineeringProject(
+                id = entity.id,
+                title = entity.title,
+                description = entity.description,
+                category = entity.category,
+                currentStage = stage,
+                githubRepo = entity.githubRepo,
+                mediumArticleUrl = entity.mediumArticleUrl,
+                notes = entity.notes,
+                tags = if (entity.tagsCsv.isNotBlank()) entity.tagsCsv.split(",") else emptyList()
+            )
         }
     }
 

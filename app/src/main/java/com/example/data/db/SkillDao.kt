@@ -51,6 +51,9 @@ interface SkillDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertProject(project: ProjectEntity)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAllProjects(projects: List<ProjectEntity>)
+
     @Query("DELETE FROM engineering_projects WHERE id = :id")
     suspend fun deleteProjectById(id: String)
 
