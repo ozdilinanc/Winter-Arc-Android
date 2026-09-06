@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Remove
@@ -35,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.SkillNode
 import com.example.ui.theme.*
+import com.example.ui.util.WinterArcNotificationHelper
 import com.example.ui.util.rememberHapticEngine
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -128,6 +130,35 @@ fun DailyTrackerView(
         hapticEngine.vibrateSelection()
         sleepQuality = quality
         prefs.edit().putString("sleep_quality_$todayKey", quality).apply()
+    }
+
+    // ----------------------------------------------------
+    // Hatırlatıcı Bildirimler State & Yönetimi
+    // ----------------------------------------------------
+    val reminderPrefs = remember { WinterArcNotificationHelper.getPrefs(context) }
+    var dopamineReminderEnabled by remember {
+        mutableStateOf(reminderPrefs.getBoolean(WinterArcNotificationHelper.KEY_DOPAMINE_ENABLED, true))
+    }
+    var waterReminderEnabled by remember {
+        mutableStateOf(reminderPrefs.getBoolean(WinterArcNotificationHelper.KEY_WATER_ENABLED, true))
+    }
+
+    fun toggleDopamineReminder(enabled: Boolean) {
+        hapticEngine.vibrateSelection()
+        dopamineReminderEnabled = enabled
+        reminderPrefs.edit().putBoolean(WinterArcNotificationHelper.KEY_DOPAMINE_ENABLED, enabled).apply()
+        WinterArcNotificationHelper.syncAllReminders(context)
+        val msg = if (enabled) "Akşam detoks hatırlatıcısı (21:30) aktif edildi! 🔔" else "Akşam hatırlatıcısı kapatıldı"
+        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+    }
+
+    fun toggleWaterReminder(enabled: Boolean) {
+        hapticEngine.vibrateSelection()
+        waterReminderEnabled = enabled
+        reminderPrefs.edit().putBoolean(WinterArcNotificationHelper.KEY_WATER_ENABLED, enabled).apply()
+        WinterArcNotificationHelper.syncAllReminders(context)
+        val msg = if (enabled) "Gün içi su hatırlatıcısı (15:00) aktif edildi! 💧" else "Su hatırlatıcısı kapatıldı"
+        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
     }
 
     // ----------------------------------------------------
@@ -746,7 +777,182 @@ fun DailyTrackerView(
         }
 
         // ==========================================
-        // 5. Section: Bedensel Güç & Spor Protokolü
+        // 5. Section: Winter Arc Hatırlatıcıları & Bildirimler
+        // ==========================================
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .border(1.dp, AccentAmber.copy(alpha = 0.4f), RoundedCornerShape(14.dp)),
+                colors = CardDefaults.cardColors(containerColor = PanelNavyElevated)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(text = "🔔", fontSize = 20.sp)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text(
+                                    text = "HATIRLATICI BİLDİRİMLER",
+                                    style = MaterialTheme.typography.titleSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = TextPrimary,
+                                        letterSpacing = 0.8.sp
+                                    )
+                                )
+                                Text(
+                                    text = "Disiplin ve hidrasyon için yerel alarmlar",
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        color = TextMuted,
+                                        fontSize = 10.5.sp
+                                    )
+                                )
+                            }
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = if (dopamineReminderEnabled || waterReminderEnabled) AccentAmber.copy(alpha = 0.15f) else PanelNavyHighlight
+                        ) {
+                            Text(
+                                text = if (dopamineReminderEnabled || waterReminderEnabled) "ALARM AKTİF" else "KAPALI",
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (dopamineReminderEnabled || waterReminderEnabled) AccentAmber else TextMuted,
+                                    fontSize = 9.5.sp
+                                )
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Toggle 1: Akşam Dopamin & Kapanış (21:30)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(PanelNavyHighlight)
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "🔥 Akşam Detoks & Kapanış (21:30)",
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = TextPrimary,
+                                    fontSize = 12.5.sp
+                                )
+                            )
+                            Text(
+                                text = "Her akşam seriyi ve alışkanlıkları kaydetme hatırlatması",
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    color = TextMuted,
+                                    fontSize = 10.5.sp
+                                )
+                            )
+                        }
+
+                        Switch(
+                            checked = dopamineReminderEnabled,
+                            onCheckedChange = { toggleDopamineReminder(it) },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = StatusCompleted,
+                                checkedTrackColor = StatusCompleted.copy(alpha = 0.35f),
+                                uncheckedThumbColor = TextDarkMuted,
+                                uncheckedTrackColor = BorderSubtle
+                            )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Toggle 2: Su & Hidrasyon Hatırlatması (15:00)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(PanelNavyHighlight)
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "💧 Gün Ortası Hidrasyon Alarmı (15:00)",
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = TextPrimary,
+                                    fontSize = 12.5.sp
+                                )
+                            )
+                            Text(
+                                text = "Zihinsel berraklık için su içme ve odak tazeleme alarmı",
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    color = TextMuted,
+                                    fontSize = 10.5.sp
+                                )
+                            )
+                        }
+
+                        Switch(
+                            checked = waterReminderEnabled,
+                            onCheckedChange = { toggleWaterReminder(it) },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = BranchTools,
+                                checkedTrackColor = BranchTools.copy(alpha = 0.35f),
+                                uncheckedThumbColor = TextDarkMuted,
+                                uncheckedTrackColor = BorderSubtle
+                            )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Test Bildirimi Gönder Butonu
+                    OutlinedButton(
+                        onClick = {
+                            hapticEngine.vibrateLevelUp()
+                            WinterArcNotificationHelper.sendTestNotification(context)
+                            Toast.makeText(context, "Test bildirimi gönderildi! 🔔", Toast.LENGTH_SHORT).show()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(1.dp, AccentCyan.copy(alpha = 0.5f)),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = AccentCyan.copy(alpha = 0.08f)
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Notifications,
+                            contentDescription = null,
+                            tint = AccentCyan,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Test Bildirimi Gönder 🔔",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = AccentCyan,
+                                fontSize = 12.sp
+                            )
+                        )
+                    }
+                }
+            }
+        }
+
+        // ==========================================
+        // 6. Section: Bedensel Güç & Spor Protokolü
         // ==========================================
         item {
             Text(

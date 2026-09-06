@@ -122,7 +122,8 @@ object RoadmapDataStore {
                         TopicCheckItem("db_tracking", "Change Tracker & AsNoTracking", "Performans için AsNoTracking kullanımı, entity state", practiceTask = "Sadece okuma yapılan sorgularda AsNoTracking() kullanarak bellek ve işlemci tasarrufunu gözlemle."),
                         TopicCheckItem("db_linq_sql", "LINQ ➔ SQL Mantığı (Expression Trees)", "IQueryable vs IEnumerable, N+1 problemi & AsSplitQuery", practiceTask = "Include() ile alt koleksiyon çekerken oluşan N+1 sorgusunu veya Cartesian patlamayı AsSplitQuery() kullanarak çöz."),
                         TopicCheckItem("db_dapper", "Dapper & Hibrit Veri Erişimi", "Mikro-ORM kullanımı, yüksek performanslı SELECT sorguları, EF Core + Dapper hibrit mimari", practiceTask = "EF Core DbContext ile Dapper IDbConnection'ı aynı projede kullan; yoğun bir liste sorgusunu Dapper QueryAsync ile çek."),
-                        TopicCheckItem("db_advanced_ef", "Global Query Filters & Interceptors", "Soft Delete filtreleri, Audit Trail (Created/Updated By/At) ve SaveChanges Interceptor", practiceTask = "Soft Delete için IsDeleted global query filter ekle; SaveChangesInterceptor ile CreatedAt ve UpdatedAt değerlerini otomatik doldur.")
+                        TopicCheckItem("db_advanced_ef", "Global Query Filters & Interceptors", "Soft Delete filtreleri, Audit Trail (Created/Updated By/At) ve SaveChanges Interceptor", practiceTask = "Soft Delete için IsDeleted global query filter ekle; SaveChangesInterceptor ile CreatedAt ve UpdatedAt değerlerini otomatik doldur."),
+                        TopicCheckItem("db_elasticsearch", "Full-Text Search & Elasticsearch", "Inverted index, fuzzy search, NEST / Elastic.Clients.Elasticsearch kütüphanesi, agregasyonlar ve autocomplete", practiceTask = "Docker üzerinde Elasticsearch ve Kibana ayağa kaldır; ürün kataloğu için typo-tolerant fuzzy search ve otomatik tamamlama endpoint'i yaz.")
                     )
                 ),
                 TopicSection(
@@ -228,7 +229,8 @@ object RoadmapDataStore {
                         TopicCheckItem("k8s_config_secrets", "ConfigMaps & Secrets", "Hassas şifreleri ve ayarları kod dışından pod'a environment variable olarak enjekte etme", practiceTask = "kubectl create secret generic ile veritabanı şifresi oluştur; pod manifestinde envFrom ile pod'a enjekte et."),
                         TopicCheckItem("k8s_lens", "Kubernetes Yönetimi & Lens", "K8s cluster'ını görsel arayüzle izleme ve pod logları", practiceTask = "Lens uygulamasını açıp local Kubernetes kümesine (k3s/minikube) bağlan; pod loglarını ve terminal oturumunu izle."),
                         TopicCheckItem("k8s_monitoring", "Prometheus & Grafana", "Metrik toplama, panolar, CPU/bellek ve istek sayısı takibi", practiceTask = "Prometheus ile uygulamanın /metrics endpoint'ini scrape et; Grafana'da CPU ve HTTP istek hızı panosu oluştur."),
-                        TopicCheckItem("k8s_tracing", "Distributed Tracing & CorrelationId", "OpenTelemetry / Jaeger ile isteklerin servisler arası şelale (waterfall) takibi", practiceTask = "OpenTelemetry .NET SDK ile servislere ActivitySource ekle; Jaeger arayüzünde isteklerin şelale izlerini (trace) incele.")
+                        TopicCheckItem("k8s_tracing", "Distributed Tracing & CorrelationId", "OpenTelemetry / Jaeger ile isteklerin servisler arası şelale (waterfall) takibi", practiceTask = "OpenTelemetry .NET SDK ile servislere ActivitySource ekle; Jaeger arayüzünde isteklerin şelale izlerini (trace) incele."),
+                        TopicCheckItem("k8s_elk_stack", "Merkezi Loglama & ELK Stack", "Elasticsearch, Logstash/Fluentd ve Kibana ile mikroservis loglarının toplanması ve analizi", practiceTask = "Filebeat veya Serilog Elastic sink ile .NET loglarını Elasticsearch'e akıt; Kibana üzerinde hata ve trafik dashboard'u kur.")
                     )
                 ),
                 TopicSection(

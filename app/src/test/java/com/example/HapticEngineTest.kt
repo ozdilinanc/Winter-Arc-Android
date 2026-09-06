@@ -13,7 +13,7 @@ import org.robolectric.Shadows.shadowOf
 import android.os.Vibrator
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36])
+@Config(sdk = [34])
 class HapticEngineTest {
 
     @Test

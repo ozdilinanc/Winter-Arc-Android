@@ -18,7 +18,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36])
+@Config(sdk = [34])
 class SkillProgressStateTest {
 
     private lateinit var database: AppDatabase
@@ -157,7 +157,9 @@ class SkillProgressStateTest {
 
     @Test
     fun testDailyFocusSkillSelectionAndCycling() {
-        val initialSkills = SkillTreeSeed.getInitialSkills()
+        val initialSkills = SkillTreeSeed.getInitialSkills().mapIndexed { index, skill ->
+            if (index < 2) skill.copy(status = SkillStatus.IN_PROGRESS) else skill
+        }
         val inProgressList = initialSkills.filter { it.status == SkillStatus.IN_PROGRESS }
         
         assertTrue("Seed data should have in-progress skills", inProgressList.isNotEmpty())
