@@ -1,6 +1,8 @@
 package com.example.ui.components
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -101,26 +103,52 @@ fun SubItemChecklistView(
         item {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onBack() }
                     .padding(vertical = 4.dp)
             ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Geri",
-                    tint = AccentCyan,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "LİSTEYE DÖN",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = AccentCyan,
-                        letterSpacing = 1.2.sp
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clickable { onBack() }
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Geri",
+                        tint = AccentCyan,
+                        modifier = Modifier.size(20.dp)
                     )
-                )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "LİSTEYE DÖN",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = AccentCyan,
+                            letterSpacing = 1.2.sp
+                        )
+                    )
+                }
+
+                if (subItemId == "sub_btk_akademi") {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = AccentCyan.copy(alpha = 0.12f),
+                        border = BorderStroke(1.dp, AccentCyan.copy(alpha = 0.35f)),
+                        modifier = Modifier.clickable {
+                            try {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.btkakademi.gov.tr"))
+                                context.startActivity(intent)
+                            } catch (_: Exception) {}
+                        }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(text = "🌐 btkakademi.gov.tr", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = AccentCyan)
+                        }
+                    }
+                }
             }
         }
 
@@ -197,6 +225,31 @@ fun SubItemChecklistView(
                         )
                     )
 
+                    if (subItemId == "sub_btk_akademi") {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = AccentEmerald.copy(alpha = 0.08f),
+                            border = BorderStroke(1.dp, AccentEmerald.copy(alpha = 0.3f))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(text = "💡", fontSize = 14.sp)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Taktik: Videoları 1.5x hızda izleyebilir, final testinden 70+ alarak e-Devlet barkodlu resmi sertifikanı ücretsiz indirebilirsin.",
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        color = AccentEmerald,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                )
+                            }
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(14.dp))
 
                     // Progress Metric Row
@@ -248,17 +301,17 @@ fun SubItemChecklistView(
                     ) {
                         StatusSummaryChip(
                             emoji = "✅",
-                            label = "$completedCount Tamam",
+                            label = if (subItemId == "sub_btk_akademi") "$completedCount Sertifika Alındı" else "$completedCount Tamam",
                             color = AccentEmerald
                         )
                         StatusSummaryChip(
                             emoji = "🛠️",
-                            label = "$practiceCount Pratik",
+                            label = if (subItemId == "sub_btk_akademi") "$practiceCount Sınav / Quiz" else "$practiceCount Pratik",
                             color = AccentAmber
                         )
                         StatusSummaryChip(
                             emoji = "📘",
-                            label = "$theoryCount Teori",
+                            label = if (subItemId == "sub_btk_akademi") "$theoryCount İzleniyor" else "$theoryCount Teori",
                             color = Color(0xFF38BDF8)
                         )
                         StatusSummaryChip(

@@ -71,11 +71,11 @@ private val careerSubItems = listOf(
     ),
     CategorySubItem(
         id = "sub_btk_akademi",
-        title = "BTK Akademi",
-        subtitle = "Sertifika & Eğitim Programları",
-        emoji = "📜",
-        description = "BTK Akademi üzerindeki uzmanlık programları, veri tabanı, yazılım mimarisi ve sertifikasyon süreçleri.",
-        tag = "Eğitim"
+        title = "BTK Akademi Diploma Avı",
+        subtitle = "e-Devlet & Barkodlu Sertifika Takibi",
+        emoji = "🎓",
+        description = "Android, .NET, PostgreSQL, Docker, Test ve hızlı diploma kasmalık tüm ücretsiz e-Devlet onaylı sertifika takip listesi.",
+        tag = "Ücretsiz Sertifikalar"
     )
 )
 
@@ -173,6 +173,14 @@ private val portfolioSubItems = listOf(
         emoji = "🏆",
         description = "Özgeçmişte ve portföyde en öne çıkan anahtar projeler, canlı demo linkleri ve mimari dokümantasyonlar.",
         tag = "Showcase"
+    ),
+    CategorySubItem(
+        id = "sub_btk_akademi",
+        title = "BTK Akademi Sertifikaları",
+        subtitle = "e-Devlet & 1 Milyon İstihdam Diplomaları",
+        emoji = "📜",
+        description = "Kazanılan ve hedeflenen e-Devlet onaylı resmi BTK Akademi diplomaları ve uzmanlık sertifikasyon listesi.",
+        tag = "e-Devlet Onaylı"
     )
 )
 

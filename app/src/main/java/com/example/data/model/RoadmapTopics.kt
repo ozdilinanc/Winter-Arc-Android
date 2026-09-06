@@ -359,25 +359,218 @@ object RoadmapDataStore {
         ),
 
         // ==========================================
-        // 5. BTK AKADEMİ
+        // 5. BTK AKADEMİ DİPLOMA & SERTİFİKA AVI
         // ==========================================
         "sub_btk_akademi" to SubItemRoadmap(
             subItemId = "sub_btk_akademi",
-            title = "BTK Akademi",
-            subtitle = "Sertifikalar: Öğrenmenin Yan Ürünü",
-            emoji = "📜",
-            targetLevel = "Hedef: İlgili Konuları Bitirdikçe Belgelendirme",
-            overview = "Sertifika toplamak için değil; .NET, C#, SQL veya Git öğrenirken kaliteli bir BTK kursu varsa onu tamamlayıp yan ürün olarak sertifikasını almak.",
+            title = "BTK Akademi Diploma Avı",
+            subtitle = "e-Devlet & 1 Milyon İstihdam Onaylı Sertifikalar",
+            emoji = "🎓",
+            targetLevel = "Hedef: e-Devlet & LinkedIn İçin 20+ Resmi Sertifika & Uzmanlık Diploması",
+            overview = "Platformdaki tüm eğitimler, sınavlar ve sertifikalar %100 ÜCRETSİZDİR. Videoları 1.5x hızda izleyip bitirme testinden 70+ aldığında barkodlu resmi sertifikan e-Devlet profiline işlenir.",
             sections = listOf(
                 TopicSection(
-                    title = "HEDEFLENEN EĞİTİMLER",
-                    emoji = "🎓",
+                    title = "⚡ HIZLI DİPLOMA KASMALIK EĞİTİMLER (1-3 SAAT)",
+                    emoji = "⚡",
                     items = listOf(
-                        TopicCheckItem("btk_csharp", "C# ile Nesne Yönelimli Programlama", "C# dil temelleri ve OOP konseptleri sertifikası"),
-                        TopicCheckItem("btk_dotnet", "ASP.NET Core Web API Geliştirme", "RESTful API ve .NET backend geliştirme eğitimi"),
-                        TopicCheckItem("btk_sql", "İlişkisel Veritabanları & SQL Eğitimi", "SQL sorgulama, tablo tasarımı ve indeksleme"),
-                        TopicCheckItem("btk_git", "Versiyon Kontrol Sistemleri: Git & GitHub", "Git branching, PR yönetimi ve GitHub iş akışı"),
-                        TopicCheckItem("btk_security", "Temel Siber Güvenlik & Ağ Temelleri", "Web ve ağ güvenliği genel kültür eğitimi")
+                        TopicCheckItem(
+                            id = "btk_it_intro",
+                            title = "Bilgi Teknolojilerine Giriş",
+                            description = "Kariyer programlarının kilidini açan zorunlu ön koşul eğitimi (Temel bilgisayar mimarisi ve ağlar).",
+                            practiceTask = "Videoları hızlandırarak tamamla, bölüm sonu sınavını geç ve 1. barkodlu e-Devlet sertifikanı cebe at."
+                        ),
+                        TopicCheckItem(
+                            id = "btk_git_cert",
+                            title = "Versiyon Kontrolleri: Git ve GitHub (Atıl Samancıoğlu)",
+                            description = "Git komutları, branch stratejileri ve GitHub portfolyo iş akışları.",
+                            practiceTask = "Atıl Hoca'nın anlatımıyla eğitimi bitir, testten 70+ alarak CV'ye resmi Git & GitHub sertifikasını ekle."
+                        ),
+                        TopicCheckItem(
+                            id = "btk_sec_intro",
+                            title = "Siber Güvenliğe Giriş & Güvenlik Farkındalığı",
+                            description = "Temel siber tehditler, kimlik avı, şifreleme ve kurumsal ağ güvenliği ilkeleri.",
+                            practiceTask = "Teorik videoları tamamlayıp tek oturuşta sınavı geçerek 'Siber Güvenlik Farkındalık' belgesini al."
+                        ),
+                        TopicCheckItem(
+                            id = "btk_ai_prompt",
+                            title = "Üretken Yapay Zeka & Prompt Mühendisliği",
+                            description = "LLM modelleri, ChatGPT, Gemini ve yapay zeka araçlarıyla yazılımda üretkenlik.",
+                            practiceTask = "Eğitimi ve bitirme quizini tamamlayarak modern AI okuryazarlığı sertifikanı LinkedIn profiline ekle."
+                        ),
+                        TopicCheckItem(
+                            id = "btk_kvkk",
+                            title = "Kişisel Verilerin Korunması Kanunu (KVKK) Farkındalığı",
+                            description = "Yazılım sistemlerinde veri saklama, açık rıza ve kurumsal yasal uyumluluk.",
+                            practiceTask = "İş mülakatlarında ve kurumsal firmalarda büyük artı puan sağlayan KVKK sertifikasını al."
+                        )
+                    )
+                ),
+                TopicSection(
+                    title = "📱 NATIVE ANDROID & KOTLIN SERTİFİKALARI",
+                    emoji = "🤖",
+                    items = listOf(
+                        TopicCheckItem(
+                            id = "btk_kotlin_core",
+                            title = "Kotlin Programlama Dili",
+                            description = "Kotlin sözdizimi, OOP, Null Safety, lambda fonksiyonları ve Coroutines temelleri.",
+                            practiceTask = "Dersleri bitirip final sınavından 70+ alarak resmi 'Kotlin Programlama' sertifikanı indir."
+                        ),
+                        TopicCheckItem(
+                            id = "btk_android_basic",
+                            title = "Kotlin ile Android Mobil Uygulama Geliştirme Temelleri (Atıl Samancıoğlu)",
+                            description = "Geleneksel XML UI tasarımı, ConstraintLayout, Activity/Fragment yaşam döngüsü ve ViewBinding.",
+                            practiceTask = "XML tabanlı mini projeleri yap, sınavı ver ve Temel Android sertifikanı portfolyona ekle."
+                        ),
+                        TopicCheckItem(
+                            id = "btk_android_adv",
+                            title = "Kotlin ile Android Mobil Uygulama Geliştirme İleri Seviye (Atıl Samancıoğlu)",
+                            description = "Retrofit REST API entegrasyonu, Room Database ile yerel veri yönetimi, MVVM ve WorkManager.",
+                            practiceTask = "İleri seviye eğitim projesini ve final sınavını geçerek İleri Android sertifikanı kazan."
+                        )
+                    )
+                ),
+                TopicSection(
+                    title = "⚡ .NET / C# & BACKEND GELİŞTİRİCİ DİPLOMALARI",
+                    emoji = "💻",
+                    items = listOf(
+                        TopicCheckItem(
+                            id = "btk_csharp_oop",
+                            title = "C# ile Nesne Yönelimli Programlama (Engin Demiroğ)",
+                            description = "Class, Interface, Abstract Class, Polymorphism ve SOLID prensipleriyle kurumsal kodlama.",
+                            practiceTask = "Engin Hoca'nın C# OOP atölyesini tamamla, testten geç ve C# OOP sertifikanı al."
+                        ),
+                        TopicCheckItem(
+                            id = "btk_dotnet_webapi",
+                            title = "ASP.NET Core Web API",
+                            description = "REST standartları, HTTP durum kodları (200, 400, 404, 500), Controller, DI ve Swagger.",
+                            practiceTask = "RESTful API mimari derslerini bitir, sınavını çöz ve resmi .NET Web API sertifikasını al."
+                        ),
+                        TopicCheckItem(
+                            id = "btk_ef_core",
+                            title = "Entity Framework Core ile Veri Erişimi (Engin Demiroğ)",
+                            description = "Code-First, DbContext, Migrations, LINQ sorguları ve kurumsal Repository Pattern.",
+                            practiceTask = "EF Core veri tabanı projesini ve bölüm sınavlarını geçerek ORM yetkinlik belgesini al."
+                        ),
+                        TopicCheckItem(
+                            id = "btk_design_patterns",
+                            title = "Yazılım Tasarım Desenleri (Design Patterns)",
+                            description = "Singleton, Factory, Repository, Mediator, Observer ve mülakatlarda sorulan kalıplar.",
+                            practiceTask = "Tasarım desenleri atölyesini tamamla, desen sorularını çöz ve resmi sertifikanı al."
+                        ),
+                        TopicCheckItem(
+                            id = "btk_microservices",
+                            title = "Mikroservis Mimarisine Giriş",
+                            description = "Monolitik yapıdan mikroservislere geçiş, API Gateway ve servisler arası iletişim pratikleri.",
+                            practiceTask = "Mikroservis mimari eğitimini tamamlayıp modern backend sertifikanı kazan."
+                        )
+                    )
+                ),
+                TopicSection(
+                    title = "🗄️ VERİTABANI & DEVOPS / ALTYAPI SERTİFİKALARI",
+                    emoji = "🐳",
+                    items = listOf(
+                        TopicCheckItem(
+                            id = "btk_sql_postgres",
+                            title = "PostgreSQL için SQL Dili (Temel Seviye)",
+                            description = "İlişkisel veritabanı tasarımı, DDL/DML, JOIN'ler, indeksleme ve DBeaver/pgAdmin.",
+                            practiceTask = "SQL sorgu pratiklerini ve veri tabanı tasarım sınavını geçerek resmi SQL sertifikasını al."
+                        ),
+                        TopicCheckItem(
+                            id = "btk_docker_basics",
+                            title = "Docker Temelleri",
+                            description = "Container yapısı, Dockerfile yazımı, Docker Hub, port yönlendirme ve docker-compose.",
+                            practiceTask = "Docker eğitim videolarını bitir, container sınavını geç ve DevOps sertifikanı al."
+                        ),
+                        TopicCheckItem(
+                            id = "btk_azure_devops",
+                            title = "Microsoft Azure DevOps Eğitimi",
+                            description = "Kaynak denetimi, Git reposu, CI/CD derleme ve otomatik dağıtım süreçleri.",
+                            practiceTask = "DevOps yaşam döngüsü eğitimini tamamla ve kurumsal dağıtım sertifikanı ekle."
+                        )
+                    )
+                ),
+                TopicSection(
+                    title = "🧪 YAZILIM TESTİ & KALİTE DİPLOMALARI",
+                    emoji = "🎯",
+                    items = listOf(
+                        TopicCheckItem(
+                            id = "btk_api_testing",
+                            title = "API ve API Testi (Postman)",
+                            description = "REST API test etme, Postman ile istek koleksiyonları, ortam değişkenleri ve response doğrulama.",
+                            practiceTask = "API test adımlarını ve Postman pratiklerini tamamlayarak API Testi sertifikanı al."
+                        ),
+                        TopicCheckItem(
+                            id = "btk_software_test_intro",
+                            title = "Yazılım Testine Giriş",
+                            description = "Yazılım kalite güvencesi, test senaryoları, kara/beyaz kutu testleri ve Unit Test.",
+                            practiceTask = "Yazılım test süreçleri sınavını geç ve CV'ye resmi yazılım test sertifikasını ekle."
+                        ),
+                        TopicCheckItem(
+                            id = "btk_test_automation",
+                            title = "Yazılım Test Otomasyonu",
+                            description = "Test otomasyonu mimarisi, otomasyon kodlama pratikleri ve sürekli entegrasyonda test kültürü.",
+                            practiceTask = "Test otomasyonu eğitimini bitir ve kalite güvence uzmanlığı belgeni indir."
+                        )
+                    )
+                ),
+                TopicSection(
+                    title = "🛡️ SİBER GÜVENLİK & SAVUNMA SERTİFİKALARI",
+                    emoji = "🛡️",
+                    items = listOf(
+                        TopicCheckItem(
+                            id = "btk_net_fundamentals",
+                            title = "Ağ Temelleri ve Ağ Güvenliği",
+                            description = "TCP/IP, OSI modeli, DNS, DHCP, portlar, firewall ve paket analiz temelleri.",
+                            practiceTask = "Ağ kavramlarını ve temel güvenlik protokollerini bitir, sınavı geçip resmi ağ güvenliği sertifikanı al."
+                        ),
+                        TopicCheckItem(
+                            id = "btk_web_security",
+                            title = "Web Uygulama Güvenliği & Sızma Tekniklerine Giriş",
+                            description = "OWASP Top 10, SQL Injection, XSS, CSRF, kimlik doğrulama zafiyetleri ve güvenli kodlama.",
+                            practiceTask = "Backend ve web zafiyet senaryolarını incele, web güvenliği sınavını vererek kritik güvenlik sertifikanı al."
+                        ),
+                        TopicCheckItem(
+                            id = "btk_pentest_intro",
+                            title = "Uygulamalı Sızma Testi Temelleri (Penetrasyon Testi)",
+                            description = "Kali Linux ortamı, Nmap ile ağ/port keşfi ve zaafiyet tarama mantığı.",
+                            practiceTask = "Temel penetrasyon testi eğitimini bitirip CV'ye uygulamalı güvenlik diplomasını ekle."
+                        ),
+                        TopicCheckItem(
+                            id = "btk_malware_intro",
+                            title = "Zararlı Yazılım (Malware) Temelleri & Analizi",
+                            description = "Virüsler, truva atları, fidye yazılımları, davranış analiz yöntemleri ve sistem savunması.",
+                            practiceTask = "Zararlı yazılım analizi derslerini tamamla, sınavı geç ve savunma güvenliği belgeni cebe at."
+                        )
+                    )
+                ),
+                TopicSection(
+                    title = "🏆 BÜYÜK UZMANLIK PROGRAMLARI (KARİYER YOLU DİPLOMALARI)",
+                    emoji = "👑",
+                    items = listOf(
+                        TopicCheckItem(
+                            id = "btk_career_android",
+                            title = "Mobil Uygulama Geliştiricisi (Android) Kariyer Yolu",
+                            description = "Kotlin + Temel Android + İleri Android eğitimlerinin tamamını kapsayan büyük uzmanlık programı.",
+                            practiceTask = "Kariyer yolundaki tüm dersleri bitir; profilinde resmi 'Android Geliştirici' uzmanlık diploması açılsın."
+                        ),
+                        TopicCheckItem(
+                            id = "btk_career_backend",
+                            title = "Web / .NET Backend Geliştiricisi Kariyer Yolu",
+                            description = "C#, ASP.NET Core Web API, SQL ve mimari eğitimlerinin birleştiği ana uzmanlık programı.",
+                            practiceTask = "Tüm backend paketini tamamlayıp 1 Milyon İstihdam havuzuna 'Backend Geliştiricisi' unvanını işlet."
+                        ),
+                        TopicCheckItem(
+                            id = "btk_career_qa",
+                            title = "Yazılım Test Uzmanı Gelişim Programı",
+                            description = "Yazılım testi, API testi ve test otomasyonunu birleştiren kariyer gelişim yolu.",
+                            practiceTask = "Tüm test eğitimlerini tamamlayarak resmi 'Yazılım Test Uzmanı' gelişim programı diplomasını al."
+                        ),
+                        TopicCheckItem(
+                            id = "btk_career_cyber",
+                            title = "Siber Güvenlik Analisti Gelişim Programı",
+                            description = "Ağ temelleri, siber saldırı tespiti ve savunma süreçlerini kapsayan resmi büyük kariyer diploması.",
+                            practiceTask = "Siber güvenlik yolundaki dersleri tamamlayarak e-Devlet ve 1 Milyon İstihdam'da 'Siber Güvenlik Analisti' unvanı kazan."
+                        )
                     )
                 )
             )
