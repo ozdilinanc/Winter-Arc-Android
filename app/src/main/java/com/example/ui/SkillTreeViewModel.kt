@@ -77,7 +77,7 @@ class SkillTreeViewModel(application: Application) : AndroidViewModel(applicatio
     private val _selectedBranch = MutableStateFlow<BranchId?>(null)
     private val _selectedStatus = MutableStateFlow<SkillStatus?>(null)
     private val _selectedSkillId = MutableStateFlow<String?>(null)
-    private val _currentViewMode = MutableStateFlow(SkillDashboardViewMode.TREE_MAP)
+    private val _currentViewMode = MutableStateFlow(SkillDashboardViewMode.CATEGORIES)
     private val _isAddProjectDialogOpen = MutableStateFlow(false)
     private val _activeRewardNotification = MutableStateFlow<RewardNotification?>(null)
     private val _isAchievementsDialogOpen = MutableStateFlow(false)

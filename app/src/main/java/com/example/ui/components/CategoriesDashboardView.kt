@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import android.content.Context
+import android.content.SharedPreferences
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -15,13 +17,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.BranchId
 import com.example.data.model.EngineeringProject
 import com.example.data.model.ProjectWorkflowStage
+import com.example.data.model.RoadmapProgressHelper
 import com.example.data.model.SkillNode
+import com.example.data.model.SubItemProgressStats
 import com.example.ui.components.school.SchoolHubView
 import com.example.ui.theme.*
 
@@ -148,20 +153,52 @@ private val techCultureSubItems = listOf(
 
 private val personalDevSubItems = listOf(
     CategorySubItem(
+        id = "sub_winter_arc_discipline",
+        title = "Winter Arc & Sağlık Protokolü",
+        subtitle = "Uyku, Dopamin Detoksu, Su, Beslenme & Spor",
+        emoji = "❄️",
+        description = "Bozdum/Bozmadım dopamin detoksu, sirkadiyen uyku ritmi, 3.5L su, temiz beslenme, fitness, tenis ve yürüyüş.",
+        tag = "Disiplin & Rutin"
+    ),
+    CategorySubItem(
+        id = "sub_reading_books",
+        title = "Kitap Dünyası",
+        subtitle = "Tarih, Kişisel Gelişim, Roman & Felsefe",
+        emoji = "📚",
+        description = "Bilgisayar mühendisliği başucu kitaplarının haricinde tarih, biyografi, Stoacı felsefe ve dünya klasikleri.",
+        tag = "Genel Kültür"
+    ),
+    CategorySubItem(
+        id = "sub_card_sleights",
+        title = "Kart Numaraları & İllüzyon",
+        subtitle = "Sleight of Hand, Mekanikler & Repertuar",
+        emoji = "🎴",
+        description = "Double Lift, False Shuffles, Elmsley Count ve repertuardaki illüzyon & kart sihirbazlığı numaraları.",
+        tag = "Sleight of Hand"
+    ),
+    CategorySubItem(
+        id = "sub_anime_manhwa",
+        title = "Anime & Manhwa Takibi",
+        subtitle = "İzlenen Seriler & Güncel Chapterlar",
+        emoji = "🍿",
+        description = "Solo Leveling, ORV, AoT, HxH gibi favori anime serileri ve güncel manhwa bölüm takipleri.",
+        tag = "Anime & Manhwa"
+    ),
+    CategorySubItem(
         id = "sub_english",
-        title = "İngilizce",
-        subtitle = "Teknik Dokümantasyon, B2+ & Konuşma",
+        title = "İngilizce (B2+)",
+        subtitle = "Teknik Dokümantasyon, Speaking & Dinleme",
         emoji = "🇬🇧",
-        description = "Teknik RFC & kaynakları anlama, mühendislik makaleleri yazma, akıcı konuşma ve mesleki kelime dağarcığı.",
+        description = "Oxford 5000 kelime dağarcığı, AI sesli konuşma pratiği, teknik podcast'ler ve mesleki akıcılık.",
         tag = "B2+ Fluency"
     ),
     CategorySubItem(
         id = "sub_second_language",
         title = "2. Yabancı Dil: İspanyolca",
-        subtitle = "Hobi & Kültür Dili (🔒 Kilitli - B2+ Sonrası)",
+        subtitle = "Kelime Uygulaması & Keyifli Hobi",
         emoji = "🇪🇸",
-        description = "Hedeflenen ikinci yabancı dil olarak İspanyolca. İngilizce B2+ seviyesine oturduktan sonra stressiz bir hobi olarak açılacak.",
-        tag = "İspanyolca (🔒)"
+        description = "Kişisel kelime uygulamasına eklenecek temel İspanyolca kelimeler ve stressiz hobi dili temelleri.",
+        tag = "İspanyolca (Hobi)"
     )
 )
 
@@ -229,6 +266,29 @@ fun CategoriesDashboardView(
 ) {
     var activeCategory by remember { mutableStateOf<String?>(null) }
 
+    val context = LocalContext.current
+    val roadmapPrefs = remember { context.getSharedPreferences(RoadmapProgressHelper.PREFS_ROADMAP, Context.MODE_PRIVATE) }
+    var prefsUpdateTrigger by remember { mutableIntStateOf(0) }
+
+    val listener = remember {
+        SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
+            prefsUpdateTrigger++
+        }
+    }
+
+    DisposableEffect(roadmapPrefs) {
+        roadmapPrefs.registerOnSharedPreferenceChangeListener(listener)
+        onDispose {
+            roadmapPrefs.unregisterOnSharedPreferenceChangeListener(listener)
+        }
+    }
+
+    LaunchedEffect(activeCategory) {
+        if (activeCategory == null) {
+            prefsUpdateTrigger++
+        }
+    }
+
     when (activeCategory) {
         "cat_school" -> {
             SchoolHubView(
@@ -272,8 +332,8 @@ fun CategoriesDashboardView(
             CategorySubItemsHubView(
                 categoryTitle = "KİŞİSEL GELİŞİM",
                 categoryEmoji = "🌱",
-                categorySubtitle = "Dil Yetenekleri & Sürekli Gelişim",
-                categoryDescription = "Akıcı teknik İngilizce ve ikinci yabancı dil öğrenme süreçleri.",
+                categorySubtitle = "Winter Arc, Alışkanlıklar & Hobiler",
+                categoryDescription = "Dopamin detoksu, uyku, beslenme, spor, tenis, kitaplar, kart illüzyonları, anime/manhwa ve İngilizce.",
                 accentColor = AccentAmber,
                 subItems = personalDevSubItems,
                 onBack = { activeCategory = null },
@@ -336,10 +396,10 @@ fun CategoriesDashboardView(
             id = "cat_personal_dev",
             title = "KİŞİSEL GELİŞİM",
             emoji = "🌱",
-            subtitle = "Dil Yetenekleri & Alışkanlıklar",
-            description = "Akıcı B2+ teknik İngilizce, ikinci yabancı dil, sürekli öğrenme disiplini ve zihin modelleri.",
+            subtitle = "Winter Arc, Alışkanlıklar & Hobiler",
+            description = "Dopamin detoksu, uyku, spor/tenis, tarih ve gelişim kitapları, kart illüzyonları, anime/manhwa ve İngilizce.",
             accentColor = AccentAmber,
-            tags = listOf("İngilizce", "2. Yabancı Dil", "Winter Arc"),
+            tags = listOf("Winter Arc", "Kitaplar", "Kart Numaraları", "Anime/Manhwa", "İngilizce"),
             branchIds = listOf(BranchId.ENGLISH, BranchId.SECOND_LANGUAGE, BranchId.KNOWLEDGE_MANAGEMENT)
         ),
         CategoryMeta(
@@ -384,9 +444,29 @@ fun CategoriesDashboardView(
         }
 
         items(categories, key = { it.id }) { cat ->
-            val relevantSkills = skills.filter { it.branchId in cat.branchIds }
-            val completedSkills = relevantSkills.count { it.status.isCompletedOrMastered }
-            val totalSkills = if (cat.id == "cat_portfolio") projects.size else relevantSkills.size
+            val subItemIds = when (cat.id) {
+                "cat_career" -> careerSubItems.map { it.id }
+                "cat_tech_culture" -> techCultureSubItems.map { it.id }
+                "cat_personal_dev" -> personalDevSubItems.map { it.id }
+                "cat_portfolio" -> portfolioSubItems.map { it.id }
+                else -> emptyList()
+            }
+
+            val stats = remember(cat.id, prefsUpdateTrigger, projects) {
+                if (cat.id == "cat_school") {
+                    SubItemProgressStats(
+                        totalCount = 4,
+                        completedCount = 0,
+                        practiceCount = 0,
+                        theoryCount = 0,
+                        earnedPoints = 0f,
+                        progressFraction = 0f,
+                        progressPercent = 0
+                    )
+                } else {
+                    RoadmapProgressHelper.getCategoryStats(subItemIds, roadmapPrefs, projects)
+                }
+            }
 
             Card(
                 modifier = Modifier
@@ -458,38 +538,82 @@ fun CategoriesDashboardView(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
+                    // Progress Metric Row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = if (stats.progressPercent > 0) "%${stats.progressPercent} İlerleme" else "%0 Başlanmadı",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = if (stats.progressPercent > 0) cat.accentColor else TextDarkMuted,
+                                fontSize = 11.5.sp
+                            )
+                        )
+
+                        Text(
+                            text = when (cat.id) {
+                                "cat_school" -> "${stats.completedCount}/${stats.totalCount} Modül • 4 Kitap"
+                                "cat_career" -> "${stats.completedCount}/${stats.totalCount} Konu & Proje"
+                                "cat_portfolio" -> "${stats.completedCount}/${stats.totalCount} Çıktı & Proje"
+                                else -> "${stats.completedCount}/${stats.totalCount} Konu Tamamlandı"
+                            },
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                color = if (stats.completedCount > 0) TextSecondary else TextDarkMuted,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    LinearProgressIndicator(
+                        progress = { stats.progressFraction },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(6.dp)
+                            .clip(RoundedCornerShape(3.dp)),
+                        color = cat.accentColor,
+                        trackColor = PanelNavy
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
                     // Tags
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        cat.tags.take(3).forEach { tag ->
-                            Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = PanelNavy,
-                                border = androidx.compose.foundation.BorderStroke(1.dp, BorderSubtle)
-                            ) {
-                                Text(
-                                    text = tag,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontSize = 10.sp,
-                                        color = TextMuted
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            cat.tags.take(3).forEach { tag ->
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = PanelNavy,
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, BorderSubtle)
+                                ) {
+                                    Text(
+                                        text = tag,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontSize = 10.sp,
+                                            color = TextMuted
+                                        )
                                     )
-                                )
+                                }
                             }
                         }
 
-                        if (totalSkills > 0) {
-                            Spacer(modifier = Modifier.weight(1f))
+                        if (stats.practiceCount > 0 || stats.theoryCount > 0) {
                             Text(
-                                text = if (cat.id == "cat_portfolio") "$totalSkills Proje" else "$completedSkills/$totalSkills Yetenek",
+                                text = "🛠️ ${stats.practiceCount} • 📘 ${stats.theoryCount}",
                                 style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = if (completedSkills > 0) cat.accentColor else TextDarkMuted,
-                                    fontSize = 10.5.sp
-                                ),
-                                modifier = Modifier.align(Alignment.CenterVertically)
+                                    fontSize = 10.sp,
+                                    color = TextDarkMuted
+                                )
                             )
                         }
                     }

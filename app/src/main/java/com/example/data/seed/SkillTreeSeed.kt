@@ -76,7 +76,7 @@ object SkillTreeSeed {
             title = "Pharmacy Management & Dispensing System",
             description = "End-to-end full-stack backend system managing medication inventories, prescriptions, and order fulfillment.",
             category = "Backend / .NET",
-            currentStage = ProjectWorkflowStage.DEVELOP,
+            currentStage = ProjectWorkflowStage.IDEA,
             githubRepo = "github.com/student/pharmacy-backend-net",
             mediumArticleUrl = "",
             notes = "Targeting Clean Architecture, PostgreSQL with EF Core, and JWT authentication.",
@@ -87,7 +87,7 @@ object SkillTreeSeed {
             title = "Graduation Project: LLM KV Cache Optimization",
             description = "High-performance C++ research system optimizing transformer KV cache paging and v-attention memory fragmentation.",
             category = "Systems / Graduation",
-            currentStage = ProjectWorkflowStage.DEVELOP,
+            currentStage = ProjectWorkflowStage.IDEA,
             githubRepo = "github.com/student/kv-cache-v-attention-opt",
             mediumArticleUrl = "",
             notes = "Benchmarking non-contiguous memory allocation on Linux with Ollama/Llama kernels.",
@@ -98,7 +98,7 @@ object SkillTreeSeed {
             title = "Personal Engineering Roadmap & Skill Tree",
             description = "Native Android Jetpack Compose interactive knowledge map and engineering tracker for student progression.",
             category = "Android",
-            currentStage = ProjectWorkflowStage.RELEASE,
+            currentStage = ProjectWorkflowStage.IDEA,
             githubRepo = "github.com/student/skilltree-android-compose",
             mediumArticleUrl = "medium.com/@student/building-a-mind-map-in-jetpack-compose",
             notes = "Offline-first with Room, dynamic radial graph layout, M3 technical styling.",
@@ -117,7 +117,11 @@ object SkillTreeSeed {
         )
     )
 
-    fun getInitialSkills(): List<SkillNode> = listOf(
+    fun getInitialSkills(): List<SkillNode> = rawSkills.map {
+        it.copy(status = SkillStatus.NOT_STARTED, personalNotes = "")
+    }
+
+    private val rawSkills: List<SkillNode> = listOf(
         // ==========================================
         // 1. BACKEND / .NET (HIGHEST PRIORITY)
         // ==========================================

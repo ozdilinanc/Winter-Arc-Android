@@ -73,7 +73,7 @@ fun SubItemChecklistView(
 
     fun updateItemState(itemId: String, newState: TopicProgressState) {
         itemStates = itemStates + (itemId to newState)
-        prefs.edit().putString("status_$itemId", newState.key).apply()
+        prefs.edit().putString("status_$itemId", newState.key).commit()
         if (newState == TopicProgressState.COMPLETED) {
             hapticEngine.vibrateLevelUp()
         } else {
@@ -496,7 +496,7 @@ private fun TopicItemCard(
             // Status Icon Indicator
             Box(
                 modifier = Modifier
-                    .size(24.dp)
+                    .size(26.dp)
                     .clip(CircleShape)
                     .background(
                         if (state == TopicProgressState.NOT_STARTED) Color.Transparent
@@ -506,7 +506,8 @@ private fun TopicItemCard(
                         1.5.dp,
                         if (state == TopicProgressState.NOT_STARTED) TextMuted else stateColor,
                         CircleShape
-                    ),
+                    )
+                    .clickable { onUpdateState(state.next()) },
                 contentAlignment = Alignment.Center
             ) {
                 when (state) {

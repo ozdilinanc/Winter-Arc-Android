@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import android.content.Context
+import android.content.SharedPreferences
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -17,12 +19,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.EngineeringProject
 import com.example.data.model.ProjectWorkflowStage
 import com.example.data.model.RoadmapDataStore
+import com.example.data.model.RoadmapProgressHelper
 import com.example.ui.theme.*
 import kotlinx.coroutines.launch
 
@@ -54,6 +58,29 @@ fun CategorySubItemsHubView(
     var selectedSubItemId by remember { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+
+    val context = LocalContext.current
+    val roadmapPrefs = remember { context.getSharedPreferences(RoadmapProgressHelper.PREFS_ROADMAP, Context.MODE_PRIVATE) }
+    var prefsUpdateTrigger by remember { mutableIntStateOf(0) }
+
+    val listener = remember {
+        SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
+            prefsUpdateTrigger++
+        }
+    }
+
+    DisposableEffect(roadmapPrefs) {
+        roadmapPrefs.registerOnSharedPreferenceChangeListener(listener)
+        onDispose {
+            roadmapPrefs.unregisterOnSharedPreferenceChangeListener(listener)
+        }
+    }
+
+    LaunchedEffect(selectedSubItemId) {
+        if (selectedSubItemId == null) {
+            prefsUpdateTrigger++
+        }
+    }
 
     BackHandler {
         if (selectedSubItemId != null) {
@@ -212,13 +239,17 @@ fun CategorySubItemsHubView(
 
             // Sub-items List
             items(subItems, key = { it.id }) { item ->
+                val stats = remember(item.id, prefsUpdateTrigger, projects) {
+                    RoadmapProgressHelper.getSubItemStats(item.id, roadmapPrefs, projects)
+                }
+
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
                         .border(1.dp, BorderSubtle, RoundedCornerShape(14.dp))
                         .clickable {
-                            if (RoadmapDataStore.allRoadmaps.containsKey(item.id)) {
+                            if (RoadmapDataStore.allRoadmaps.containsKey(item.id) || item.id == "sub_personal_projects" || item.id == "sub_projects") {
                                 selectedSubItemId = item.id
                             } else {
                                 coroutineScope.launch {
@@ -288,20 +319,79 @@ fun CategorySubItemsHubView(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = PanelNavy,
-                            border = androidx.compose.foundation.BorderStroke(1.dp, BorderSubtle)
+                        // Progress Metric Row
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = item.tag,
+                                text = if (stats.progressPercent > 0) "%${stats.progressPercent} İlerleme" else "%0 Başlanmadı",
                                 style = MaterialTheme.typography.labelSmall.copy(
-                                    color = accentColor,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 10.5.sp
-                                ),
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (stats.progressPercent > 0) accentColor else TextDarkMuted,
+                                    fontSize = 11.5.sp
+                                )
                             )
+
+                            Text(
+                                text = when (item.id) {
+                                    "sub_personal_projects", "sub_projects" -> "${stats.completedCount}/${stats.totalCount} Proje Bitti"
+                                    "sub_btk_akademi" -> "${stats.completedCount}/${stats.totalCount} Sertifika"
+                                    else -> "${stats.completedCount}/${stats.totalCount} Tamamlandı"
+                                },
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    color = if (stats.completedCount > 0) TextSecondary else TextDarkMuted,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        LinearProgressIndicator(
+                            progress = { stats.progressFraction },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(5.dp)
+                                .clip(RoundedCornerShape(3.dp)),
+                            color = accentColor,
+                            trackColor = PanelNavy
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = PanelNavy,
+                                border = androidx.compose.foundation.BorderStroke(1.dp, BorderSubtle)
+                            ) {
+                                Text(
+                                    text = item.tag,
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        color = accentColor,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 10.5.sp
+                                    ),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                )
+                            }
+
+                            if (stats.practiceCount > 0 || stats.theoryCount > 0) {
+                                Text(
+                                    text = "🛠️ ${stats.practiceCount} Pratik • 📘 ${stats.theoryCount} Teori",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        color = TextDarkMuted,
+                                        fontSize = 10.sp
+                                    )
+                                )
+                            }
                         }
                     }
                 }

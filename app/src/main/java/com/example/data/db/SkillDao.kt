@@ -57,6 +57,9 @@ interface SkillDao {
     @Query("DELETE FROM engineering_projects WHERE id = :id")
     suspend fun deleteProjectById(id: String)
 
+    @Query("DELETE FROM engineering_projects")
+    suspend fun clearAllProjects()
+
     // ---- User XP & Level Persistence ----
     @Query("SELECT * FROM user_xp_profile WHERE id = 'primary_user' LIMIT 1")
     fun getUserXpFlow(): Flow<UserXpEntity?>

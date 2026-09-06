@@ -80,6 +80,20 @@ class HapticEngine(private val context: Context) {
             // Gracefully ignore on devices or test runners without vibration hardware
         }
     }
+
+    /**
+     * Emits subtle click vibration on selection or toggle.
+     */
+    fun vibrateSelection() {
+        vibrateSkillCompleted()
+    }
+
+    /**
+     * Emits haptic vibration on step completion.
+     */
+    fun vibrateStepCompleted() {
+        vibrateSkillCompleted()
+    }
 }
 
 @Composable

@@ -13,11 +13,11 @@ fun defaultTrackedBooks(): List<TrackedBook> {
             authorOrDomain = "İşletim Sistemleri, Çekirdek & Sistem Programlama",
             whyItMatters = "İşletim sistemlerini Sanallaştırma, Eşzamanlılık ve Kalıcılık olarak üç kolay parçada C kodları ve simülatörlerle öğreten başyapıt.",
             totalPages = 640,
-            currentPage = 145,
+            currentPage = 0,
             coverEmoji = "💻",
             keyTopics = listOf("Virtualization", "Processes & Threads", "Paging & TLB", "Semaphores & Locks", "Crash Consistency & RAID"),
-            status = BookReadingStatus.READING,
-            personalNotes = "CPU sanallaştırmasında MLFQ ve bellek tarafında çok seviyeli sayfalama bölümleri kritik önemde.",
+            status = BookReadingStatus.NOT_STARTED,
+            personalNotes = "",
             sections = listOf(
                 BookSection(
                     id = "ostep_sec_intro",
@@ -115,11 +115,11 @@ fun defaultTrackedBooks(): List<TrackedBook> {
             authorOrDomain = "Dağıtık Sistemler, Büyük Veri & Veritabanı Mimarisi",
             whyItMatters = "Dağıtık veri sistemleri, depolama motorları (LSM vs B-Tree), mutabakat protokolleri ve replikasyon mekanizmalarının başucu eseri.",
             totalPages = 616,
-            currentPage = 210,
+            currentPage = 0,
             coverEmoji = "🗄️",
             keyTopics = listOf("LSM-Trees vs B-Trees", "Replication & Partitioning", "ACID & Transactions", "Consistency & Consensus", "Batch & Stream Processing"),
-            status = BookReadingStatus.READING,
-            personalNotes = "Bölüm 5-7 arası replikasyon ve izolasyon seviyeleri backend mimarisi için altın değerinde.",
+            status = BookReadingStatus.NOT_STARTED,
+            personalNotes = "",
             sections = listOf(
                 BookSection(
                     id = "ddia_sec_part1",
@@ -168,11 +168,11 @@ fun defaultTrackedBooks(): List<TrackedBook> {
             authorOrDomain = "Sistem Mimarisi, x86-64 & Donanım-Yazılım Köprüsü",
             whyItMatters = "C kodunun assembly'ye dönüşümünü, bellek hiyerarşisini, sanal belleği ve linker mekanizmasını yazılımcı bakış açısıyla öğreten dünya standardı.",
             totalPages = 1100,
-            currentPage = 80,
+            currentPage = 0,
             coverEmoji = "⚙️",
             keyTopics = listOf("Machine-Level Code", "Processor Architecture", "Memory Hierarchy", "Linking & Shared Libs", "Virtual Memory"),
-            status = BookReadingStatus.READING,
-            personalNotes = "Bölüm 3 (Assembly) ve Bölüm 6 (Cache Memories) yazılımın gerçek çalışma mantığını anlamak için mutlaka bitmeli.",
+            status = BookReadingStatus.NOT_STARTED,
+            personalNotes = "",
             sections = listOf(
                 BookSection(
                     id = "csapp_sec_intro",
@@ -228,11 +228,11 @@ fun defaultTrackedBooks(): List<TrackedBook> {
             authorOrDomain = "Bilgisayar Ağları, İnternet Protokolleri & Dağıtık İletişim",
             whyItMatters = "Ağ mimarisini ve protokolleri en tepeden, yani doğrudan uygulama katmanından (HTTP/DNS) fiziksel katmana doğru öğreten modern ağ klasiği.",
             totalPages = 860,
-            currentPage = 60,
+            currentPage = 0,
             coverEmoji = "🌐",
             keyTopics = listOf("Socket Programming", "TCP Flow & Congestion", "IP Routing & BGP", "Link Layer & Ethernet", "Network Security & TLS"),
-            status = BookReadingStatus.READING,
-            personalNotes = "Transport katmanındaki TCP tıkanıklık kontrolü (AIMD) ve uygulama katmanındaki soket programlama pratikleri backend mühendisliğinin temeli.",
+            status = BookReadingStatus.NOT_STARTED,
+            personalNotes = "",
             sections = listOf(
                 BookSection(
                     id = "net_sec_ch1",
