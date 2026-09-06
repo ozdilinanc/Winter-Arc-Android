@@ -9,8 +9,11 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Article
@@ -24,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -42,60 +46,59 @@ fun PersonalProjectsHubView(
     accentColor: Color = BranchDotNet,
     modifier: Modifier = Modifier
 ) {
+    // 0: Devam Eden (Aktif), 1: Biten & Yayında
     var selectedTab by remember { mutableIntStateOf(0) }
     var isAddDialogOpen by remember { mutableStateOf(false) }
     var selectedCategoryFilter by remember { mutableStateOf<String?>(null) }
     var projectToDelete by remember { mutableStateOf<EngineeringProject?>(null) }
 
     BackHandler {
-        if (selectedTab != 0) {
-            selectedTab = 0
-        } else {
-            onBack()
-        }
+        onBack()
     }
 
-    if (selectedTab == 1) {
-        // Tab 1: Step-by-step checklist of Publishing & Sharing Journeys
-        SubItemChecklistView(
-            subItemId = "sub_personal_projects",
-            accentColor = accentColor,
-            onBack = { selectedTab = 0 },
-            modifier = modifier
-        )
-        return
-    }
+    // Partition projects by workflow completion
+    val activeProjects = remember(projects) { projects.filter { it.currentStage.order < 9 } }
+    val completedProjects = remember(projects) { projects.filter { it.currentStage.order == 9 } }
 
-    val filteredProjects = remember(projects, selectedCategoryFilter) {
+    val currentTabProjects = if (selectedTab == 0) activeProjects else completedProjects
+
+    val filteredProjects = remember(currentTabProjects, selectedCategoryFilter) {
         if (selectedCategoryFilter == null) {
-            projects
+            currentTabProjects
         } else {
-            projects.filter { it.category.contains(selectedCategoryFilter!!, ignoreCase = true) }
+            currentTabProjects.filter { it.category.contains(selectedCategoryFilter!!, ignoreCase = true) }
         }
     }
 
-    val liveCount = remember(projects) { projects.count { it.currentStage.order >= 6 } }
-    val devCount = remember(projects) { projects.count { it.currentStage.order < 6 } }
+    val listState = rememberLazyListState()
+
+    // When tab or category changes, reset list scroll to top smoothly
+    LaunchedEffect(selectedTab, selectedCategoryFilter) {
+        listState.scrollToItem(0)
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = CanvasDark
     ) { padding ->
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(CanvasDark)
                 .padding(padding)
-                .padding(horizontal = 16.dp),
-            contentPadding = PaddingValues(top = 14.dp, bottom = 40.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+                .padding(horizontal = 16.dp)
         ) {
-            // 1. Back Button Row
-            item {
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // 1. Back Button & Add Action Bar (Fixed Top)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
-                        .fillMaxWidth()
                         .clickable { onBack() }
                         .padding(vertical = 4.dp)
                 ) {
@@ -115,213 +118,223 @@ fun PersonalProjectsHubView(
                         )
                     )
                 }
+
+                Button(
+                    onClick = { isAddDialogOpen = true },
+                    colors = ButtonDefaults.buttonColors(containerColor = AccentCyan),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                    modifier = Modifier.testTag("hub_add_project_btn")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = Color.White
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Yeni Proje",
+                        color = Color.White,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
 
-            // 2. Header Banner
-            item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .border(1.dp, accentColor.copy(alpha = 0.35f), RoundedCornerShape(16.dp)),
-                    colors = CardDefaults.cardColors(containerColor = PanelNavyElevated)
-                ) {
-                    Column(modifier = Modifier.padding(18.dp)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(46.dp)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(accentColor.copy(alpha = 0.15f))
-                                        .border(1.dp, accentColor.copy(alpha = 0.35f), RoundedCornerShape(12.dp)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(text = "🛠️", fontSize = 24.sp)
-                                }
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Column {
-                                    Text(
-                                        text = "KİŞİSEL PROJELER",
-                                        style = MaterialTheme.typography.titleMedium.copy(
-                                            fontWeight = FontWeight.Black,
-                                            color = TextPrimary,
-                                            letterSpacing = 0.8.sp
-                                        )
-                                    )
-                                    Text(
-                                        text = "Lansman, Vitrin & Paylaşma Serüveni",
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            color = accentColor,
-                                            fontWeight = FontWeight.SemiBold
-                                        )
-                                    )
-                                }
-                            }
+            Spacer(modifier = Modifier.height(10.dp))
 
-                            Button(
-                                onClick = { isAddDialogOpen = true },
-                                colors = ButtonDefaults.buttonColors(containerColor = AccentCyan),
-                                shape = RoundedCornerShape(8.dp),
-                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                                modifier = Modifier.testTag("hub_add_project_btn")
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(14.dp),
-                                    tint = Color.White
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
+            // 2. Compact Title & Metrics Card
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .border(1.dp, accentColor.copy(alpha = 0.3f), RoundedCornerShape(14.dp)),
+                colors = CardDefaults.cardColors(containerColor = PanelNavyElevated)
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(text = "🛠️", fontSize = 20.sp)
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
                                 Text(
-                                    text = "Yeni Proje",
-                                    color = Color.White,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold
+                                    text = "KİŞİSEL PROJELER",
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.Black,
+                                        color = TextPrimary,
+                                        letterSpacing = 0.5.sp
+                                    )
+                                )
+                                Text(
+                                    text = "Aktif Pipeline & Tamamlanan Eserler",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        color = accentColor,
+                                        fontWeight = FontWeight.Medium,
+                                        fontSize = 10.5.sp
+                                    )
                                 )
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        Text(
-                            text = "Bir projeyi sadece kodlamak yetmez; mimarisini kurup, testlerini yazıp, Docker/AAB ile paketleyip Play Store'a, GitHub'a, Medium ve LinkedIn'e çıkararak görünür kılma serüveni.",
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                color = TextSecondary,
-                                lineHeight = 18.sp
-                            )
-                        )
-
-                        Spacer(modifier = Modifier.height(14.dp))
-
-                        // Metric Badges Row
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            MetricPill("📦 Toplam Proje", "${projects.size}", AccentCyan)
-                            MetricPill("🚀 Canlıda / Yayında", "$liveCount", StatusCompleted)
-                            MetricPill("💻 Geliştirmede", "$devCount", AccentAmber)
+                        // Mini summary counters
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            MetricBadge("Devam", "${activeProjects.size}", AccentAmber)
+                            MetricBadge("Biten", "${completedProjects.size}", StatusCompleted)
                         }
                     }
                 }
             }
 
-            // 3. Segmented Tab Switch
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(PanelNavy)
-                        .border(1.dp, BorderSubtle, RoundedCornerShape(12.dp))
-                        .padding(4.dp)
-                ) {
-                    TabButton(
-                        title = "🚀 Aktif Projelerim (${projects.size})",
-                        isSelected = selectedTab == 0,
-                        onClick = { selectedTab = 0 },
-                        modifier = Modifier.weight(1f)
-                    )
-                    TabButton(
-                        title = "📋 Yayın & Paylaşma Rehberi",
-                        isSelected = selectedTab == 1,
-                        onClick = { selectedTab = 1 },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // 3. Segmented Tab Switch: Aktif Projeler vs Biten Projeler
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(PanelNavy)
+                    .border(1.dp, BorderSubtle, RoundedCornerShape(12.dp))
+                    .padding(3.dp)
+            ) {
+                TabButton(
+                    title = "🚀 Devam Eden (${activeProjects.size})",
+                    isSelected = selectedTab == 0,
+                    onClick = { selectedTab = 0 },
+                    modifier = Modifier.weight(1f)
+                )
+                TabButton(
+                    title = "🏆 Biten & Yayında (${completedProjects.size})",
+                    isSelected = selectedTab == 1,
+                    onClick = { selectedTab = 1 },
+                    modifier = Modifier.weight(1f)
+                )
             }
 
-            // 4. Category Filter Chips (For Tab 0)
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    FilterCategoryChip(
-                        label = "Tümü (${projects.size})",
-                        isSelected = selectedCategoryFilter == null,
-                        onClick = { selectedCategoryFilter = null }
-                    )
-                    FilterCategoryChip(
-                        label = "📱 Mobil Uygulama",
-                        isSelected = selectedCategoryFilter == "Android",
-                        onClick = {
-                            selectedCategoryFilter = if (selectedCategoryFilter == "Android") null else "Android"
-                        }
-                    )
-                    FilterCategoryChip(
-                        label = "🌐 .NET Backend",
-                        isSelected = selectedCategoryFilter == "Backend",
-                        onClick = {
-                            selectedCategoryFilter = if (selectedCategoryFilter == "Backend") null else "Backend"
-                        }
-                    )
-                    FilterCategoryChip(
-                        label = "🔬 Sistem / Tez",
-                        isSelected = selectedCategoryFilter == "Systems" || selectedCategoryFilter == "Graduation",
-                        onClick = {
-                            selectedCategoryFilter = if (selectedCategoryFilter != null && (selectedCategoryFilter == "Systems" || selectedCategoryFilter == "Graduation")) null else "Systems"
-                        }
-                    )
-                }
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 4. Category Filter Chips (Fixed right above list to prevent jump)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                FilterCategoryChip(
+                    label = "Tümü (${currentTabProjects.size})",
+                    isSelected = selectedCategoryFilter == null,
+                    onClick = { selectedCategoryFilter = null }
+                )
+                FilterCategoryChip(
+                    label = "📱 Mobil",
+                    isSelected = selectedCategoryFilter == "Android",
+                    onClick = {
+                        selectedCategoryFilter = if (selectedCategoryFilter == "Android") null else "Android"
+                    }
+                )
+                FilterCategoryChip(
+                    label = "🌐 Backend",
+                    isSelected = selectedCategoryFilter == "Backend",
+                    onClick = {
+                        selectedCategoryFilter = if (selectedCategoryFilter == "Backend") null else "Backend"
+                    }
+                )
+                FilterCategoryChip(
+                    label = "🔬 Sistem",
+                    isSelected = selectedCategoryFilter == "Systems" || selectedCategoryFilter == "Graduation",
+                    onClick = {
+                        selectedCategoryFilter = if (selectedCategoryFilter != null && (selectedCategoryFilter == "Systems" || selectedCategoryFilter == "Graduation")) null else "Systems"
+                    }
+                )
             }
 
-            // 5. Active Projects List
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 5. Scrollable Project Cards List
             if (filteredProjects.isEmpty()) {
-                item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .border(1.dp, BorderSubtle, RoundedCornerShape(12.dp)),
+                            .border(1.dp, BorderSubtle, RoundedCornerShape(14.dp)),
                         colors = CardDefaults.cardColors(containerColor = PanelNavy)
                     ) {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(24.dp),
+                                .padding(28.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Text(text = "📭", fontSize = 32.sp)
+                            Text(
+                                text = if (selectedTab == 0) "📭" else "🏆",
+                                fontSize = 36.sp
+                            )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "Bu filtrede henüz proje bulunmuyor.",
-                                color = TextSecondary,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium
+                                text = if (selectedTab == 0)
+                                    "Bu filtrede devam eden proje bulunmuyor."
+                                else
+                                    "Henüz tamamlanan / yayına alınan proje yok.",
+                                color = TextPrimary,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold
                             )
-                            Spacer(modifier = Modifier.height(10.dp))
-                            Button(
-                                onClick = { isAddDialogOpen = true },
-                                colors = ButtonDefaults.buttonColors(containerColor = PanelNavyHighlight),
-                                shape = RoundedCornerShape(8.dp),
-                                border = androidx.compose.foundation.BorderStroke(1.dp, BorderActive)
-                            ) {
-                                Text(text = "+ Yeni Proje Başlat", color = AccentCyan, fontSize = 11.sp)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = if (selectedTab == 0)
+                                    "Yeni bir fikirle proje başlatıp aşamalarını takip edebilirsin."
+                                else
+                                    "Projelerini 9 aşamalı lansman sürecinden geçirerek buraya taşıyabilirsin!",
+                                color = TextSecondary,
+                                fontSize = 11.5.sp
+                            )
+                            if (selectedTab == 0) {
+                                Spacer(modifier = Modifier.height(14.dp))
+                                Button(
+                                    onClick = { isAddDialogOpen = true },
+                                    colors = ButtonDefaults.buttonColors(containerColor = PanelNavyHighlight),
+                                    shape = RoundedCornerShape(8.dp),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, BorderActive)
+                                ) {
+                                    Text(text = "+ Yeni Proje Başlat", color = AccentCyan, fontSize = 11.5.sp)
+                                }
                             }
                         }
                     }
                 }
             } else {
-                items(filteredProjects, key = { it.id }) { project ->
-                    HubProjectCard(
-                        project = project,
-                        onAdvanceStage = { nextStage -> onAdvanceStage(project.id, nextStage) },
-                        onRegressStage = { onRegressStage(project.id) },
-                        onDeleteClick = { projectToDelete = project }
-                    )
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentPadding = PaddingValues(top = 4.dp, bottom = 32.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(filteredProjects, key = { it.id }) { project ->
+                        HubProjectCard(
+                            project = project,
+                            isCompletedTab = selectedTab == 1,
+                            onAdvanceStage = { nextStage -> onAdvanceStage(project.id, nextStage) },
+                            onRegressStage = { onRegressStage(project.id) },
+                            onDeleteClick = { projectToDelete = project }
+                        )
+                    }
                 }
             }
         }
     }
 
-    // Add Project Modal Dialog
+    // Add Project Modal Dialog with GitHub-style Tag Selector
     if (isAddDialogOpen) {
         AddProjectModal(
             onDismiss = { isAddDialogOpen = false },
@@ -342,7 +355,7 @@ fun PersonalProjectsHubView(
             },
             text = {
                 Text(
-                    text = "\"${projectToDelete?.title}\" projesini takip listenizden kaldırmak istediğinize emin misiniz?",
+                    text = "\"${projectToDelete?.title}\" projesini kalıcı olarak silmek istediğinize emin misiniz?",
                     color = TextSecondary,
                     fontSize = 13.sp
                 )
@@ -368,31 +381,18 @@ fun PersonalProjectsHubView(
 }
 
 @Composable
-private fun MetricPill(label: String, value: String, valueColor: Color) {
+private fun MetricBadge(label: String, count: String, color: Color) {
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(PanelNavy)
-            .border(1.dp, BorderSubtle, RoundedCornerShape(8.dp))
-            .padding(horizontal = 9.dp, vertical = 6.dp)
+            .clip(RoundedCornerShape(6.dp))
+            .background(color.copy(alpha = 0.15f))
+            .border(1.dp, color.copy(alpha = 0.35f), RoundedCornerShape(6.dp))
+            .padding(horizontal = 7.dp, vertical = 3.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = 10.sp,
-                    color = TextSecondary
-                )
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = value,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Black,
-                    color = valueColor
-                )
-            )
+            Text(text = label, fontSize = 10.sp, color = color)
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(text = count, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = color)
         }
     }
 }
@@ -415,7 +415,7 @@ private fun TabButton(
             .clip(RoundedCornerShape(9.dp))
             .background(bgColor)
             .clickable { onClick() }
-            .padding(vertical = 9.dp),
+            .padding(vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
@@ -423,7 +423,7 @@ private fun TabButton(
             style = MaterialTheme.typography.labelSmall.copy(
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                 color = textColor,
-                fontSize = 11.sp
+                fontSize = 11.5.sp
             )
         )
     }
@@ -441,11 +441,11 @@ private fun FilterCategoryChip(
 
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(7.dp))
             .background(bgColor)
-            .border(1.dp, borderColor, RoundedCornerShape(8.dp))
+            .border(1.dp, borderColor, RoundedCornerShape(7.dp))
             .clickable { onClick() }
-            .padding(horizontal = 10.dp, vertical = 6.dp)
+            .padding(horizontal = 9.dp, vertical = 5.dp)
     ) {
         Text(
             text = label,
@@ -461,6 +461,7 @@ private fun FilterCategoryChip(
 @Composable
 private fun HubProjectCard(
     project: EngineeringProject,
+    isCompletedTab: Boolean,
     onAdvanceStage: (ProjectWorkflowStage) -> Unit,
     onRegressStage: () -> Unit,
     onDeleteClick: () -> Unit
@@ -513,17 +514,18 @@ private fun HubProjectCard(
 
                     Spacer(modifier = Modifier.width(8.dp))
 
+                    val stageBadgeColor = if (isCompletedTab) StatusCompleted else StatusPracticed
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(5.dp))
-                            .background(StatusPracticed.copy(alpha = 0.18f))
-                            .border(1.dp, StatusPracticed.copy(alpha = 0.4f), RoundedCornerShape(5.dp))
+                            .background(stageBadgeColor.copy(alpha = 0.18f))
+                            .border(1.dp, stageBadgeColor.copy(alpha = 0.4f), RoundedCornerShape(5.dp))
                             .padding(horizontal = 7.dp, vertical = 3.dp)
                     ) {
                         Text(
-                            text = "${project.currentStage.order}. Aşama: ${project.currentStage.stageName}",
+                            text = if (isCompletedTab) "🎉 9/9: Yayında & CV'de" else "${project.currentStage.order}. Aşama: ${project.currentStage.stageName}",
                             style = MaterialTheme.typography.labelSmall.copy(
-                                color = StatusPracticed,
+                                color = stageBadgeColor,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 9.5.sp
                             )
@@ -619,8 +621,8 @@ private fun HubProjectCard(
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 stages.forEachIndexed { index, stage ->
-                    val isCompleted = index < currentIndex
-                    val isCurrent = index == currentIndex
+                    val isCompleted = index < currentIndex || (isCompletedTab && index <= currentIndex)
+                    val isCurrent = index == currentIndex && !isCompletedTab
 
                     val badgeBorderColor = when {
                         isCurrent -> AccentCyan
@@ -784,7 +786,7 @@ private fun HubProjectCard(
                                 .clip(RoundedCornerShape(6.dp))
                                 .background(StatusCompleted.copy(alpha = 0.2f))
                                 .border(1.dp, StatusCompleted, RoundedCornerShape(6.dp))
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
                             Text(
                                 text = "🎉 Yayında & CV'de",
@@ -810,9 +812,21 @@ private fun AddProjectModal(
     var description by remember { mutableStateOf("") }
     var github by remember { mutableStateOf("") }
     var medium by remember { mutableStateOf("") }
-    var tagsText by remember { mutableStateOf("") }
+
+    // GitHub-style Tag Selector State
+    var selectedTags by remember { mutableStateOf(setOf<String>()) }
+    var customTagInput by remember { mutableStateOf("") }
 
     val categories = listOf("Android / Mobil", "Backend / .NET", "Sistem / Bitirme Tezi", "Full-Stack")
+
+    // Curated suggestions by domain
+    val popularSuggestions = remember {
+        listOf(
+            "Kotlin", "Jetpack Compose", "XML", "Room", "Retrofit", "Hilt", "MVVM", "Play Store",
+            "ASP.NET Core", "Clean Architecture", "EF Core", "PostgreSQL", "Docker", "RabbitMQ", "Redis", "xUnit", "Moq", "Swagger", "JWT",
+            "C++", "Linux", "KV Cache", "Performance"
+        )
+    }
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -824,9 +838,10 @@ private fun AddProjectModal(
         ) {
             Column(
                 modifier = Modifier
-                    .padding(20.dp)
+                    .padding(18.dp)
                     .fillMaxWidth()
             ) {
+                // Header
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -852,7 +867,7 @@ private fun AddProjectModal(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // Title
                 OutlinedTextField(
@@ -873,7 +888,7 @@ private fun AddProjectModal(
 
                 // Category Selector Chips
                 Text(
-                    text = "Kategori Seçimi",
+                    text = "Kategori",
                     style = MaterialTheme.typography.labelSmall.copy(
                         color = TextSecondary,
                         fontSize = 11.sp
@@ -941,33 +956,143 @@ private fun AddProjectModal(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
-                // Tags
-                OutlinedTextField(
-                    value = tagsText,
-                    onValueChange = { tagsText = it },
-                    label = { Text("Etiketler (Virgülle ayır)", fontSize = 12.sp) },
-                    placeholder = { Text("Kotlin, Room, EF Core, Docker", fontSize = 11.sp, color = TextDarkMuted) },
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = AccentCyan,
-                        unfocusedBorderColor = BorderSubtle,
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary
-                    ),
-                    modifier = Modifier.fillMaxWidth()
+                // ---- GitHub-Style Tags Selector & Custom Input ----
+                Text(
+                    text = "Etiketler (Teknolojiler)",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        color = TextSecondary,
+                        fontSize = 11.sp
+                    )
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                // Selected Tag Chips
+                if (selectedTags.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        selectedTags.forEach { tag ->
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(AccentCyan.copy(alpha = 0.2f))
+                                    .border(1.dp, AccentCyan, RoundedCornerShape(6.dp))
+                                    .clickable { selectedTags = selectedTags - tag }
+                                    .padding(horizontal = 7.dp, vertical = 3.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = "#$tag",
+                                        color = TextPrimary,
+                                        fontSize = 10.5.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Kaldır",
+                                        tint = AccentCyan,
+                                        modifier = Modifier.size(11.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                // Custom Tag Input Row (GitHub Style: Type and click Ekle / Enter)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    OutlinedTextField(
+                        value = customTagInput,
+                        onValueChange = { customTagInput = it },
+                        placeholder = { Text("Yeni etiket yaz (örn: MassTransit)...", fontSize = 11.sp, color = TextDarkMuted) },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(
+                            onDone = {
+                                val clean = customTagInput.trim().removePrefix("#")
+                                if (clean.isNotBlank()) {
+                                    selectedTags = selectedTags + clean
+                                    customTagInput = ""
+                                }
+                            }
+                        ),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = AccentCyan,
+                            unfocusedBorderColor = BorderSubtle,
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary
+                        ),
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    Spacer(modifier = Modifier.width(6.dp))
+
+                    Button(
+                        onClick = {
+                            val clean = customTagInput.trim().removePrefix("#")
+                            if (clean.isNotBlank()) {
+                                selectedTags = selectedTags + clean
+                                customTagInput = ""
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = PanelNavyHighlight),
+                        shape = RoundedCornerShape(8.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, BorderActive),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 10.dp)
+                    ) {
+                        Icon(imageVector = Icons.Default.Add, contentDescription = "Ekle", tint = AccentCyan, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text("Ekle", color = TextPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                // Popular Suggestions Row
+                val unselectedSuggestions = popularSuggestions.filter { it !in selectedTags }
+                if (unselectedSuggestions.isNotEmpty()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        unselectedSuggestions.take(14).forEach { tag ->
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(5.dp))
+                                    .background(PanelNavy)
+                                    .border(1.dp, BorderSubtle, RoundedCornerShape(5.dp))
+                                    .clickable { selectedTags = selectedTags + tag }
+                                    .padding(horizontal = 7.dp, vertical = 3.dp)
+                            ) {
+                                Text(
+                                    text = "+ $tag",
+                                    color = TextMuted,
+                                    fontSize = 10.sp
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
 
                 // Save Button
                 Button(
                     onClick = {
                         if (title.isNotBlank()) {
-                            val tags = tagsText.split(",")
-                                .map { it.trim() }
-                                .filter { it.isNotBlank() }
                             onSave(
                                 title,
                                 selectedCategory,
@@ -976,7 +1101,7 @@ private fun AddProjectModal(
                                 github,
                                 medium,
                                 "",
-                                tags
+                                selectedTags.toList()
                             )
                         }
                     },
