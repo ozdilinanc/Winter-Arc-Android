@@ -1664,23 +1664,44 @@ object RoadmapDataStore {
         ),
 
         // ==========================================
-        // 12. PORTFÖY ÇIKTILARI (GITHUB, PLAY STORE, MEDIUM, LINKEDIN, PROJELER)
+        // 12. PORTFÖY ÇIKTILARI (GITHUB, PLAY STORE, MEDIUM)
         // ==========================================
         "sub_github" to SubItemRoadmap(
             subItemId = "sub_github",
             title = "GitHub",
-            subtitle = "Açık Kaynak Depoları & Katkılar",
+            subtitle = "Depoları Doldurma, Vitrin & Açık Kaynak",
             emoji = "🐙",
-            targetLevel = "Kasım 2027 Hedefi: Düzenli, Yemyeşil ve Nitelikli",
-            overview = "300 tane boş commit yerine; 15-20 tane gerçekten çalışan, README'si ve mimari çizimi olan nitelikli mühendislik depoları.",
+            targetLevel = "Hedef: Yemyeşil Katkı Takvimi & Nitelikli Depo Mimarisi",
+            overview = "300 tane rastgele boş commit yerine; mimari şemalı, kapsamlı README'li, test edilmiş ve gerçekten çalışan 15-20 tane mühendislik deposu oluşturmak ve açık kaynak katkısı sağlamak.",
             sections = listOf(
                 TopicSection(
-                    title = "GITHUB HEDEFLERİ",
+                    title = "PROFİL VİTRİNİ & REPO HİJYENİ",
                     emoji = "🟩",
                     items = listOf(
-                        TopicCheckItem("gh_clean_repos", "Temiz & Açıklayıcı Depo İsimlendirmeleri", "Her projede amaca uygun isimlendirme"),
-                        TopicCheckItem("gh_pro_readme", "Kapsamlı README & Mimari Şemaları", "Ekran görüntüleri, mimari diyagramlar ve çalıştırma adımları"),
-                        TopicCheckItem("gh_commit_streak", "Düzenli Geliştirme & Yeşil Takvim", "Yazılım geliştirme disiplinini yansıtan düzenli commitler")
+                        TopicCheckItem("gh_profile_readme", "Özel GitHub Profil README'si", "Teknoloji rozetleri, GitHub streak stats kartı, hedefler ve sosyal linkler"),
+                        TopicCheckItem("gh_pinned_repos", "En Güçlü 6 Depoyu Sabitleme (Pinned Repos)", "Backend, Android, CS Algoritmaları ve Otomasyon projelerini öne çıkarma"),
+                        TopicCheckItem("gh_pro_readme", "Profesyonel README Standardı & Mimari Şema", "Mermaid / Excalidraw akış diyagramları, ekran görüntüleri, API endpoint tablosu ve cURL örnekleri"),
+                        TopicCheckItem("gh_repo_hygiene", "Repo Hijyeni & Standartlar", "Kusursuz .gitignore temizliği, lisans seçimi (MIT), issue template ve PR şablonları")
+                    )
+                ),
+                TopicSection(
+                    title = "DEPOLARI DOLDURMA STRATEJİSİ",
+                    emoji = "📁",
+                    items = listOf(
+                        TopicCheckItem("gh_repo_backend_clean", "Kurumsal .NET Clean Architecture API Deposu", "Domain, Application, Infrastructure, Persistence katmanları ve CQRS"),
+                        TopicCheckItem("gh_repo_android_compose", "Modern Native Android Jetpack Compose Depoları", "Winter Arc Skill Tree, kelime takipçisi ve modern UI araçları"),
+                        TopicCheckItem("gh_repo_cs_algorithms", "CS, Veri Yapıları & Algoritmalar Deposu", "C# / C++ / Python ile çözülmüş veri yapıları, leetcode ve karmaşıklık analizleri"),
+                        TopicCheckItem("gh_repo_cli_automation", "Linux CLI & Bash Otomasyon Scriptleri Deposu", "Developer üretkenliğini artıran pratik shell ve python scriptleri"),
+                        TopicCheckItem("gh_repo_thesis_ai", "Bitirme Tezi & LLM Bellek Optimizasyon Deposu", "KV Cache, vAttention veya sistem düzeyinde C++ optimizasyon kodu")
+                    )
+                ),
+                TopicSection(
+                    title = "DİSİPLİN, CI/CD & KATKILAR",
+                    emoji = "⚡",
+                    items = listOf(
+                        TopicCheckItem("gh_commit_streak", "Düzenli Yeşil Takvim & Conventional Commits", "feat:, fix:, refactor:, docs: standartlarıyla yazılım geliştirme disiplini"),
+                        TopicCheckItem("gh_actions_cicd", "GitHub Actions CI/CD Pipeline Entegrasyonu", "Her push ve PR'da otomatik build, lint ve unit test çalıştıran workflow"),
+                        TopicCheckItem("gh_open_source_pr", "Açık Kaynak Projelere Katkı (Open Source PR)", "Popüler bir kütüphaneye dokümantasyon, typo veya bugfix pull request'i gönderme")
                     )
                 )
             )
@@ -1688,18 +1709,39 @@ object RoadmapDataStore {
         "sub_play_store" to SubItemRoadmap(
             subItemId = "sub_play_store",
             title = "Play Store",
-            subtitle = "Canlı Mobil Uygulamalar",
+            subtitle = "Canlı Native Mobil Uygulamalar",
             emoji = "📱",
             targetLevel = "Hedef: Canlıda Çalışan 2-3 Native Android Uygulaması",
-            overview = "Kullanıcıya dokunan, Google Play Store'da yayınlanmış ve üretim deneyimini kanıtlayan native Android uygulamaları.",
+            overview = "Sadece yerel cihazda çalışan kod yerine; Google Play Console yayın sürecini, test aşamalarını, mağaza optimizasyonunu ve sürüm güncellemelerini uçtan uca deneyimlemek.",
             sections = listOf(
                 TopicSection(
-                    title = "PLAY STORE ÇIKTILARI",
-                    emoji = "🏪",
+                    title = "GOOGLE PLAY CONSOLE & YAYIN HAZIRLIĞI",
+                    emoji = "🛠️",
                     items = listOf(
-                        TopicCheckItem("ps_winterarc", "Winter Arc Skill Tree Uygulaması", "Play Store'da öğrencilere yönelik yayın hazırlığı"),
-                        TopicCheckItem("ps_vocab_app", "Oxford 5000 Kelime Takip Uygulaması", "Kişisel İngilizce kelime aracını canlıya alma"),
-                        TopicCheckItem("ps_ai_mini_app", "AI Destekli Niş Bir Mobil Uygulama", "Küçük ama faydalı bir üretkenlik aracı")
+                        TopicCheckItem("ps_console_account", "Google Play Developer Hesabı & Kimlik Doğrulama", "Geliştirici hesabı açılışı, D-U-N-S / kimlik onay süreçleri"),
+                        TopicCheckItem("ps_signing_keystore", "Production Keystore & Güvenli İmzalama", "Upload keystore oluşturma, gradle.properties ile key şifreleme ve alias yönetimi"),
+                        TopicCheckItem("ps_aab_bundle", "Android App Bundle (.aab) & R8 ProGuard Optimizasyonu", "Release build konfigürasyonu, kod küçültme ve obfuscation testleri"),
+                        TopicCheckItem("ps_store_assets", "Mağaza Varlıkları & Grafik Tasarımları", "512x512 uygulama ikonu, 1024x500 Feature Graphic ve cihaz mockup ekran görüntüleri"),
+                        TopicCheckItem("ps_privacy_policy", "Gizlilik Politikası (Privacy Policy) & Veri Güvenliği", "GitHub Pages üzerinde gizlilik politikası barındırma ve Play Console Data Safety formu")
+                    )
+                ),
+                TopicSection(
+                    title = "CANLIYA ALINACAK UYGULAMALAR",
+                    emoji = "🚀",
+                    items = listOf(
+                        TopicCheckItem("ps_app_winterarc", "Winter Arc Skill Tree Uygulaması", "Öğrencilere & yazılımcılara yönelik native Compose yol haritası ve alışkanlık takipçisi"),
+                        TopicCheckItem("ps_app_vocab", "Oxford 5000 / Kelime Ezberleme & Quiz Uygulaması", "Kişisel İngilizce/İspanyolca kelime aracı ve aralıklı tekrar algoritması"),
+                        TopicCheckItem("ps_app_utility", "Günlük Hayatı Kolaylaştıran Niş Mini Araç", "Dopamin takipçisi, odaklanma sayacı veya hobi amaçlı hafif bir araç")
+                    )
+                ),
+                TopicSection(
+                    title = "TEST, YAYIN & SÜRÜM YÖNETİMİ",
+                    emoji = "📈",
+                    items = listOf(
+                        TopicCheckItem("ps_closed_testing", "20 Test Kullanıcısı ile 14 Günlük Kapalı Test", "Google'ın yeni geliştirici şartı olan kapalı test döngüsünü tamamlama"),
+                        TopicCheckItem("ps_production_release", "İlk Canlı Sürümü Yayınlama (Production Release)", "İnceleme (Review) sürecini geçerek uygulamayı dünya çapında mağazaya sunma"),
+                        TopicCheckItem("ps_post_launch_update", "Sürüm Güncellemesi & Yama Çıkma", "Version code / name artırımı ve kullanıcı geri bildirimleriyle hızlı güncelleme"),
+                        TopicCheckItem("ps_crash_monitoring", "Android Vitals & Crash Analizi", "ANR ve çökme oranlarını %0 seviyesinde tutma, kullanıcı puanlarını yönetme")
                     )
                 )
             )
@@ -1707,40 +1749,41 @@ object RoadmapDataStore {
         "sub_medium" to SubItemRoadmap(
             subItemId = "sub_medium",
             title = "Medium",
-            subtitle = "Öğrendiklerimi Unutmama Sistemi",
+            subtitle = "Öğrendiklerimi Unutmama & Teknik Hafıza",
             emoji = "✍️",
-            targetLevel = "Hedef: Kişisel Teknik Hafıza & Bilgi Kütüphanesi",
-            overview = "Amaç influencer olmak değil; öğrenilen her kritik mimariyi, JWT'yi, EF Core tracking mantığını veya Docker yapılandırmasını yazıya dökerek kalıcı kılmak.",
+            targetLevel = "Hedef: Kişisel Teknik Hafıza & Dijital Kütüphane",
+            overview = "Amaç takipçi kasmak veya influencer olmak değil; öğrenilen ufak tefek her teknik detayı, mimari kararı, hata çözümünü ve Linux/Android püf noktasını yazıya dökerek kalıcı kılmak.",
             sections = listOf(
                 TopicSection(
-                    title = "PLANLANAN TEKNİK YAZILAR",
-                    emoji = "📝",
+                    title = "TEKNİK YAZARLIK & FEYNMAN STRATEJİSİ",
+                    emoji = "🧠",
                     items = listOf(
-                        TopicCheckItem("med_exc_handling", "ASP.NET Core'da Global Exception Handling Nasıl Yapılır?", "ProblemDetails ve IExceptionHandler kullanımı"),
-                        TopicCheckItem("med_jwt_auth", "JWT ile Güvenli Authentication ve Refresh Token Akışı", "Adım adım token yaşam döngüsü"),
-                        TopicCheckItem("med_clean_arch", "Neden Clean Architecture? Katmanlar Arası Sınırlar", "Domain ve Application katmanlarının izolasyonu"),
-                        TopicCheckItem("med_ef_tracking", "EF Core Tracking Mantığı ve AsNoTracking Önemi", "Bellek tasarrufu ve performans farkları"),
-                        TopicCheckItem("med_rabbitmq", "RabbitMQ ile Asenkron İletişim: Producer & Consumer", "Event-driven mimaride mesaj kuyruğu pratiği"),
-                        TopicCheckItem("med_kv_cache", "LLM Çıkarımlarında KV Cache ve vAttention Nedir?", "Bitirme tezinden çıkan teorik özet")
+                        TopicCheckItem("med_mindset", "Kendime Notlar & Feynman Metodu", "Öğrendiğin konuyu en sade haliyle anlatarak kafada tam netleştirme"),
+                        TopicCheckItem("med_format_template", "Yazı İskeleti Standartı", "Problem Tanımı -> Karşılaşılan Zorluklar -> Kod Çözümü -> Alınan Dersler"),
+                        TopicCheckItem("med_gist_diagram", "Kod Parçacıkları (GitHub Gist) & Mimari Şemalar", "Görsel ve kod bloklarıyla okuması keyifli temiz içerik üretimi")
                     )
-                )
-            )
-        ),
-        "sub_linkedin" to SubItemRoadmap(
-            subItemId = "sub_linkedin",
-            title = "LinkedIn",
-            subtitle = "Profesyonel Ağ & Görünürlük",
-            emoji = "💼",
-            targetLevel = "Hedef: Mezuniyet Öncesi Güçlü Network & Profil",
-            overview = "Tamamlanan projeleri, Medium yazılarını ve kazanılan teknik yetkinlikleri sektördeki mühendislerle ve liderlerle paylaşmak.",
-            sections = listOf(
+                ),
                 TopicSection(
-                    title = "PROFİL VE PAYLAŞIM STRATEJİSİ",
-                    emoji = "🌐",
+                    title = ".NET, BACKEND & VERİTABANI YAZILARI",
+                    emoji = "⚙️",
                     items = listOf(
-                        TopicCheckItem("li_headline", "Net ve Profesyonel Başlık (Headline)", "Junior Backend Developer | Computer Engineering Student"),
-                        TopicCheckItem("li_project_posts", "Proje Demo Videoları & GitHub Linkleri", "Tamamlanan projelerin kısa video gösterimleri"),
-                        TopicCheckItem("li_medium_share", "Medium Makalelerinin Paylaşımı", "Yazılan teknik yazıların özetleriyle birlikte linklenmesi")
+                        TopicCheckItem("med_exc_handling", "ASP.NET Core'da Global Exception Handling & ProblemDetails", "IExceptionHandler ile temiz hata yönetimi ve RFC 7807 uyumluluğu"),
+                        TopicCheckItem("med_jwt_auth", "JWT ile Güvenli Authentication ve Refresh Token Döngüsü", "Token süresi dolunca sessiz yenileme mekanizması ve güvenlik ipuçları"),
+                        TopicCheckItem("med_clean_arch", "Neden Clean Architecture? Domain Katmanını Bağımsız Tutmak", "Katmanlar arası sınırların korunması ve bağımlılıkların yönetimi"),
+                        TopicCheckItem("med_ef_tracking", "EF Core Tracking Mantığı: AsNoTracking Neden Hayat Kurtarır?", "Read-only sorgularda bellek optimizasyonu ve performans karşılaştırması"),
+                        TopicCheckItem("med_rabbitmq_event", "RabbitMQ ile Asenkron İletişim: Producer & Consumer", "Mesaj kuyrukları, event-driven yapı ve dead-letter queue mantığı"),
+                        TopicCheckItem("med_sql_indexing", "Veritabanlarında B-Tree İndeksleme Mantığı ve Sorgu Hızı", "Index scan vs index seek farkı ve execution plan okuma")
+                    )
+                ),
+                TopicSection(
+                    title = "ANDROID, LINUX & ÖZEL MİMARİ TRİKLERİ",
+                    emoji = "🐧",
+                    items = listOf(
+                        TopicCheckItem("med_compose_state", "Jetpack Compose'da Recomposition Mantığı & State Hoisting", "Gereksiz recomposition'ları önleme ve derivedStateOf püf noktaları"),
+                        TopicCheckItem("med_linux_bash_tips", "Hayat Kurtaran Linux CLI & Bash Kısayolları", "Terminalde hızlanmak için pratik komutlar, alias'lar ve piping trikleri"),
+                        TopicCheckItem("med_git_rescue", "Git'te Hata Yapınca Ne Yapılır? Reflog & Kurtarma Rehberi", "Yanlış commit veya rebase sonrası kodu kurtarma adımları"),
+                        TopicCheckItem("med_thesis_kvcache", "LLM Çıkarımlarında KV Cache ve Bellek Optimizasyonunun Mantığı", "Bitirme tezinden çıkan sistem seviyesinde teorik özet"),
+                        TopicCheckItem("med_debug_stories", "Haftanın Bug'ı: İlginç Bir Hatayı Çözme Günlüğü", "Geliştirme esnasında saatler alan bir bug'ın analizi ve çözümü")
                     )
                 )
             )

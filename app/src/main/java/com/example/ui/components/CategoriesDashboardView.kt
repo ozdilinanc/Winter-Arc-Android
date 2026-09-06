@@ -206,9 +206,9 @@ private val portfolioSubItems = listOf(
     CategorySubItem(
         id = "sub_github",
         title = "GitHub",
-        subtitle = "Açık Kaynak Depoları & Katkılar",
+        subtitle = "Açık Kaynak Depoları & Vitrin",
         emoji = "🐙",
-        description = "Yıldız alan açık kaynak projeler, düzenli yeşil katkı takvimi ve profesyonel README vitrinleri.",
+        description = "Depoları doldurmak, açık kaynak projeler, mimari şemalı profesyonel README'ler ve düzenli yeşil katkı takvimi.",
         tag = "Open Source"
     ),
     CategorySubItem(
@@ -216,40 +216,16 @@ private val portfolioSubItems = listOf(
         title = "Play Store",
         subtitle = "Canlı Mobil Uygulamalar",
         emoji = "📱",
-        description = "Google Play Store'da yayınlanmış, kullanıcıya ulaşan native Android uygulamaları ve güncellemeleri.",
+        description = "Google Play Console süreci, yayınlanan utility/hobi/araç native Android uygulamaları ve güncellemeler.",
         tag = "Production Apps"
     ),
     CategorySubItem(
         id = "sub_medium",
         title = "Medium",
-        subtitle = "Teknik Makaleler & İncelemeler",
+        subtitle = "Öğrenilenleri Yazıya Dökme & Teknik Hafıza",
         emoji = "✍️",
-        description = "Derinlemesine mimari analizler, yazılım tasarım desenleri ve mühendislik deneyimlerini paylaşan blog yazıları.",
+        description = "Öğrenilen ufak tefek her şeyi, mimari analizleri, backend ipuçlarını ve hata çözümlerini teknik makaleye dönüştürmek.",
         tag = "Tech Blog"
-    ),
-    CategorySubItem(
-        id = "sub_linkedin",
-        title = "LinkedIn",
-        subtitle = "Profesyonel Ağ & Görünürlük",
-        emoji = "💼",
-        description = "Kariyer başarıları, sertifikalar, proje paylaşımları ve sektör bağlantıları.",
-        tag = "Networking"
-    ),
-    CategorySubItem(
-        id = "sub_projects",
-        title = "Projeler",
-        subtitle = "Öne Çıkan Mühendislik Eserleri",
-        emoji = "🏆",
-        description = "Özgeçmişte ve portföyde en öne çıkan anahtar projeler, canlı demo linkleri ve mimari dokümantasyonlar.",
-        tag = "Showcase"
-    ),
-    CategorySubItem(
-        id = "sub_btk_akademi",
-        title = "BTK Akademi Sertifikaları",
-        subtitle = "e-Devlet & 1 Milyon İstihdam Diplomaları",
-        emoji = "📜",
-        description = "Kazanılan ve hedeflenen e-Devlet onaylı resmi BTK Akademi diplomaları ve uzmanlık sertifikasyon listesi.",
-        tag = "e-Devlet Onaylı"
     )
 )
 
@@ -345,15 +321,10 @@ fun CategoriesDashboardView(
             CategorySubItemsHubView(
                 categoryTitle = "PORTFÖY",
                 categoryEmoji = "🚀",
-                categorySubtitle = "Açık Kaynak, Yayınlar & Görünürlük",
-                categoryDescription = "GitHub depoları, Play Store uygulamaları, Medium yazıları ve öne çıkan projeler.",
+                categorySubtitle = "GitHub, Play Store & Medium Çıktıları",
+                categoryDescription = "GitHub depolarını doldurmak, Play Store'a canlı uygulamalar çıkarmak ve öğrenilen her şeyi Medium'da teknik yazıya dökmek.",
                 accentColor = BranchPortfolio,
                 subItems = portfolioSubItems,
-                projects = projects,
-                onAdvanceProjectStage = onAdvanceProjectStage,
-                onRegressProjectStage = onRegressProjectStage,
-                onCreateProject = onCreateProject,
-                onDeleteProject = onDeleteProject,
                 onBack = { activeCategory = null },
                 modifier = modifier
             )
@@ -406,10 +377,10 @@ fun CategoriesDashboardView(
             id = "cat_portfolio",
             title = "PORTFÖY",
             emoji = "🚀",
-            subtitle = "Gerçek Dünya Projeleri & Çıktılar",
-            description = "GitHub açık kaynak projeleri, Play Store uygulamaları, Medium yazıları, LinkedIn ve öne çıkan projeler.",
+            subtitle = "GitHub, Play Store & Medium Çıktıları",
+            description = "GitHub depolarını doldurmak, Play Store'a canlı uygulamalar çıkarmak ve öğrenilen her şeyi Medium'da teknik yazıya dökmek.",
             accentColor = BranchPortfolio,
-            tags = listOf("GitHub", "Play Store", "Medium", "LinkedIn", "Projeler"),
+            tags = listOf("GitHub", "Play Store", "Medium"),
             branchIds = listOf(BranchId.PORTFOLIO_OUTPUT)
         )
     )
