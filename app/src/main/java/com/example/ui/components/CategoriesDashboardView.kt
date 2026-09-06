@@ -81,36 +81,68 @@ private val careerSubItems = listOf(
 
 private val techCultureSubItems = listOf(
     CategorySubItem(
+        id = "sub_swe_fundamentals",
+        title = "Software Engineering Fundamentals",
+        subtitle = "SOLID, Clean Code, Tasarım Desenleri & Test",
+        emoji = "📐",
+        description = "Nesne yönelimli tasarım ilkeleri (SOLID), GoF tasarım desenleri, refactoring, DRY/KISS ve Test Piramidi (Unit & AAA).",
+        tag = "SWE & Tasarım"
+    ),
+    CategorySubItem(
+        id = "sub_data_structures_bigo",
+        title = "Veri Yapıları & Algoritmalar",
+        subtitle = "Big-O, Karmaşıklık & Temel Veri Tipleri",
+        emoji = "⚡",
+        description = "Zaman ve bellek analizi (Big-O), Hash Table, Ağaçlar (BST & Heap), İkili Arama ve QuickSort/MergeSort algoritmaları.",
+        tag = "Big-O & Algoritma"
+    ),
+    CategorySubItem(
+        id = "sub_system_design",
+        title = "Sistem Tasarımı Temelleri",
+        subtitle = "Ölçeklenebilirlik, Caching, CAP & Kuyruklar",
+        emoji = "🏗️",
+        description = "Yatay büyüme, Load Balancer, Caching (Cache-Aside), Rate Limiting, CAP Teoremi ve Event-Driven mesaj kuyrukları.",
+        tag = "Sistem Tasarımı"
+    ),
+    CategorySubItem(
+        id = "sub_networking_web",
+        title = "Bilgisayar Ağları & Web Protokolleri",
+        subtitle = "DNS, TCP/IP, HTTP/1-2-3 & İletişim",
+        emoji = "🌐",
+        description = "google.com istek yolculuğu, TCP 3-Way Handshake, TLS/HTTPS güvenliği, WebSocket, CDN ve CORS politikası.",
+        tag = "Ağ & Protokol"
+    ),
+    CategorySubItem(
         id = "sub_git_github",
         title = "Git / GitHub",
         subtitle = "Versiyon Kontrol & İş Akışları",
         emoji = "🐙",
-        description = "Git branching stratejileri (GitFlow, Trunk-based), rebase, conflict çözümü, PR inceleme kültürü ve commit hijyeni.",
-        tag = "VCS"
+        description = "Git branching stratejileri (GitFlow, Trunk-based), rebase, conflict çözümü, PR inceleme kültürü ve GitHub Actions CI.",
+        tag = "VCS & Git"
     ),
     CategorySubItem(
         id = "sub_linux_terminal",
         title = "Linux / Terminal",
         subtitle = "Bash, CLI Araçları & Çekirdek Mantığı",
         emoji = "🐧",
-        description = "Linux dosya hiyerarşisi, process yönetimi, Bash betikleme, SSH anahtarları ve terminal verimlilik araçları (tmux, zsh, vim).",
+        description = "Linux dosya hiyerarşisi, process yönetimi, Bash betikleme, boru hatları (pipes), SSH ve LazyVim geliştirme ortamı.",
         tag = "Linux & CLI"
     ),
     CategorySubItem(
         id = "sub_cyber_security",
         title = "Cyber Security",
-        subtitle = "Ağ Güvenliği, OWASP Top 10 & Savunma",
+        subtitle = "AppSec, Web & Ağ Güvenliği",
         emoji = "🛡️",
-        description = "Web ve API güvenliği, yetkilendirme (OAuth2/JWT) açıkları, şifreleme algoritmaları ve güvenli kodlama standartları.",
-        tag = "AppSec"
+        description = "Web ve API güvenliği (SQLi, XSS, CSRF), JWT açıkları, şifreleme algoritmaları ve güvenli parola (BCrypt) saklama.",
+        tag = "Siber Güvenlik"
     ),
     CategorySubItem(
-        id = "sub_swe_fundamentals",
-        title = "Software Engineering Fundamentals",
-        subtitle = "SOLID, Design Patterns & Clean Code",
-        emoji = "📐",
-        description = "Nesne yönelimli tasarım ilkeleri (SOLID), GoF tasarım desenleri, refactoring, DRY, KISS ve kod okunabilirliği.",
-        tag = "Software Design"
+        id = "sub_ai_llm",
+        title = "Yapay Zeka & LLM Okuryazarlığı",
+        subtitle = "Büyük Dil Modelleri, RAG & AI Ajanları",
+        emoji = "🤖",
+        description = "Token & Context Window sınırları, Prompt Mühendisliği (CoT), RAG & Vektör Veritabanları ve Function Calling mimarisi.",
+        tag = "AI & LLM"
     )
 )
 
@@ -228,7 +260,7 @@ fun CategoriesDashboardView(
                 categoryTitle = "TEKNİK GENEL KÜLTÜR",
                 categoryEmoji = "🧠",
                 categorySubtitle = "Mühendislik Temelleri & Sistem Mantığı",
-                categoryDescription = "Versiyon kontrolü, Linux ortamı, siber güvenlik ve yazılım mühendisliği ilkeleri.",
+                categoryDescription = "Mühendislik ilkeleri, algoritmalar, sistem tasarımı, ağ protokolleri, Git, Linux, siber güvenlik ve yapay zeka.",
                 accentColor = BranchTools,
                 subItems = techCultureSubItems,
                 onBack = { activeCategory = null },

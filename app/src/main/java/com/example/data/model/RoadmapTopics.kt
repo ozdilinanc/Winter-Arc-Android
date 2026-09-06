@@ -717,7 +717,327 @@ object RoadmapDataStore {
         ),
 
         // ==========================================
-        // 10. İNGİLİZCE (B2+ AKTİF)
+        // 10. VERİ YAPILARI & ALGORİTMALAR (BIG-O)
+        // ==========================================
+        "sub_data_structures_bigo" to SubItemRoadmap(
+            subItemId = "sub_data_structures_bigo",
+            title = "Veri Yapıları & Algoritmalar",
+            subtitle = "Big-O, Karmaşıklık & Temel Veri Tipleri",
+            emoji = "⚡",
+            targetLevel = "Hedef: Kodun Zaman ve Bellek Maliyetini Öngören Bir Mühendis Olmak",
+            overview = "Kodu sadece çalıştırmak değil; veri boyutları büyüdüğünde CPU ve RAM tüketimini optimize etmek, doğru veri yapısını doğru senaryoda seçmek.",
+            sections = listOf(
+                TopicSection(
+                    title = "KARMAŞIKLIK ANALİZİ (BIG-O)",
+                    emoji = "⏱️",
+                    items = listOf(
+                        TopicCheckItem(
+                            id = "algo_bigo_basics",
+                            title = "Big-O, Big-Omega & Big-Theta Kavramları",
+                            description = "En kötü durum (Worst-case), ortalama durum, constant O(1), logaritmik O(log n), doğrusal O(n) ve karesel O(n²) farkı.",
+                            practiceTask = "Yazdığın veya incelediğin 3 farklı döngülü algoritmanın zaman karmaşıklığını (Big-O) kağıt üzerinde hesapla."
+                        ),
+                        TopicCheckItem(
+                            id = "algo_space_complexity",
+                            title = "Zaman vs Alan (Space) Karmaşıklığı",
+                            description = "Bellek tahsisi, recursion çağrı yığını (call stack) maliyeti, auxiliary space ve in-place algoritmalar.",
+                            practiceTask = "Özyinelemeli (recursive) bir fonksiyonun bellek tüketimini call stack derinliği üzerinden analiz et."
+                        )
+                    )
+                ),
+                TopicSection(
+                    title = "TEMEL & İLERİ VERİ YAPILARI",
+                    emoji = "📦",
+                    items = listOf(
+                        TopicCheckItem(
+                            id = "algo_array_linkedlist",
+                            title = "Array (Dizi) vs LinkedList (Bağlı Liste)",
+                            description = "Bellek yerleşimi (cache locality), rastgele erişim (O(1)) vs araya eleman ekleme/silme maliyeti.",
+                            practiceTask = "Dizi ve Bağlı Liste yapılarının bellek erişim farklarını ve hangi senaryoda hangisinin seçilmesi gerektiğini kıyasla."
+                        ),
+                        TopicCheckItem(
+                            id = "algo_hashtable",
+                            title = "Hash Table (Hash Haritası) & Çarpışma Çözümü",
+                            description = "Hash fonksiyonu, Chaining vs Open Addressing, Load Factor ve O(1) ortalama erişim mekanizması.",
+                            practiceTask = "Hash Table'da iki anahtarın aynı indise düşmesi (collision) durumunda chaining ve open addressing nasıl çalışır açıkla."
+                        ),
+                        TopicCheckItem(
+                            id = "algo_stack_queue",
+                            title = "Stack (Yığın) & Queue (Kuyruk) Yapıları",
+                            description = "LIFO vs FIFO mantığı, parantez dengeleme, geri alma (undo) geçmişi, Circular Queue ve çift uçlu Deque.",
+                            practiceTask = "Stack kullanarak parantezlerin dengeli olup olmadığını (örn. '{[()]}') kontrol eden basit bir fonksiyon kurgula."
+                        ),
+                        TopicCheckItem(
+                            id = "algo_trees_heaps",
+                            title = "Ağaçlar (BST) & Heap (Öncelikli Kuyruk)",
+                            description = "Binary Search Tree kuralları, ağaç dengelenmesi, Min/Max Heap ve PriorityQueue kullanım alanları.",
+                            practiceTask = "Bir BST üzerinde küçükten büyüğe sıralı dolaşımın (In-order traversal) mantığını çıkar."
+                        )
+                    )
+                ),
+                TopicSection(
+                    title = "KLASİK ALGORİTMALAR & PROBLEM ÇÖZME",
+                    emoji = "🧠",
+                    items = listOf(
+                        TopicCheckItem(
+                            id = "algo_binary_search",
+                            title = "İkili Arama (Binary Search)",
+                            description = "Sıralı dizilerde O(log n) karmaşıklıkla böl ve fethet (Divide and Conquer) tekniği.",
+                            practiceTask = "Sıralı bir dizide aranan elemanın indisini döndüren iterative Binary Search algoritmasını yaz."
+                        ),
+                        TopicCheckItem(
+                            id = "algo_sort_comparison",
+                            title = "Sıralama Algoritmaları: QuickSort vs MergeSort",
+                            description = "O(n log n) sıralama algoritmaları, Worst-case senaryoları, bellek maliyeti ve kararlılık (stability).",
+                            practiceTask = "QuickSort'un pivot seçimine bağlı kötü durumunu ve MergeSort'un ek bellek ihtiyacını karşılaştır."
+                        ),
+                        TopicCheckItem(
+                            id = "algo_dfs_bfs",
+                            title = "Graf ve Ağaç Gezinmesi: DFS vs BFS",
+                            description = "Derinlik öncelikli arama (Stack/Recursion) ve Genişlik öncelikli arama (Queue/En kısa yol).",
+                            practiceTask = "BFS'nin en kısa yol bulmada neden kullanıldığını ve DFS ile arasındaki mantık farkını özetle."
+                        )
+                    )
+                )
+            )
+        ),
+
+        // ==========================================
+        // 11. SİSTEM TASARIMI & MİMARİ MANTIĞI
+        // ==========================================
+        "sub_system_design" to SubItemRoadmap(
+            subItemId = "sub_system_design",
+            title = "Sistem Tasarımı Temelleri",
+            subtitle = "Ölçeklenebilirlik, Caching, CAP & Dayanıklılık",
+            emoji = "🏗️",
+            targetLevel = "Hedef: Milyonlarca Kullanıcıya Hizmet Veren Sistemlerin Mimarisini Kavramak",
+            overview = "Tek sunucudan yatayda büyüyen devasa sistemlere geçiş; yük dağıtımı, önbellekleme stratejileri, mesajlaşma kuyrukları ve veri tutarlılığı modelleri.",
+            sections = listOf(
+                TopicSection(
+                    title = "ÖLÇEKLENEBİLİRLİK & YÜK DENGELEME",
+                    emoji = "⚖️",
+                    items = listOf(
+                        TopicCheckItem(
+                            id = "sys_vert_horiz",
+                            title = "Dikey (Scale-Up) vs Yatay (Scale-Out) Büyüme",
+                            description = "CPU/RAM yükseltme sınırları, stateless servis mimarisi ve cluster yapılandırması.",
+                            practiceTask = "Bir API servisinin yatayda büyüyebilmesi için session state'in sunucuda tutulmamasının önemini analiz et."
+                        ),
+                        TopicCheckItem(
+                            id = "sys_load_balancing",
+                            title = "Load Balancer Stratejileri",
+                            description = "Round Robin, Least Connections, IP Hash algoritmaları, L4 vs L7 dengeleme ve Health Check kontrolleri.",
+                            practiceTask = "L4 (TCP seviyesi) ile L7 (HTTP seviyesi) yük dengeleyicilerin farkını ve kullanım yerlerini kıyasla."
+                        ),
+                        TopicCheckItem(
+                            id = "sys_rate_limiting",
+                            title = "Rate Limiting & Throttling",
+                            description = "Token Bucket ve Leaky Bucket algoritmaları, DDoS/Spam savunması, 429 Too Many Requests cevabı.",
+                            practiceTask = "Token Bucket algoritmasının ani trafik patlamalarına (burst) nasıl izin verdiğini incele."
+                        )
+                    )
+                ),
+                TopicSection(
+                    title = "ÖNBELLEK (CACHE) & VERİTABANI ÖLÇEKLENDİRME",
+                    emoji = "⚡",
+                    items = listOf(
+                        TopicCheckItem(
+                            id = "sys_cache_patterns",
+                            title = "Caching Kalıpları: Cache-Aside vs Write-Through",
+                            description = "Cache-Aside okuma, Write-Back/Write-Through yazma kalıpları, TTL (Time-to-Live) ve Cache Invalidation zorluğu.",
+                            practiceTask = "En popüler kalıp olan Cache-Aside stratejisinin akış diyagramını zihninde canlandır."
+                        ),
+                        TopicCheckItem(
+                            id = "sys_db_scaling",
+                            title = "Veritabanı Büyütme: Replication & Sharding",
+                            description = "Master-Replica (Yazma/Okuma ayrımı), dikey bölme ve yatay parçalama (Sharding), Partition Key seçimi.",
+                            practiceTask = "Kullanıcı ID'sine göre veri tabanını sharding yaparken partition key seçiminin önemini açıkla."
+                        ),
+                        TopicCheckItem(
+                            id = "sys_cap_theorem",
+                            title = "CAP Teoremi & PACELC",
+                            description = "Consistency (Tutarlılık), Availability (Erişilebilirlik), Partition Tolerance (Ağ Bölünmesi) ve uzlaşmalar.",
+                            practiceTask = "Ağ kesintisi anında (Partition) bir sistemin neden hem %100 Consistency hem %100 Availability sağlayamayacağını kavra."
+                        )
+                    )
+                ),
+                TopicSection(
+                    title = "DAYANIKLILIK & ASENKRON İLETİŞİM",
+                    emoji = "🛡️",
+                    items = listOf(
+                        TopicCheckItem(
+                            id = "sys_event_driven",
+                            title = "Mesaj Kuyrukları & Event-Driven Mimari",
+                            description = "RabbitMQ, Kafka, Producer-Consumer kalıbı, Publish/Subscribe, kuyrukta mesaj birikmesi ve Decoupling.",
+                            practiceTask = "Sipariş oluşturma işleminde e-posta gönderiminin asenkron mesaj kuyruğuyla ayrıştırılmasının faydalarını listele."
+                        ),
+                        TopicCheckItem(
+                            id = "sys_resilience",
+                            title = "Dayanıklılık Kalıpları: Circuit Breaker & Retry",
+                            description = "Çöken servise istek göndermeyi kesen devre kesici (Circuit Breaker), Exponential Backoff ve Jitter.",
+                            practiceTask = "Bir dış servisin çökmesi durumunda Circuit Breaker'ın sistemin kilitlenmesini nasıl engellediğini açıkla."
+                        )
+                    )
+                )
+            )
+        ),
+
+        // ==========================================
+        // 12. BİLGİSAYAR AĞLARI & WEB PROTOKOLLERİ
+        // ==========================================
+        "sub_networking_web" to SubItemRoadmap(
+            subItemId = "sub_networking_web",
+            title = "Bilgisayar Ağları & Web",
+            subtitle = "DNS, TCP/IP, HTTP/1-2-3 & İletişim",
+            emoji = "🌐",
+            targetLevel = "Hedef: Web ve Mobil İsteklerinin Fiziksel & Mantıksal Yolculuğuna Hakim Olmak",
+            overview = "Tarayıcıya veya mobil uygulamaya istek atıldığında arkada çalışan DNS, TCP/IP, TLS el sıkışması, HTTP evrimi ve gerçek zamanlı haberleşme protokolleri.",
+            sections = listOf(
+                TopicSection(
+                    title = "İNTERNETİN TEMELLERİ & TAŞIMA KATMANI",
+                    emoji = "🌐",
+                    items = listOf(
+                        TopicCheckItem(
+                            id = "net_dns_journey",
+                            title = "google.com İstek Yolculuğu & DNS Çözümleme",
+                            description = "Tarayıcı cache, OS hosts, Recursive Resolver, Root, TLD (.com) ve Authoritative DNS sorgusu.",
+                            practiceTask = "Terminalde `dig google.com` veya `nslookup` çalıştırarak DNS sorgu çözümleme adımlarını gözlemle."
+                        ),
+                        TopicCheckItem(
+                            id = "net_tcp_udp",
+                            title = "TCP vs UDP & 3-Way Handshake",
+                            description = "SYN - SYN/ACK - ACK el sıkışması, paket sıralaması, güvenilirlik vs UDP'nin düşük gecikmesi.",
+                            practiceTask = "Video akışı / online oyunların neden UDP, finansal / web isteklerinin neden TCP kullandığını kıyasla."
+                        ),
+                        TopicCheckItem(
+                            id = "net_tls_handshake",
+                            title = "TLS/SSL El Sıkışması & HTTPS Güvenliği",
+                            description = "Sertifika doğrulama, Asimetrik anahtar ile ortak oturum anahtarı üretimi ve Simetrik şifrelemeye geçiş.",
+                            practiceTask = "HTTPS bağlantısında asimetrik şifrelemenin sadece el sıkışmada kullanılma sebebini (performans) kavra."
+                        )
+                    )
+                ),
+                TopicSection(
+                    title = "HTTP PROTOKOLLERİ & GERÇEK ZAMANLI İLETİŞİM",
+                    emoji = "⚡",
+                    items = listOf(
+                        TopicCheckItem(
+                            id = "net_http_evolution",
+                            title = "HTTP/1.1 vs HTTP/2 vs HTTP/3 (QUIC)",
+                            description = "Keep-Alive, Multiplexing (tek bağlantıda çoklu istek), Head-of-line blocking ve UDP tabanlı QUIC.",
+                            practiceTask = "HTTP/2'deki multiplexing özelliğinin HTTP/1.1'deki istek kuyruğu tıkanmasını nasıl çözdüğünü incele."
+                        ),
+                        TopicCheckItem(
+                            id = "net_realtime",
+                            title = "Gerçek Zamanlı İletişim: WebSocket vs SSE vs Polling",
+                            description = "Tam çift yönlü (Full-Duplex) socket bağlantısı, sunucudan tek yönlü akış (SSE) ve Long Polling maliyeti.",
+                            practiceTask = "Bir sohbet uygulamasında neden WebSocket, borsa/haber akışında neden SSE tercih edildiğini karşılaştır."
+                        ),
+                        TopicCheckItem(
+                            id = "net_cors_preflight",
+                            title = "CORS Politikası & Preflight (OPTIONS)",
+                            description = "Same-Origin Policy, Origin, Access-Control-Allow-Origin başlıkları ve OPTIONS preflight kontrolü.",
+                            practiceTask = "Frontend uygulamasının farklı porttaki backend API'sine istek atarken CORS hatası alma senaryosunu incele."
+                        )
+                    )
+                ),
+                TopicSection(
+                    title = "DAĞITIM VE ALTYAPI AĞLARI",
+                    emoji = "🚀",
+                    items = listOf(
+                        TopicCheckItem(
+                            id = "net_cdn_edge",
+                            title = "CDN & Edge Caching Mantığı",
+                            description = "Statik dosyaların (resim, JS, CSS) kullanıcıya en yakın PoP (Point of Presence) noktasından sunulması.",
+                            practiceTask = "CDN kullanımının sunucu yükünü azaltma ve TTFB (Time to First Byte) süresini düşürme etkisini açıkla."
+                        ),
+                        TopicCheckItem(
+                            id = "net_reverse_proxy",
+                            title = "Reverse Proxy (Nginx) & SSL Termination",
+                            description = "İstemci ile backend arasında ters vekil sunucu, SSL sonlandırma, IP gizleme ve statik dosya sunumu.",
+                            practiceTask = "Bir backend API'sinin önüne Nginx koymanın güvenlik ve performans avantajlarını özetle."
+                        )
+                    )
+                )
+            )
+        ),
+
+        // ==========================================
+        // 13. YAPAY ZEKA & LLM OKURYAZARLIĞI
+        // ==========================================
+        "sub_ai_llm" to SubItemRoadmap(
+            subItemId = "sub_ai_llm",
+            title = "Yapay Zeka & LLM Okuryazarlığı",
+            subtitle = "Büyük Dil Modelleri, RAG & AI Ajanları",
+            emoji = "🤖",
+            targetLevel = "Hedef: Modern Yazılım Süreçlerinde Yapay Zekayı Anlayan & Yöneten Mühendis",
+            overview = "Yapay zekayı sadece kullanıcı olarak tüketmek değil; token mantığı, vektör veritabanları, semantik arama ve AI Agent'ların çalışma mekaniğini kavramak.",
+            sections = listOf(
+                TopicSection(
+                    title = "LLM VE ÜRETKEN YAPAY ZEKA ÇEKİRDEĞİ",
+                    emoji = "🧠",
+                    items = listOf(
+                        TopicCheckItem(
+                            id = "ai_llm_internals",
+                            title = "LLM Çalışma Mantığı: Token, Context & Transformer",
+                            description = "Olasılıksal sonraki kelime tahmini, token hesabı, context window sınırları ve halüsinasyonun temel sebebi.",
+                            practiceTask = "Bir cümlenin kaç token ettiğini analiz et ve context window aşımında modelin eski bilgileri neden unuttuğunu kavra."
+                        ),
+                        TopicCheckItem(
+                            id = "ai_temperature",
+                            title = "Parametreler: Temperature, Top-P & Determinism",
+                            description = "Yaratıcılık vs tutarlılık ayarları, kodlama için düşük temperature (0.0 - 0.2), hikaye için yüksek temperature.",
+                            practiceTask = "Kod üretimi ve JSON çıktı alırken neden temperature değerinin 0'a yakın tutulması gerektiğini açıkla."
+                        ),
+                        TopicCheckItem(
+                            id = "ai_prompt_eng",
+                            title = "Prompt Mühendisliği & Düşünce Zinciri (CoT)",
+                            description = "Sistem rolü tanımlama, adım adım düşünme (Chain-of-Thought), Zero-Shot vs Few-Shot prompt teknikleri.",
+                            practiceTask = "Karmaşık bir algoritma problemini LLM'e çözerken adım adım düşünmesini sağlayan bir Few-Shot prompt hazırla."
+                        )
+                    )
+                ),
+                TopicSection(
+                    title = "RAG & VEKTÖR VERİTABANLARI",
+                    emoji = "📚",
+                    items = listOf(
+                        TopicCheckItem(
+                            id = "ai_embeddings",
+                            title = "Vektörler (Embeddings) & Semantik Arama",
+                            description = "Metinlerin anlam uzayında çok boyutlu sayılara dönüştürülmesi, kosinüs benzerliği (Cosine Similarity).",
+                            practiceTask = "'Elma' ve 'Armut' kelimelerinin vektör uzayında neden 'Araba' kelimesine göre birbirine daha yakın olduğunu açıkla."
+                        ),
+                        TopicCheckItem(
+                            id = "ai_rag_architecture",
+                            title = "RAG (Retrieval-Augmented Generation) Mimarisi",
+                            description = "Kendi dokümanlarını parçalama (chunking), vektör veritabanında arama ve bulunan bağlamla modeli besleme.",
+                            practiceTask = "RAG mimarisinin modeli sıfırdan eğitmeden (fine-tuning) güncel şirket verileriyle konuşturma avantajını özetle."
+                        )
+                    )
+                ),
+                TopicSection(
+                    title = "AI AGENT'LAR & GELİŞTİRİCİ VERİMLİLİĞİ",
+                    emoji = "🛠️",
+                    items = listOf(
+                        TopicCheckItem(
+                            id = "ai_function_calling",
+                            title = "Function Calling & Tool Use Mantığı",
+                            description = "LLM'in dış dünyayla konuşması: JSON formatında fonksiyon parametresi üretip hava durumu, DB veya API sorgulaması.",
+                            practiceTask = "Bir yapay zekanın veri tabanına doğrudan bağlanmak yerine function calling ile nasıl sorgu yaptırdığını kavra."
+                        ),
+                        TopicCheckItem(
+                            id = "ai_coding_tools",
+                            title = "AI Destekli Kodlama & Agentic Yazılım Kültürü",
+                            description = "Cursor, Copilot, Antigravity gibi araçlarla kod tamamlama, birim test üretme, dokümantasyon ve refactoring.",
+                            practiceTask = "Geliştirdiğin bir fonksiyon için yapay zekaya sınır durumları (edge cases) kapsayan birim test senaryoları yazdır."
+                        )
+                    )
+                )
+            )
+        ),
+
+        // ==========================================
+        // 14. İNGİLİZCE (B2+ AKTİF)
         // ==========================================
         "sub_english" to SubItemRoadmap(
             subItemId = "sub_english",
