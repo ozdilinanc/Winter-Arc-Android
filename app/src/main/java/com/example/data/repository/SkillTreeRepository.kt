@@ -103,4 +103,8 @@ class SkillTreeRepository(
             saveProject(seed.copy(currentStage = nextStage))
         }
     }
+
+    suspend fun deleteProject(projectId: String) = withContext(Dispatchers.IO) {
+        skillDao.deleteProjectById(projectId)
+    }
 }

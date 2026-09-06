@@ -263,6 +263,27 @@ class SkillTreeViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
+    fun regressProjectStage(projectId: String) {
+        viewModelScope.launch {
+            val currentList = uiState.value.projects
+            val found = currentList.find { it.id == projectId }
+            if (found != null) {
+                val stages = ProjectWorkflowStage.values()
+                val currentIndex = found.currentStage.order - 1
+                if (currentIndex > 0) {
+                    val prevStage = stages[currentIndex - 1]
+                    repository.saveProject(found.copy(currentStage = prevStage))
+                }
+            }
+        }
+    }
+
+    fun deleteProject(projectId: String) {
+        viewModelScope.launch {
+            repository.deleteProject(projectId)
+        }
+    }
+
     fun dismissRewardNotification() {
         _activeRewardNotification.value = null
     }

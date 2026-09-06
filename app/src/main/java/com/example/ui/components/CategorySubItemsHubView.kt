@@ -20,6 +20,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.model.EngineeringProject
+import com.example.data.model.ProjectWorkflowStage
 import com.example.data.model.RoadmapDataStore
 import com.example.ui.theme.*
 import kotlinx.coroutines.launch
@@ -42,7 +44,12 @@ fun CategorySubItemsHubView(
     accentColor: Color,
     subItems: List<CategorySubItem>,
     onBack: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    projects: List<EngineeringProject> = emptyList(),
+    onAdvanceProjectStage: (String, ProjectWorkflowStage) -> Unit = { _, _ -> },
+    onRegressProjectStage: (String) -> Unit = {},
+    onCreateProject: (String, String, String, ProjectWorkflowStage, String, String, String, List<String>) -> Unit = { _, _, _, _, _, _, _, _ -> },
+    onDeleteProject: (String) -> Unit = {}
 ) {
     var selectedSubItemId by remember { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -57,6 +64,20 @@ fun CategorySubItemsHubView(
     }
 
     if (selectedSubItemId != null) {
+        if (selectedSubItemId == "sub_personal_projects" || selectedSubItemId == "sub_projects") {
+            PersonalProjectsHubView(
+                projects = projects,
+                onAdvanceStage = onAdvanceProjectStage,
+                onRegressStage = onRegressProjectStage,
+                onCreateProject = onCreateProject,
+                onDeleteProject = onDeleteProject,
+                onBack = { selectedSubItemId = null },
+                accentColor = accentColor,
+                modifier = modifier
+            )
+            return
+        }
+
         SubItemChecklistView(
             subItemId = selectedSubItemId!!,
             accentColor = accentColor,

@@ -317,28 +317,42 @@ object RoadmapDataStore {
         "sub_personal_projects" to SubItemRoadmap(
             subItemId = "sub_personal_projects",
             title = "Kişisel Projeler",
-            subtitle = "Uçtan Uca Geliştirilen Bağımsız Projeler",
+            subtitle = "Lansman, Vitrin & Paylaşma Serüveni",
             emoji = "🛠️",
-            targetLevel = "Hedef: 2-3 Ciddi Backend + Mobil Portföy Projesi",
-            overview = "Teorik bilgileri ürüne dönüştüren; temiz mimari, testler, CI/CD ve dokümantasyon içeren anahtar mühendislik projeleri.",
+            targetLevel = "Hedef: Fikirden Play Store & GitHub Vitrinine Uçtan Uca",
+            overview = "Bir projeyi sadece kodlamak yetmez; mimarisini kurup, testlerini yazıp, Docker/AAB ile paketleyip, Play Store'a, GitHub'a, Medium ve LinkedIn'e çıkararak görünür kılma serüveni.",
             sections = listOf(
                 TopicSection(
-                    title = "ÖNE ÇIKAN PROJELER",
-                    emoji = "🏆",
+                    title = "MOBİL UYGULAMA LANSMAN SERÜVENİ (PLAY STORE)",
+                    emoji = "📱",
                     items = listOf(
-                        TopicCheckItem("proj_pharma", "Eczane Yönetim & Dağıtım Sistemi", "ASP.NET Core, Clean Architecture, PostgreSQL, JWT, Docker"),
-                        TopicCheckItem("proj_kv", "LLM KV Cache / vAttention C++ Optimizasyonu", "Bitirme Tezi: Linux OS paging, C++, Ollama/LLaMA entegrasyonu"),
-                        TopicCheckItem("proj_android_st", "Winter Arc: Mühendislik Roadmap & Skill Tree", "Native Android, Jetpack Compose, Room DB, M3 Dark Theme"),
-                        TopicCheckItem("proj_order_ms", "Event-Driven Sipariş Mikroservisi", "RabbitMQ, MassTransit, Docker Compose, Outbox Pattern")
+                        TopicCheckItem("mob_arch", "Temiz Mimari & Offline-First (MVVM + Room)", "Data, Domain ve UI ayrımı, Room DB ve Retrofit ile kesintisiz veri akışı", practiceTask = "Uygulamada Room DB ve Repository pattern kurarak ağ kopsa bile verilerin ekranda gösterildiği offline-first yapıyı test et."),
+                        TopicCheckItem("mob_tests_quality", "Testler, Hata Ayıklama & Crashlytics", "Unit testler, Firebase Crashlytics entegrasyonu ve kararlılık testleri", practiceTask = "ViewModel için JUnit testi yaz ve Firebase Crashlytics ile simüle edilmiş bir hatanın dashboard'a düştüğünü doğrula."),
+                        TopicCheckItem("mob_release_build", "Release Build, Keystore & ProGuard/R8", "İmzalı release keystore, kod küçültme (minifyEnabled) ve .aab üretimi", practiceTask = "Terminalden keytool ile release keystore oluştur, proguard-rules.pro yapılandır ve 'bundleRelease' ile AAB paketi derle."),
+                        TopicCheckItem("mob_play_console", "Play Console Listelemesi & Mağaza Varlıkları", "512x512 ikon, 1024x500 özellik grafiği, ekran görüntüleri ve gizlilik politikası", practiceTask = "Uygulama için ekran görüntülerini mockup çerçevesine yerleştir, gizlilik politikası URL'i oluştur ve Play Console'a yükle."),
+                        TopicCheckItem("mob_showcase", "GitHub Vitrini & LinkedIn Lansmanı", "Mimari diyagram, GIF/video demosu, Play Store rozeti ve LinkedIn gönderisi", practiceTask = "README'ye Play Store rozeti ve 10 saniyelik demo GIF'i ekle; LinkedIn'de 'Neler öğrendim?' odaklı video demo lansmanı paylaş.")
                     )
                 ),
                 TopicSection(
-                    title = "PROJE KALİTE STANDARTLARI",
-                    emoji = "✨",
+                    title = "BACKEND APİ VİTRİN SERÜVENİ (DOCKER & MEDİUM)",
+                    emoji = "🌐",
                     items = listOf(
-                        TopicCheckItem("pstd_readme", "Profesyonel README Vitrini", "Mimari diyagramlar, kurulum adımları, cURL örnekleri"),
-                        TopicCheckItem("pstd_docker", "Tek Komutla Çalıştırma (docker-compose up)", "Veritabanı ve bağımlılıkların containerized ayağa kalkması"),
-                        TopicCheckItem("pstd_tests", "Birim & Entegrasyon Testleri", "Kritik iş akışlarını doğrulayan xUnit testleri")
+                        TopicCheckItem("back_arch_db", "Clean Architecture & PostgreSQL Modelleme", "Entities, Migrations, Seed Data ve Repository/Service katmanları", practiceTask = "Clean Architecture iskeletinde PostgreSQL migration'larını ve test için gerekli ilk seed verilerini hazırla."),
+                        TopicCheckItem("back_tests", "Birim & Entegrasyon Testleri (xUnit + Moq)", "İş kuralları için xUnit+Moq ve WebApplicationFactory ile controller testleri", practiceTask = "Kritik bir iş kuralı için Moq ile izole unit test, bir endpoint için de in-memory integration testi yaz."),
+                        TopicCheckItem("back_docker", "Dockerize Etme & Tek Komutla Çalıştırma", "Multi-stage Dockerfile ve 'docker compose up' ile tüm servisleri ayağa kaldırma", practiceTask = "Multi-stage Dockerfile yaz; docker-compose.yml ile API, PostgreSQL ve Redis'i tek komutla çalıştırılabilir hale getir."),
+                        TopicCheckItem("back_docs", "Swagger / OpenAPI & cURL Örnekleri", "Zengin summary açıklamaları, request/response şemaları ve test istekleri", practiceTask = "Swagger UI'da tüm controller'lar için XML dökümantasyonu üret ve README için örnek cURL istekleri hazırla."),
+                        TopicCheckItem("back_readme", "README Vitrini (Mermaid Mimari & ERD Şeması)", "Mermaid diyagramı, ilişkisel şema (ERD) ve canlı demo/kurulum rehberi", practiceTask = "GitHub README.md içine Mermaid ile mimari akış şeması ve veritabanı ilişkisel diyagramı (ERD) çiz."),
+                        TopicCheckItem("back_medium", "Teknik Medium Makalesi Yayınlama", "Karşılaşılan mimari zorluklar, trade-off'lar ve performans çözümleri", practiceTask = "'Bu backend'i geliştirirken neden Clean Architecture ve Redis seçtim?' konulu derinlemesine bir Medium teknik yazısı kaleme al."),
+                        TopicCheckItem("back_cv", "CV & Portföy Entegrasyonu (STAR Metodu)", "Situation, Task, Action, Result kalıbıyla projeyi CV ve LinkedIn'e ekleme", practiceTask = "Projeyi STAR formülüyle (Kullanılan teknolojiler, çözülen problem, ölçülebilir sonuç) 3 madde halinde CV'ne yerleştir.")
+                    )
+                ),
+                TopicSection(
+                    title = "SİSTEM & AKADEMİK PROJE SERÜVENİ (BİTİRME TEZİ / C++)",
+                    emoji = "🔬",
+                    items = listOf(
+                        TopicCheckItem("sys_research", "Problem Tanımı & Çekirdek/Kernel İnceleme", "Darboğaz analizi, bellek/işlemci mimarisi ve literatür araştırması", practiceTask = "Optimizasyon problemini, bellek fragmentasyonunu veya kernel darboğazını özetleyen teknik ön rapor yaz."),
+                        TopicCheckItem("sys_benchmarking", "Benchmark & Performans Metrikleri", "RAM tüketimi, latency, throughput ölçümleri ve grafikleştirme", practiceTask = "Sistemin optimizasyon öncesi ve sonrası bellek/hız metriklerini karşılaştıran benchmark testi çalıştır ve grafik çıkar."),
+                        TopicCheckItem("sys_report", "Akademik Tez Raporu & GitHub Deposu", "Derleme talimatları, bağımlılıklar ve teknik tez dokümantasyonu", practiceTask = "GitHub deposuna detaylı build/run adımları ekle ve bitirme tezi raporunu PDF/Markdown formatında depoya ekle.")
                     )
                 )
             )

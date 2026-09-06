@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.BranchId
 import com.example.data.model.EngineeringProject
+import com.example.data.model.ProjectWorkflowStage
 import com.example.data.model.SkillNode
 import com.example.ui.components.school.SchoolHubView
 import com.example.ui.theme.*
@@ -179,6 +180,10 @@ private val portfolioSubItems = listOf(
 fun CategoriesDashboardView(
     skills: List<SkillNode>,
     projects: List<EngineeringProject>,
+    onAdvanceProjectStage: (String, ProjectWorkflowStage) -> Unit = { _, _ -> },
+    onRegressProjectStage: (String) -> Unit = {},
+    onCreateProject: (String, String, String, ProjectWorkflowStage, String, String, String, List<String>) -> Unit = { _, _, _, _, _, _, _, _ -> },
+    onDeleteProject: (String) -> Unit = {},
     modifier: Modifier = Modifier,
     onCategorySelected: (CategoryMeta) -> Unit = {}
 ) {
@@ -200,6 +205,11 @@ fun CategoriesDashboardView(
                 categoryDescription = ".NET Backend, Dağıtık Sistemler, DevOps, Android ve Kişisel Projeler.",
                 accentColor = BranchDotNet,
                 subItems = careerSubItems,
+                projects = projects,
+                onAdvanceProjectStage = onAdvanceProjectStage,
+                onRegressProjectStage = onRegressProjectStage,
+                onCreateProject = onCreateProject,
+                onDeleteProject = onDeleteProject,
                 onBack = { activeCategory = null },
                 modifier = modifier
             )
@@ -239,6 +249,11 @@ fun CategoriesDashboardView(
                 categoryDescription = "GitHub depoları, Play Store uygulamaları, Medium yazıları ve öne çıkan projeler.",
                 accentColor = BranchPortfolio,
                 subItems = portfolioSubItems,
+                projects = projects,
+                onAdvanceProjectStage = onAdvanceProjectStage,
+                onRegressProjectStage = onRegressProjectStage,
+                onCreateProject = onCreateProject,
+                onDeleteProject = onDeleteProject,
                 onBack = { activeCategory = null },
                 modifier = modifier
             )

@@ -91,6 +91,10 @@ fun SkillTreeApp(
                     CategoriesDashboardView(
                         skills = uiState.allSkills,
                         projects = uiState.projects,
+                        onAdvanceProjectStage = viewModel::advanceProjectStage,
+                        onRegressProjectStage = viewModel::regressProjectStage,
+                        onCreateProject = viewModel::createProject,
+                        onDeleteProject = viewModel::deleteProject,
                         onCategorySelected = { /* Deep category details to be added later */ }
                     )
                 }
