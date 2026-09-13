@@ -38,7 +38,8 @@ object RoadmapProgressHelper {
             )
         }
 
-        val roadmap = RoadmapDataStore.allRoadmaps[subItemId]
+        val roadmap = CustomTopicRepository.getEffectiveRoadmap(prefs, subItemId)
+            ?: RoadmapDataStore.allRoadmaps[subItemId]
             ?: return SubItemProgressStats(0, 0, 0, 0, 0f, 0f, 0)
 
         val items = roadmap.sections.flatMap { it.items }

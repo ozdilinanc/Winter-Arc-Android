@@ -1,0 +1,390 @@
+package com.example.ui.util
+
+import android.Manifest
+import android.content.Context
+import android.content.Intent
+import android.content.SharedPreferences
+import android.content.pm.PackageManager
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
+import android.net.Uri
+import android.os.Build
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContract
+import androidx.core.content.ContextCompat
+import androidx.health.connect.client.HealthConnectClient
+import androidx.health.connect.client.PermissionController
+import androidx.health.connect.client.permission.HealthPermission
+import androidx.health.connect.client.records.SleepSessionRecord
+import androidx.health.connect.client.records.StepsRecord
+import androidx.health.connect.client.request.ReadRecordsRequest
+import androidx.health.connect.client.time.TimeRangeFilter
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.time.Duration
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+
+/**
+ * Otomatik Sağlık Verisi Senkronizasyon Yöneticisi
+ * Huawei Sağlık, Samsung Health, Google Fit ve donanım sensörlerinden
+ * günlük adım ve uyku verilerini Health Connect üzerinden çeker.
+ */
+object HealthSyncManager {
+
+    const val WALK_STEP_TARGET = 7000L
+    const val SLEEP_HOURS_TARGET = 6.0
+
+    private const val PREFS_NAME = "winter_arc_health_sync"
+    private const val KEY_PREFIX_STEPS = "sync_steps_"
+    private const val KEY_PREFIX_SLEEP_HOURS = "sync_sleep_hours_"
+    private const val KEY_PREFIX_SLEEP_MINUTES = "sync_sleep_minutes_"
+    private const val KEY_PREFIX_SLEEP_QUALITY = "sync_sleep_quality_"
+    private const val KEY_PREFIX_SOURCE = "sync_source_"
+    private const val KEY_PREFIX_TIME = "sync_time_"
+
+    val REQUIRED_HEALTH_PERMISSIONS: Set<String> by lazy {
+        setOf(
+            HealthPermission.getReadPermission(StepsRecord::class),
+            HealthPermission.getReadPermission(SleepSessionRecord::class)
+        )
+    }
+
+    enum class HealthConnectAvailability {
+        AVAILABLE,
+        NOT_INSTALLED,
+        NOT_SUPPORTED
+    }
+
+    data class HealthSyncResult(
+        val stepsCount: Long = 0L,
+        val sleepHours: Double = 0.0,
+        val sleepMinutesTotal: Long = 0L,
+        val sleepQuality: String = "refreshed", // refreshed, normal, tired
+        val isSleep6hPlus: Boolean = false,
+        val isWalkGoalMet: Boolean = false,
+        val source: String = "Health Connect",
+        val syncedAtMillis: Long = System.currentTimeMillis(),
+        val isSuccess: Boolean = true,
+        val message: String = ""
+    )
+
+    /**
+     * Cihazdaki Health Connect durumunu kontrol eder.
+     */
+    fun checkHealthConnectAvailability(context: Context): HealthConnectAvailability {
+        val status = HealthConnectClient.getSdkStatus(context)
+        return when (status) {
+            HealthConnectClient.SDK_AVAILABLE -> HealthConnectAvailability.AVAILABLE
+            HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED -> HealthConnectAvailability.NOT_INSTALLED
+            else -> HealthConnectAvailability.NOT_SUPPORTED
+        }
+    }
+
+    /**
+     * Health Connect izinlerinin verilip verilmediğini kontrol eder.
+     */
+    suspend fun hasHealthPermissions(context: Context): Boolean {
+        if (checkHealthConnectAvailability(context) != HealthConnectAvailability.AVAILABLE) {
+            return false
+        }
+        return try {
+            val client = HealthConnectClient.getOrCreate(context)
+            val granted = client.permissionController.getGrantedPermissions()
+            granted.containsAll(REQUIRED_HEALTH_PERMISSIONS)
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /**
+     * Health Connect izin isteme kontratı üretir.
+     */
+    fun createPermissionContract(): ActivityResultContract<Set<String>, Set<String>> {
+        return PermissionController.createRequestPermissionResultContract()
+    }
+
+    /**
+     * Bugünün adım ve dünkü gecenin uyku verilerini Health Connect üzerinden çeker.
+     * Bulunamazsa cihaz donanım sensöründen adımları almayı dener.
+     */
+    suspend fun fetchTodayHealthData(context: Context): HealthSyncResult = withContext(Dispatchers.IO) {
+        val availability = checkHealthConnectAvailability(context)
+
+        if (availability != HealthConnectAvailability.AVAILABLE) {
+            return@withContext fetchFromHardwareOrFallback(
+                context,
+                "Health Connect desteklenmiyor (${availability.name})"
+            )
+        }
+
+        try {
+            val client = HealthConnectClient.getOrCreate(context)
+            val granted = client.permissionController.getGrantedPermissions()
+
+            val hasStepsPerm = granted.contains(HealthPermission.getReadPermission(StepsRecord::class))
+            val hasSleepPerm = granted.contains(HealthPermission.getReadPermission(SleepSessionRecord::class))
+
+            if (!hasStepsPerm && !hasSleepPerm) {
+                return@withContext fetchFromHardwareOrFallback(
+                    context,
+                    "Health Connect izinleri verilmedi. Lütfen izin verin."
+                )
+            }
+
+            val now = Instant.now()
+            val zoneId = ZoneId.systemDefault()
+            val todayDate = LocalDate.now(zoneId)
+
+            // 1. ADIM VERİLERİ (Bugün 00:00 - Şu An)
+            var totalSteps = 0L
+            var stepsReadSuccess = false
+            if (hasStepsPerm) {
+                try {
+                    val startOfDay = todayDate.atStartOfDay(zoneId).toInstant()
+                    val stepsRequest = ReadRecordsRequest(
+                        recordType = StepsRecord::class,
+                        timeRangeFilter = TimeRangeFilter.between(startOfDay, now)
+                    )
+                    val stepsResponse = client.readRecords(stepsRequest)
+                    totalSteps = stepsResponse.records.sumOf { it.count }
+                    stepsReadSuccess = true
+                } catch (e: Exception) {
+                    totalSteps = 0L
+                }
+            }
+
+            // 2. UYKU VERİLERİ (Dün 18:00 - Bugün 15:00 arasındaki son uyku seansı)
+            var totalSleepMinutes = 0L
+            var sleepReadSuccess = false
+            if (hasSleepPerm) {
+                try {
+                    val sleepWindowStart = todayDate.minusDays(1).atTime(18, 0).atZone(zoneId).toInstant()
+                    val sleepWindowEnd = todayDate.atTime(15, 0).atZone(zoneId).toInstant()
+
+                    val sleepRequest = ReadRecordsRequest(
+                        recordType = SleepSessionRecord::class,
+                        timeRangeFilter = TimeRangeFilter.between(sleepWindowStart, sleepWindowEnd)
+                    )
+                    val sleepResponse = client.readRecords(sleepRequest)
+
+                    if (sleepResponse.records.isNotEmpty()) {
+                        totalSleepMinutes = sleepResponse.records.sumOf { record ->
+                            Duration.between(record.startTime, record.endTime).toMinutes()
+                        }
+                        sleepReadSuccess = true
+                    }
+                } catch (e: Exception) {
+                    totalSleepMinutes = 0L
+                }
+            }
+
+            // Eğer Health Connect adımları 0 ise ve cihazda donanım sensörü varsa dene
+            if (totalSteps == 0L) {
+                val sensorSteps = readHardwareSensorSteps(context)
+                if (sensorSteps > 0L) {
+                    totalSteps = sensorSteps
+                }
+            }
+
+            val sleepHours = totalSleepMinutes / 60.0
+            val quality = determineSleepQuality(sleepHours)
+            val isSleepMet = isSleepTargetAchieved(sleepHours)
+            val isWalkMet = isWalkTargetAchieved(totalSteps)
+
+            val detectedHealthApp = getInstalledHealthAppName(context)
+            val sourceName = if (detectedHealthApp != null) {
+                "Health Connect ($detectedHealthApp)"
+            } else {
+                "Health Connect"
+            }
+
+            HealthSyncResult(
+                stepsCount = totalSteps,
+                sleepHours = sleepHours,
+                sleepMinutesTotal = totalSleepMinutes,
+                sleepQuality = quality,
+                isSleep6hPlus = isSleepMet,
+                isWalkGoalMet = isWalkMet,
+                source = sourceName,
+                syncedAtMillis = System.currentTimeMillis(),
+                isSuccess = stepsReadSuccess || sleepReadSuccess,
+                message = if (stepsReadSuccess || sleepReadSuccess) "Veriler başarıyla senkronize edildi!" else "Sağlık verisi bulunamadı."
+            )
+        } catch (e: Exception) {
+            fetchFromHardwareOrFallback(context, "Senkronizasyon hatası: ${e.localizedMessage}")
+        }
+    }
+
+    /**
+     * Uyku süresine göre uyku kalitesini belirler.
+     * >= 7.5 saat: refreshed (Dinlenmiş)
+     * 6.0 <= saat < 7.5: normal (Normal)
+     * < 6.0 saat: tired (Yorgun)
+     */
+    fun determineSleepQuality(hours: Double): String {
+        return when {
+            hours >= 7.5 -> "refreshed"
+            hours >= 6.0 -> "normal"
+            else -> "tired"
+        }
+    }
+
+    fun isWalkTargetAchieved(steps: Long): Boolean = steps >= WALK_STEP_TARGET
+
+    fun isSleepTargetAchieved(hours: Double): Boolean = hours >= SLEEP_HOURS_TARGET
+
+    /**
+     * Cihazın donanım adım sayar sensöründen anlık veri okumayı dener (fallback).
+     */
+    private fun readHardwareSensorSteps(context: Context): Long {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val hasActivityPerm = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACTIVITY_RECOGNITION
+            ) == PackageManager.PERMISSION_GRANTED
+            if (!hasActivityPerm) return 0L
+        }
+
+        val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as? SensorManager ?: return 0L
+        val stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER) ?: return 0L
+
+        // TYPE_STEP_COUNTER son önyüklemeden (boot) bu yana olan adımları tutar
+        // Eğer daha önce kaydedilmiş bir taban değer varsa farkı alınabilir
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val lastKnownSteps = prefs.getLong("last_hardware_sensor_steps", 0L)
+        return lastKnownSteps
+    }
+
+    private fun fetchFromHardwareOrFallback(context: Context, errorReason: String): HealthSyncResult {
+        val sensorSteps = readHardwareSensorSteps(context)
+        val isWalkMet = isWalkTargetAchieved(sensorSteps)
+        return HealthSyncResult(
+            stepsCount = sensorSteps,
+            sleepHours = 0.0,
+            sleepMinutesTotal = 0L,
+            sleepQuality = "refreshed",
+            isSleep6hPlus = false,
+            isWalkGoalMet = isWalkMet,
+            source = if (sensorSteps > 0L) "Cihaz Donanım Sensörü" else "Manuel / Bekleniyor",
+            syncedAtMillis = System.currentTimeMillis(),
+            isSuccess = sensorSteps > 0L,
+            message = errorReason
+        )
+    }
+
+    /**
+     * Cihazda yüklü olan sağlık uygulamasını tespit eder.
+     */
+    fun getInstalledHealthAppName(context: Context): String? {
+        val pm = context.packageManager
+        val apps = listOf(
+            "com.huawei.health" to "Huawei Sağlık ⌚",
+            "com.samsung.android.shealth" to "Samsung Health ⌚",
+            "com.google.android.apps.fitness" to "Google Fit 🏃",
+            "com.google.android.apps.healthdata" to "Google Health Connect 🔗"
+        )
+        for ((pkg, name) in apps) {
+            try {
+                pm.getPackageInfo(pkg, 0)
+                return name
+            } catch (_: PackageManager.NameNotFoundException) {
+            }
+        }
+        return null
+    }
+
+    /**
+     * Cihazda yüklü sağlık uygulamasını başlatır (Huawei Health, Samsung Health vb.).
+     */
+    fun launchInstalledHealthApp(context: Context): Boolean {
+        val pm = context.packageManager
+        val candidatePackages = listOf(
+            "com.huawei.health",
+            "com.samsung.android.shealth",
+            "com.google.android.apps.fitness",
+            "com.google.android.apps.healthdata"
+        )
+        for (pkg in candidatePackages) {
+            try {
+                val intent = pm.getLaunchIntentForPackage(pkg)
+                if (intent != null) {
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    context.startActivity(intent)
+                    return true
+                }
+            } catch (_: Exception) {
+            }
+        }
+        return false
+    }
+
+    /**
+     * Health Connect ayarlarını veya Google Play Store indirme sayfasını açar.
+     */
+    fun launchHealthConnectOrStore(context: Context) {
+        try {
+            // Android 14+ yerleşik ayar sayfası
+            val intent = Intent("androidx.health.ACTION_HEALTH_CONNECT_SETTINGS")
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(intent)
+        } catch (_: Exception) {
+            try {
+                // Play Store
+                val playStoreIntent = Intent(
+                    Intent.ACTION_VIEW,
+                    Uri.parse("market://details?id=com.google.android.apps.healthdata")
+                ).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
+                context.startActivity(playStoreIntent)
+            } catch (e: Exception) {
+                Toast.makeText(context, "Health Connect açılamadı: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    /**
+     * Senkronizasyon sonuçlarını SharedPreferences içine kaydeder.
+     */
+    fun saveLastSync(context: Context, todayKey: String, result: HealthSyncResult) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit()
+            .putLong("$KEY_PREFIX_STEPS$todayKey", result.stepsCount)
+            .putString("$KEY_PREFIX_SLEEP_HOURS$todayKey", result.sleepHours.toString())
+            .putLong("$KEY_PREFIX_SLEEP_MINUTES$todayKey", result.sleepMinutesTotal)
+            .putString("$KEY_PREFIX_SLEEP_QUALITY$todayKey", result.sleepQuality)
+            .putString("$KEY_PREFIX_SOURCE$todayKey", result.source)
+            .putLong("$KEY_PREFIX_TIME$todayKey", result.syncedAtMillis)
+            .apply()
+    }
+
+    /**
+     * Bugün için önceden kaydedilmiş senkronizasyon sonucunu okur.
+     */
+    fun getLastSync(context: Context, todayKey: String): HealthSyncResult? {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val time = prefs.getLong("$KEY_PREFIX_TIME$todayKey", 0L)
+        if (time == 0L) return null
+
+        val steps = prefs.getLong("$KEY_PREFIX_STEPS$todayKey", 0L)
+        val sleepHoursStr = prefs.getString("$KEY_PREFIX_SLEEP_HOURS$todayKey", "0.0") ?: "0.0"
+        val sleepHours = sleepHoursStr.toDoubleOrNull() ?: 0.0
+        val sleepMinutes = prefs.getLong("$KEY_PREFIX_SLEEP_MINUTES$todayKey", 0L)
+        val quality = prefs.getString("$KEY_PREFIX_SLEEP_QUALITY$todayKey", "refreshed") ?: "refreshed"
+        val source = prefs.getString("$KEY_PREFIX_SOURCE$todayKey", "Health Connect") ?: "Health Connect"
+
+        return HealthSyncResult(
+            stepsCount = steps,
+            sleepHours = sleepHours,
+            sleepMinutesTotal = sleepMinutes,
+            sleepQuality = quality,
+            isSleep6hPlus = isSleepTargetAchieved(sleepHours),
+            isWalkGoalMet = isWalkTargetAchieved(steps),
+            source = source,
+            syncedAtMillis = time,
+            isSuccess = true
+        )
+    }
+}

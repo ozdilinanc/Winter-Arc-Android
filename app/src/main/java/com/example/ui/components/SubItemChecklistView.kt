@@ -1,8 +1,11 @@
 package com.example.ui.components
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -19,13 +22,18 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,6 +44,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.model.CustomTopicItem
+import com.example.data.model.CustomTopicRepository
+import com.example.data.model.MediumRoadmapSeed
 import com.example.data.model.RoadmapDataStore
 import com.example.data.model.SubItemRoadmap
 import com.example.data.model.TopicCheckItem
@@ -51,8 +62,6 @@ fun SubItemChecklistView(
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val roadmap: SubItemRoadmap = RoadmapDataStore.allRoadmaps[subItemId] ?: return
-
     BackHandler {
         onBack()
     }
@@ -61,8 +70,21 @@ fun SubItemChecklistView(
     val prefs = remember { context.getSharedPreferences("winter_arc_roadmap_progress", Context.MODE_PRIVATE) }
     val hapticEngine = rememberHapticEngine()
 
+    var refreshTrigger by remember { mutableIntStateOf(0) }
+    val isCustomizable = remember(subItemId) { CustomTopicRepository.isCustomizable(subItemId) }
+    val genres = remember(subItemId) { CustomTopicRepository.getGenresForSubItem(subItemId) }
+
+    var isAddDialogOpen by remember { mutableStateOf(false) }
+    var itemToDelete by remember { mutableStateOf<TopicCheckItem?>(null) }
+    var selectedGenreFilter by remember(subItemId) { mutableStateOf<String?>(null) }
+
+    val roadmap: SubItemRoadmap = remember(subItemId, refreshTrigger) {
+        CustomTopicRepository.getEffectiveRoadmap(prefs, subItemId)
+            ?: RoadmapDataStore.allRoadmaps[subItemId]
+    } ?: return
+
     // Load persistent progress states for topics
-    var itemStates by remember(subItemId) {
+    var itemStates by remember(subItemId, refreshTrigger) {
         mutableStateOf(
             roadmap.sections.flatMap { it.items }.associate { item ->
                 val savedKey = prefs.getString("status_${item.id}", null)
@@ -81,6 +103,21 @@ fun SubItemChecklistView(
         }
     }
 
+    fun handleAddItem(newItem: CustomTopicItem) {
+        CustomTopicRepository.addCustomItem(prefs, newItem)
+        refreshTrigger++
+        isAddDialogOpen = false
+        Toast.makeText(context, "${newItem.title} başarıyla eklendi! ✨", Toast.LENGTH_SHORT).show()
+    }
+
+    fun handleDeleteItem(item: TopicCheckItem) {
+        CustomTopicRepository.deleteItem(prefs, subItemId, item.id)
+        refreshTrigger++
+        itemToDelete = null
+        hapticEngine.vibrateSelection()
+        Toast.makeText(context, "${item.title} silindi.", Toast.LENGTH_SHORT).show()
+    }
+
     val totalCount = roadmap.sections.sumOf { it.items.size }
     val notStartedCount = itemStates.values.count { it == TopicProgressState.NOT_STARTED }
     val theoryCount = itemStates.values.count { it == TopicProgressState.THEORY }
@@ -90,6 +127,33 @@ fun SubItemChecklistView(
     val earnedPoints = theoryCount * 0.35f + practiceCount * 0.70f + completedCount * 1.0f
     val progressFraction = if (totalCount > 0) (earnedPoints / totalCount.toFloat()).coerceIn(0f, 1f) else 0f
     val progressPercent = (progressFraction * 100).toInt().coerceIn(0, 100)
+
+    var searchQuery by remember { mutableStateOf("") }
+
+    val filteredSections = remember(roadmap.sections, searchQuery, selectedGenreFilter) {
+        val baseSections = if (selectedGenreFilter == null) {
+            roadmap.sections
+        } else {
+            roadmap.sections.filter { it.title.equals(selectedGenreFilter, ignoreCase = true) }
+        }
+
+        if (searchQuery.isBlank()) {
+            baseSections
+        } else {
+            baseSections.mapNotNull { section ->
+                val matchesSectionTitle = section.title.contains(searchQuery, ignoreCase = true)
+                val matchingItems = section.items.filter { item ->
+                    item.title.contains(searchQuery, ignoreCase = true) ||
+                            item.description.contains(searchQuery, ignoreCase = true)
+                }
+                if (matchesSectionTitle) {
+                    section
+                } else if (matchingItems.isNotEmpty()) {
+                    section.copy(items = matchingItems)
+                } else null
+            }
+        }
+    }
 
     LazyColumn(
         modifier = modifier
@@ -320,21 +384,268 @@ fun SubItemChecklistView(
                             color = TextMuted
                         )
                     }
+
+                    if (isCustomizable) {
+                        Spacer(modifier = Modifier.height(14.dp))
+                        val addLabel = when (subItemId) {
+                            "sub_reading_books" -> "+ Yeni Kitap Ekle 📚"
+                            "sub_card_sleights" -> "+ Yeni Kart Numarası Ekle 🃏"
+                            "sub_anime_manhwa" -> "+ Yeni Anime / Manhwa Ekle 🍿"
+                            else -> "+ Yeni İçerik Ekle ✨"
+                        }
+                        Button(
+                            onClick = {
+                                hapticEngine.vibrateSelection()
+                                isAddDialogOpen = true
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(40.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = accentColor)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = null,
+                                tint = CanvasDark,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = addLabel,
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = CanvasDark,
+                                    fontSize = 12.sp
+                                )
+                            )
+                        }
+                    }
                 }
             }
         }
 
+        // Search Bar (Essential for large roadmaps like Medium 285 articles)
+        item {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                placeholder = {
+                    Text(
+                        text = if (subItemId == "sub_medium") "285 makale içinde ara (örn: JWT, LLM, Docker)..." else "Konu veya pratik ara...",
+                        color = TextDarkMuted,
+                        fontSize = 12.sp
+                    )
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = null,
+                        tint = accentColor,
+                        modifier = Modifier.size(18.dp)
+                    )
+                },
+                trailingIcon = {
+                    if (searchQuery.isNotBlank()) {
+                        IconButton(onClick = { searchQuery = "" }) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Temizle",
+                                tint = TextMuted,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = PanelNavyElevated,
+                    unfocusedContainerColor = PanelNavyElevated,
+                    focusedBorderColor = accentColor,
+                    unfocusedBorderColor = BorderSubtle,
+                    focusedTextColor = TextPrimary,
+                    unfocusedTextColor = TextPrimary
+                )
+            )
+        }
+
+        // Genre Filter Chips Bar for Customizable Topics
+        if (isCustomizable) {
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val totalAllCount = roadmap.sections.sumOf { it.items.size }
+                    val isAllSelected = selectedGenreFilter == null
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (isAllSelected) accentColor.copy(alpha = 0.22f) else PanelNavyElevated,
+                        border = BorderStroke(1.dp, if (isAllSelected) accentColor else BorderSubtle),
+                        modifier = Modifier.clickable {
+                            hapticEngine.vibrateSelection()
+                            selectedGenreFilter = null
+                        }
+                    ) {
+                        Text(
+                            text = "🌟 Tümü ($totalAllCount)",
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = if (isAllSelected) FontWeight.Bold else FontWeight.Medium,
+                                color = if (isAllSelected) accentColor else TextSecondary,
+                                fontSize = 11.sp
+                            )
+                        )
+                    }
+
+                    genres.forEach { genre ->
+                        val isSelected = selectedGenreFilter.equals(genre.title, ignoreCase = true)
+                        val count = roadmap.sections.find { it.title.equals(genre.title, ignoreCase = true) }?.items?.size ?: 0
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (isSelected) accentColor.copy(alpha = 0.22f) else PanelNavyElevated,
+                            border = BorderStroke(1.dp, if (isSelected) accentColor else BorderSubtle),
+                            modifier = Modifier.clickable {
+                                hapticEngine.vibrateSelection()
+                                selectedGenreFilter = if (isSelected) null else genre.title
+                            }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(text = genre.emoji, fontSize = 11.sp)
+                                Spacer(modifier = Modifier.width(5.dp))
+                                Text(
+                                    text = if (count > 0) "${genre.title} ($count)" else genre.title,
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (isSelected) accentColor else TextSecondary,
+                                        fontSize = 11.sp
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Empty state when filtering by a genre with no entries yet
+        if (isCustomizable && filteredSections.isEmpty() && selectedGenreFilter != null) {
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .border(1.dp, BorderSubtle, RoundedCornerShape(14.dp)),
+                    colors = CardDefaults.cardColors(containerColor = PanelNavyElevated)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(text = "📂", fontSize = 32.sp)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "'$selectedGenreFilter' türünde henüz eklenmiş içerik yok.",
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                color = TextSecondary,
+                                fontWeight = FontWeight.Medium
+                            )
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Button(
+                            onClick = {
+                                hapticEngine.vibrateSelection()
+                                isAddDialogOpen = true
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = accentColor),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                text = "Bu Türe Yeni İçerik Ekle ✨",
+                                color = CanvasDark,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.5.sp
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Universal 12-Step Technical Article Template Card for Medium
+        if (subItemId == "sub_medium") {
+            item {
+                MediumArticleTemplateCard(accentColor = accentColor)
+            }
+        }
+
         // Section Cards with Deep Topic Cards
-        items(roadmap.sections) { section ->
+        items(filteredSections, key = { it.title }) { section ->
             TopicSectionCard(
                 section = section,
                 accentColor = accentColor,
                 itemStates = itemStates,
                 onUpdateState = { itemId, newState ->
                     updateItemState(itemId, newState)
-                }
+                },
+                onDeleteItem = if (isCustomizable) { item -> itemToDelete = item } else null
             )
         }
+    }
+
+    if (isAddDialogOpen) {
+        AddTopicItemDialog(
+            subItemId = subItemId,
+            accentColor = accentColor,
+            onDismiss = { isAddDialogOpen = false },
+            onAdd = { newItem -> handleAddItem(newItem) }
+        )
+    }
+
+    if (itemToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { itemToDelete = null },
+            title = {
+                Text(
+                    text = "İçeriği Sil",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
+                    )
+                )
+            },
+            text = {
+                Text(
+                    text = "\"${itemToDelete!!.title}\" içeriğini kaldırmak istediğinize emin misiniz?",
+                    style = MaterialTheme.typography.bodyMedium.copy(color = TextSecondary)
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = { handleDeleteItem(itemToDelete!!) },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444))
+                ) {
+                    Text("Sil", color = TextPrimary, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { itemToDelete = null }) {
+                    Text("İptal", color = TextMuted)
+                }
+            },
+            containerColor = PanelNavyElevated,
+            shape = RoundedCornerShape(16.dp)
+        )
     }
 }
 
@@ -372,7 +683,8 @@ private fun TopicSectionCard(
     section: TopicSection,
     accentColor: Color,
     itemStates: Map<String, TopicProgressState>,
-    onUpdateState: (String, TopicProgressState) -> Unit
+    onUpdateState: (String, TopicProgressState) -> Unit,
+    onDeleteItem: ((TopicCheckItem) -> Unit)? = null
 ) {
     var isExpanded by remember { mutableStateOf(true) }
     val sectionCompletedCount = section.items.count { itemStates[it.id] == TopicProgressState.COMPLETED }
@@ -438,7 +750,8 @@ private fun TopicSectionCard(
                             item = item,
                             state = currentState,
                             accentColor = accentColor,
-                            onUpdateState = { newState -> onUpdateState(item.id, newState) }
+                            onUpdateState = { newState -> onUpdateState(item.id, newState) },
+                            onDeleteItem = if (onDeleteItem != null) { { onDeleteItem(item) } } else null
                         )
                     }
                 }
@@ -452,7 +765,8 @@ private fun TopicItemCard(
     item: TopicCheckItem,
     state: TopicProgressState,
     accentColor: Color,
-    onUpdateState: (TopicProgressState) -> Unit
+    onUpdateState: (TopicProgressState) -> Unit,
+    onDeleteItem: (() -> Unit)? = null
 ) {
     var isExpanded by remember { mutableStateOf(false) }
 
@@ -596,6 +910,21 @@ private fun TopicItemCard(
                 tint = TextMuted,
                 modifier = Modifier.size(18.dp)
             )
+
+            if (onDeleteItem != null) {
+                Spacer(modifier = Modifier.width(4.dp))
+                IconButton(
+                    onClick = { onDeleteItem() },
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.DeleteOutline,
+                        contentDescription = "Sil",
+                        tint = TextDarkMuted,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
         }
 
         // Expanded Practice Challenge & State Control Section
@@ -877,6 +1206,145 @@ private fun TopicItemCard(
                                 )
                             )
                         }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MediumArticleTemplateCard(
+    accentColor: Color,
+    modifier: Modifier = Modifier
+) {
+    var isExpanded by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val hapticEngine = rememberHapticEngine()
+
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .border(1.dp, accentColor.copy(alpha = 0.4f), RoundedCornerShape(14.dp)),
+        colors = CardDefaults.cardColors(containerColor = PanelNavyElevated)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { isExpanded = !isExpanded },
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(text = "📝", fontSize = 20.sp)
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            text = "12 MADDELİK YAZI ŞABLONU",
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary,
+                                letterSpacing = 0.8.sp,
+                                fontSize = 12.sp
+                            )
+                        )
+                        Text(
+                            text = "Tüm 285 makale için evrensel iskelet & format",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = TextMuted,
+                                fontSize = 10.5.sp
+                            )
+                        )
+                    }
+                }
+
+                IconButton(onClick = { isExpanded = !isExpanded }) {
+                    Icon(
+                        imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = null,
+                        tint = accentColor
+                    )
+                }
+            }
+
+            AnimatedVisibility(visible = isExpanded) {
+                Column(modifier = Modifier.padding(top = 12.dp)) {
+                    Text(
+                        text = "Bir konuyu 'gerçekten anladım' diyebilmek ve hafızaya kazımak için önerilen 12 alt başlık:",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            color = TextSecondary,
+                            fontSize = 11.sp,
+                            lineHeight = 15.sp
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    MediumRoadmapSeed.templateSteps.chunked(2).forEach { rowSteps ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 2.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            rowSteps.forEach { step ->
+                                Surface(
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = PanelNavyHighlight,
+                                    border = BorderStroke(1.dp, BorderSubtle)
+                                ) {
+                                    Text(
+                                        text = step,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            color = TextPrimary,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    )
+                                }
+                            }
+                            if (rowSteps.size == 1) {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Button(
+                        onClick = {
+                            hapticEngine.vibrateSkillCompleted()
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                            val clip = ClipData.newPlainText("MediumArticleTemplate", MediumRoadmapSeed.ARTICLE_TEMPLATE_MARKDOWN)
+                            clipboard?.setPrimaryClip(clip)
+                            Toast.makeText(context, "12 maddelik makale şablonu panoya kopyalandı! 📋", Toast.LENGTH_SHORT).show()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = accentColor)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ContentCopy,
+                            contentDescription = null,
+                            tint = CanvasDark,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Markdown Şablonunu Panoya Kopyala 📋",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = CanvasDark,
+                                fontSize = 12.sp
+                            )
+                        )
                     }
                 }
             }

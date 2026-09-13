@@ -1174,41 +1174,23 @@ object RoadmapDataStore {
             title = "Kitap Dünyası",
             subtitle = "Tarih, Kişisel Gelişim, Felsefe & Edebiyat",
             emoji = "📚",
-            targetLevel = "Hedef: Yılda 20+ Nitelikli Eser, Günlük 20-30 Sayfa Rutini",
-            overview = "Tarih perspektifi kazandıran kurucu eserler, zihinsel disiplini artıran kişisel gelişim kitapları, Stoa felsefesi ve dünya edebiyatı romanları.",
+            targetLevel = "Hedef: Kendi Okuma Kütüphaneni Kur & Düzenli Okuma Alışkanlığı",
+            overview = "Tarih perspektifi, zihinsel disiplin, Stoacı felsefe ve başyapıt romanlar. Yeni kitaplar ekleyerek kendi özel okuma yol haritanı oluştur.",
             sections = listOf(
                 TopicSection(
-                    title = "TARİH & BİYOGRAFİ KİTAPLARI",
+                    title = "Tarih & Biyografi",
                     emoji = "🏛️",
                     items = listOf(
                         TopicCheckItem(
                             id = "bk_hist_sapiens",
-                            title = "Yuval Noah Harari - Sapiens & Homo Deus",
+                            title = "Yuval Noah Harari - Sapiens",
                             description = "İnsan türünün bilişsel, tarım ve bilimsel devrimlerini ve türümüzün geleceğini anlatan başyapıt.",
                             practiceTask = "Kitaptan aldığın en çarpıcı 3 kavrayışı (bilişsel devrim, ortak mitler vb.) kendi cümlelerinle not et."
-                        ),
-                        TopicCheckItem(
-                            id = "bk_hist_guns_germs",
-                            title = "Jared Diamond - Tüfek, Mikrop ve Çelik",
-                            description = "Coğrafyanın, iklimin ve doğal kaynakların insan toplumlarının kaderini ve eşitsizliği nasıl belirlediğinin analizi.",
-                            practiceTask = "Tarihsel gelişimde coğrafi avantajların medeniyetler üzerindeki etkisini özetleyen bir sayfa not çıkar."
-                        ),
-                        TopicCheckItem(
-                            id = "bk_hist_turkish_ottoman",
-                            title = "Halil İnalcık & İlber Ortaylı Seçkisi",
-                            description = "Osmanlı Devleti'nin teşkilat yapısı, kurumları, yükselişi ve Cumhuriyet'in kurucu fikir temelleri.",
-                            practiceTask = "Klasik Dönem Osmanlı kurumları veya Cumhuriyet devrimleri üzerine bir bölümü derinlemesine oku."
-                        ),
-                        TopicCheckItem(
-                            id = "bk_hist_biography_leaders",
-                            title = "Lider, Bilim & Vizyoner Biyografileri",
-                            description = "Atatürk (Lord Kinross/Şevket Süreyya), Steve Jobs (Walter Isaacson), Leonardo da Vinci gibi çağı değiştiren liderlerin hayatları.",
-                            practiceTask = "Biyografideki liderin zorluklarla başa çıkma ve odaklanma yöntemlerini kendi hayatına uyarla."
                         )
                     )
                 ),
                 TopicSection(
-                    title = "KİŞİSEL GELİŞİM, PSİKOLOJİ & ALIŞKANLIKLAR",
+                    title = "Kişisel Gelişim & Alışkanlıklar",
                     emoji = "🌱",
                     items = listOf(
                         TopicCheckItem(
@@ -1216,78 +1198,18 @@ object RoadmapDataStore {
                             title = "James Clear - Atomik Alışkanlıklar",
                             description = "Küçük değişimlerin bileşik getirisi, 4 adımlı alışkanlık döngüsü (İpucu, İstek, Tepki, Ödül) ve sistem tasarımı.",
                             practiceTask = "Winter Arc için 1 iyi alışkanlığı kolaylaştır (2 dakika kuralı) ve 1 kötü alışkanlığı zorlaştır."
-                        ),
-                        TopicCheckItem(
-                            id = "bk_dev_mindset_dweck",
-                            title = "Carol Dweck - Mindset (Gelişim Zihniyeti)",
-                            description = "Yeteneklerin doğuştan sabit olmadığını, çaba ve doğru stratejilerle beynin geliştiğini gösteren büyüme zihniyeti.",
-                            practiceTask = "Zorlandığın bir yazılım veya spor konusunda 'Henüz yapamıyorum' dilini benimse."
-                        ),
-                        TopicCheckItem(
-                            id = "bk_dev_mans_search",
-                            title = "Viktor Frankl - İnsanın Anlam Arayışı",
-                            description = "Logoterapi kurucusu Frankl'ın toplama kamplarından çıkardığı varoluşsal anlam ve içsel özgürlük felsefesi.",
-                            practiceTask = "Kendi temel yaşam değerlerini ve seni motive eden 3 ana hedefi yazılı hale getir."
-                        ),
-                        TopicCheckItem(
-                            id = "bk_dev_influence_cialdini",
-                            title = "Robert Cialdini - İknanın Psikolojisi",
-                            description = "Karşılıklılık, sosyal kanıt, otorite, tutarlılık ve kıtlık gibi insan davranışlarını yönlendiren psikolojik mekanizmalar.",
-                            practiceTask = "Günlük hayatta maruz kaldığın pazarlama ve ikna taktiklerini bu 6 prensibe göre gözlemle."
                         )
                     )
                 ),
                 TopicSection(
-                    title = "STOA FELSEFESİ & ZİHİNSEL DİAYANIKLILIK",
+                    title = "Felsefe & Stoa",
                     emoji = "🗿",
                     items = listOf(
                         TopicCheckItem(
                             id = "bk_phil_meditations",
                             title = "Marcus Aurelius - Kendime Düşünceler",
                             description = "Roma İmparatoru'nun savaş meydanlarında kendine yazdığı özyönetim, ego kontrolü ve kontrol çemberi notları.",
-                            practiceTask = "Bugün seni sinirlendiren bir olayda kontrol edemediğin kısmı bırakıp sadece kendi tepkine odaklan."
-                        ),
-                        TopicCheckItem(
-                            id = "bk_phil_seneca_shortness",
-                            title = "Seneca - Yaşamın Kısalığı Üzerine & Ahlak Mektupları",
-                            description = "Hayatın kısa olmadığını, çoğunu boş işlerle israf ettiğimizi anlatan zamansız bir zaman yönetimi başyapıtı.",
-                            practiceTask = "Günün 24 saatini nasıl geçirdiğini dürüstçe analiz et ve en çok zaman yiyen 1 unsuru buda."
-                        ),
-                        TopicCheckItem(
-                            id = "bk_phil_epictetus",
-                            title = "Epiktetos - Düşünceler ve Sohbetler (Enchiridion)",
-                            description = "Eski bir köle olan Epiktetos'un içsel özgürlük, olaylara bakış açımız ve kontrol edilebilir alan öğretisi.",
-                            practiceTask = "'Bizi üzen şeyler olaylar değil, olaylar hakkındaki düşüncelerimizdir' prensibini bir olayda test et."
-                        )
-                    )
-                ),
-                TopicSection(
-                    title = "ROMAN & DÜNYA EDEBİYATI KLASİKLERİ",
-                    emoji = "📖",
-                    items = listOf(
-                        TopicCheckItem(
-                            id = "bk_lit_dostoyevski",
-                            title = "Dostoyevski - Suç ve Ceza / Karamazov Kardeşler",
-                            description = "Raskolnikov'un vicdan muhasebesi, insan psikolojisinin derin dehlizleri ve felsefi ahlak sorgulamaları.",
-                            practiceTask = "Karakterlerin ahlaki ikilemleri ve iç monologları üzerine odaklanarak oku."
-                        ),
-                        TopicCheckItem(
-                            id = "bk_lit_orwell_distopia",
-                            title = "George Orwell - 1984 & Hayvan Çiftliği",
-                            description = "Totalitarizm, zihin kontrolü (doublethink), dil manipülasyonu (newspeak) ve bireysel özgürlük temaları.",
-                            practiceTask = "Kavramların ve dilin düşünce biçimini nasıl şekillendirdiğini gözlemle."
-                        ),
-                        TopicCheckItem(
-                            id = "bk_lit_camus_stranger",
-                            title = "Albert Camus - Yabancı & Veba / Sisifos Söyleni",
-                            description = "Absürdizm felsefesi, toplumsal normlar karşısında yabancılaşma ve anlamsızlığa karşı varoluşsal direnç.",
-                            practiceTask = "Meursault karakterinin topluma ve hayata bakışını absürt felsefesiyle karşılaştır."
-                        ),
-                        TopicCheckItem(
-                            id = "bk_lit_favorites_reading",
-                            title = "Kişisel Roman Seçkisi & Çağdaş Başyapıtlar",
-                            description = "Kişisel ilgi alanına göre seçilen dünya klasikleri, bilim kurgu (Dune, Vakıf) veya sürükleyici kurgu eserleri.",
-                            practiceTask = "Yatmadan önce en az 20 sayfa akıcı roman okuma alışkanlığını kesintisiz sürdür."
+                            practiceTask = "Bugün seni zorlayan bir olayda kontrol edemediğin kısmı bırakıp sadece kendi tepkine odaklan."
                         )
                     )
                 )
@@ -1302,11 +1224,11 @@ object RoadmapDataStore {
             title = "Kart Numaraları & İllüzyon",
             subtitle = "Sleight of Hand Mekanikleri & Performans",
             emoji = "🃏",
-            targetLevel = "Hedef: Pürüzsüz Sleight of Hand, Kart Kontrolü & Sahne Büyüsü",
-            overview = "Parmak hassasiyeti, deste hakimiyeti, klasik sleight of hand teknikleri, misdirection (dikkat yönetimi) ve seyirci karşısında akıcı sunum.",
+            targetLevel = "Hedef: Pürüzsüz Deste Kontrolü & Kendi Numara Repertuarın",
+            overview = "Parmak hassasiyeti, deste hakimiyeti, klasik sleight of hand teknikleri ve seyirci karşısında sunum. Öğrendiğin yeni kart numaralarını repertuara ekle.",
             sections = listOf(
                 TopicSection(
-                    title = "TEMEL TUTUŞLAR & DESTE HAKİMİYETİ",
+                    title = "Temel Tutuşlar & Mekanikler",
                     emoji = "🖐️",
                     items = listOf(
                         TopicCheckItem(
@@ -1314,23 +1236,11 @@ object RoadmapDataStore {
                             title = "Mechanic's Grip & Biddle Grip Ustalığı",
                             description = "Desteyi tutarken parmakların rahat ve gerilimsiz olması; doğal bir görünüm sergileme.",
                             practiceTask = "Ayna karşısında deste tutuşunun gergin değil, tamamen gündelik ve doğal göründüğünü doğrula."
-                        ),
-                        TopicCheckItem(
-                            id = "crd_pinky_break",
-                            title = "Pinky Break & Thumb Break Kontrolü",
-                            description = "Küçük parmakla fark edilmeden aralık tutma; önden ve yandan bakış açılarında boşluğu gizleme.",
-                            practiceTask = "Kartların arasında serçe parmağınla tuttuğun break'i destenin ön tarafından görünmez kıl."
-                        ),
-                        TopicCheckItem(
-                            id = "crd_riffle_shuffle",
-                            title = "Pürüzsüz Riffle Shuffle, Waterfall & Faro Temelleri",
-                            description = "Desteyi profesyonel bir akıcılıkla karıştırma, yay ve şelale (waterfall) kapanışı yapma.",
-                            practiceTask = "Kartları bükmeden ve zorlamadan 10 kez art arda pürüzsüz waterfall ile karıştır."
                         )
                     )
                 ),
                 TopicSection(
-                    title = "SLEIGHT OF HAND & KONTROL MEKANİKLERİ",
+                    title = "Sleight of Hand & Kontroller",
                     emoji = "✨",
                     items = listOf(
                         TopicCheckItem(
@@ -1338,35 +1248,11 @@ object RoadmapDataStore {
                             title = "Doğal & Kusursuz Double Lift",
                             description = "İki kartı tek bir kartmış gibi kusursuzca çevirme — kart sihirbazlığının en kritik temel taşı.",
                             practiceTask = "Double lift yaparken kartları tek kart çeviriyormuş gibi gevşek ve hızlıca çevirip masaya bırak."
-                        ),
-                        TopicCheckItem(
-                            id = "crd_pass_control",
-                            title = "Classic Pass & Charlier Cut",
-                            description = "Seyircinin destenin ortasına koyduğu kartı sessizce ve fark ettirmeden en üste getirme manevrası.",
-                            practiceTask = "Tek elle Charlier Cut'ı her iki elinle de takılmadan yapabilecek seviyeye getir."
-                        ),
-                        TopicCheckItem(
-                            id = "crd_elmsley_count",
-                            title = "Elmsley Count & Jordan Count",
-                            description = "4 kart sayarken 3. kartı gizleyip başka bir kartı iki kez sayma tekniği.",
-                            practiceTask = "4 kartlık bir pakette Elmsley count yaparak ters dönmüş kartı hiç göstermeden saymayı başar."
-                        ),
-                        TopicCheckItem(
-                            id = "crd_palming_skills",
-                            title = "Top Palm & Bottom Palm Teknikleri",
-                            description = "Seyirciye hissettirmeden destenin en üstündeki veya altındaki kartı avuç içine alma.",
-                            practiceTask = "Desteyi masaya koyarken üst kartı sağ avucuna al ve elini doğal bir pozisyonda masada dinlendir."
-                        ),
-                        TopicCheckItem(
-                            id = "crd_false_cuts",
-                            title = "False Cuts & False Shuffles (Sahte Kesmeler)",
-                            description = "Desteyi defalarca kesiyormuş gibi gösterip tüm deste sırasını koruyan görsel manevralar.",
-                            practiceTask = "Seyirci önünde desteyi üç parçaya bölüp sahte kesme yaparak en üst kartın değişmediğini göster."
                         )
                     )
                 ),
                 TopicSection(
-                    title = "KLASİK NUMARALAR & REPERTUAR",
+                    title = "Klasik Numaralar & Rutinler",
                     emoji = "🎩",
                     items = listOf(
                         TopicCheckItem(
@@ -1374,42 +1260,6 @@ object RoadmapDataStore {
                             title = "Ambitious Card Routine (Tırmanan Kart)",
                             description = "İmzalanan kartın destenin neresine konulursa konulsun tekrar tekrar en üste çıkması rutini.",
                             practiceTask = "3 aşamalı (Double lift, tilt move ve son final) kesintisiz bir Ambitious Card rutini sergile."
-                        ),
-                        TopicCheckItem(
-                            id = "crd_triumph_effect",
-                            title = "Triumph (Ters Yüz Karışan Kartlar)",
-                            description = "Kartların yarısı ters yarısı düz şekilde karıştırıldıktan sonra sihirli bir şıklatmayla seçilen kart hariç tüm destenin düzelmesi.",
-                            practiceTask = "Triumph'taki sahte karıştırma açısını ayna karşısında prova et ve temizliğini test et."
-                        ),
-                        TopicCheckItem(
-                            id = "crd_sandwich_routine",
-                            title = "Sandwich Effect & Card to Pocket",
-                            description = "İki asın arasına seçilen kartın ışınlanması veya seyircinin cebinden/cüzdanından çıkması.",
-                            practiceTask = "İki siyah papazın arasına seyircinin seçtiği kartı görsel olarak yakalama numarasını tamamla."
-                        )
-                    )
-                ),
-                TopicSection(
-                    title = "MİSDİRECTİON, ANLATI (PATTER) & PERFORMANS",
-                    emoji = "🎭",
-                    items = listOf(
-                        TopicCheckItem(
-                            id = "crd_misdirection_rules",
-                            title = "Göz Teması & Misdirection (Büyük/Küçük Hareket)",
-                            description = "Seyircinin gözü senin gözündeyken ellerin hareket etmesi prensibi; gerilim ve rahatlama anları.",
-                            practiceTask = "Seyirciye soru sorup gözlerinin içine baktığın anda deste üzerinde gizli hareketi yap."
-                        ),
-                        TopicCheckItem(
-                            id = "crd_patter_storytelling",
-                            title = "Patter (Sahne Konuşması) & Gizem Yaratma",
-                            description = "Kart numarasını mekanik bir 'buldum' şovundan çıkarıp izleyiciyi büyüleyen bir hikayeye dönüştürmek.",
-                            practiceTask = "Seçtiğin klasik bir numaraya kumarbazlar veya dedektif temalı 1 dakikalık akıcı bir hikaye yaz."
-                        ),
-                        TopicCheckItem(
-                            id = "crd_reset_improv",
-                            title = "Hata Kurtarma & Doğaçlama Becerisi",
-                            description = "Bir kart düştüğünde veya numara ters gittiğinde paniklemeden durumu başka bir güçlü finale bağlama.",
-                            practiceTask = "Planlanan hile başarısız olursa kullanabileceğin yedek bir 'kart bulma' manevrası belirle."
                         )
                     )
                 )
@@ -1422,13 +1272,13 @@ object RoadmapDataStore {
         "sub_anime_manhwa" to SubItemRoadmap(
             subItemId = "sub_anime_manhwa",
             title = "Anime & Manhwa Takibi",
-            subtitle = "Kült Yapımlar, Popüler Seriler & Başyapıtlar",
+            subtitle = "Kült Yapımlar, Popüler Seriler & Güncel Takip",
             emoji = "⚔️",
-            targetLevel = "Hedef: Başyapıt Eserleri Tamamlama & Düzenli Takip",
-            overview = "Hikaye anlatımı, karakter gelişimi, sanatsal çizim kalitesi ve kurgusuyla öne çıkan anime ve manhwa kültürünü sistemli takip etmek.",
+            targetLevel = "Hedef: Kendi İzleme/Okuma Listeni Kur & Düzenli Takip",
+            overview = "Hikaye anlatımı, karakter gelişimi, sanatsal çizim kalitesi ve kurgusuyla öne çıkan anime ve manhwa evreni. Favori serilerini ve yeni yapımları ekle.",
             sections = listOf(
                 TopicSection(
-                    title = "BAŞYAPIT & KÜLT ANİME SERİLERİ",
+                    title = "Kült & Başyapıt Anime",
                     emoji = "🍿",
                     items = listOf(
                         TopicCheckItem(
@@ -1436,126 +1286,30 @@ object RoadmapDataStore {
                             title = "Attack on Titan (Shingeki no Kyojin)",
                             description = "Muazzam kurgu, öngörülemez ters köşeler, felsefi özgürlük teması ve politik savaş gerilimi.",
                             practiceTask = "Eren Yeager'ın karakter evrimini ve serinin determinizm/özgürlük felsefesini analiz et."
-                        ),
+                        )
+                    )
+                ),
+                TopicSection(
+                    title = "Kült & Başyapıt Manhwa",
+                    emoji = "⚔️",
+                    items = listOf(
                         TopicCheckItem(
-                            id = "ani_vinland",
-                            title = "Vinland Saga (Season 1 & 2)",
-                            description = "Viking çağından insan olmanın anlamına, intikam hırsından barış ve gerçek savaşçı olmanın erdemine uzanan devasa dönüşüm.",
-                            practiceTask = "Thorfinn'in 'Benim hiç düşmanım yok' felsefesinin arka planını değerlendir."
-                        ),
-                        TopicCheckItem(
-                            id = "ani_hxh",
-                            title = "Hunter x Hunter (2011)",
-                            description = "Yorknew Şehri ve Chimera Ant arklarıyla shounen türünün kurallarını baştan yazan stratejik dövüş ve derinlik zirvesi.",
-                            practiceTask = "Meruem ve Komugi ilişkisindeki insanlık ve canavarlık kavramlarının yer değişimini gözlemle."
-                        ),
+                            id = "man_solo_leveling",
+                            title = "Solo Leveling (I Alone Level Up)",
+                            description = "Redice Studio çizimleri ve Sung Jin-woo'nun E-seviye avcılıktan Gölge Hükümdarı oluşu.",
+                            practiceTask = "Zayıf E-seviye bir avcının monark seviyesine yükselişindeki panelleme dinamiklerini incele."
+                        )
+                    )
+                ),
+                TopicSection(
+                    title = "Fantezi, Macera & Büyü",
+                    emoji = "🔮",
+                    items = listOf(
                         TopicCheckItem(
                             id = "ani_frieren",
                             title = "Sousou no Frieren (Beyond Journey's End)",
                             description = "Zaman algısı, fanilik, hatıralar ve bir elfin insanları anlama yolculuğu üzerine dingin bir başyapıt.",
                             practiceTask = "Frieren'in zaman algısı ile insanların kısa ömrü arasındaki melankoliyi hisset."
-                        ),
-                        TopicCheckItem(
-                            id = "ani_monster_deathnote",
-                            title = "Monster & Death Note (Psikolojik Gerilim)",
-                            description = "Johan Liebert'in nihilizmi, Dr. Tenma'nın ahlaki mücadelesi ve L vs Light zeka savaşları.",
-                            practiceTask = "Kötülüğün doğası ve adaletin göreceliği üzerine kurgulanmış zihinsel çatışmaları takip et."
-                        )
-                    )
-                ),
-                TopicSection(
-                    title = "GÜNCEL & POPÜLER AKSİYON ANİMELERİ",
-                    emoji = "🔥",
-                    items = listOf(
-                        TopicCheckItem(
-                            id = "ani_jjk",
-                            title = "Jujutsu Kaisen (Shibuya Incident & Movie)",
-                            description = "MAPPA'nın üst düzey koreografisi, akıcı aksiyon sahneleri ve karanlık lanetler evreni.",
-                            practiceTask = "Gojo Satoru mühürlenmesi ve Shibuya arkındaki çoklu karakter bakış açılarını izle."
-                        ),
-                        TopicCheckItem(
-                            id = "ani_bleach_tybw",
-                            title = "Bleach: Thousand-Year Blood War",
-                            description = "Quincy istilası, efsanevi Bankai açılışları ve Tite Kubo'nun modern sinematik animasyon şöleni.",
-                            practiceTask = "Gotei 13 kaptanlarının yeni Bankai açılışlarını ve Yamamoto vs Yhwach savaşını izle."
-                        ),
-                        TopicCheckItem(
-                            id = "ani_cyberpunk",
-                            title = "Cyberpunk: Edgerunners",
-                            description = "Studio Trigger'ın Night City'de geçen 10 bölümlük görsel, müzikal ve duygusal patlaması.",
-                            practiceTask = "David Martinez'in siberpsikoz sınırındaki yükseliş ve trajik düşüş temposunu incele."
-                        ),
-                        TopicCheckItem(
-                            id = "ani_chainsaw_man",
-                            title = "Chainsaw Man",
-                            description = "Fujimoto'nun sinematik yönetmenlik anlayışı, çiğ gerçeklik, kaotik dövüşler ve karanlık mizah.",
-                            practiceTask = "Denji'nin basit arzuları ile şeytan avcılarının varoluşsal tehlikeleri arasındaki zıtlığı gözlemle."
-                        )
-                    )
-                ),
-                TopicSection(
-                    title = "KÜLT & BAŞYAPIT MANHWA SERİLERİ",
-                    emoji = "📖",
-                    items = listOf(
-                        TopicCheckItem(
-                            id = "man_solo_leveling",
-                            title = "Solo Leveling (I Alone Level Up) - Tamamlandı",
-                            description = "Manhwa sektörünü küresel bir fenomene dönüştüren Redice Studio çizimleri ve Sung Jin-woo'nun Gölge Hükümdarı oluşu.",
-                            practiceTask = "Zayıf E-seviye bir avcının mutlak monark seviyesine yükselişindeki panelleme dinamiklerini incele."
-                        ),
-                        TopicCheckItem(
-                            id = "man_orv",
-                            title = "Omniscient Reader's Viewpoint (ORV)",
-                            description = "Yıkılan dünyayı romanın tek okuyucusu Kim Dokja olarak hayatta tutma mücadelesi; olağanüstü senaryo ve meta-kurgu.",
-                            practiceTask = "Okuyucu ile hikaye kahramanı (Yoo Joonghyuk) arasındaki kader bağını takip et."
-                        ),
-                        TopicCheckItem(
-                            id = "man_tbate",
-                            title = "The Beginning After the End (TBATE)",
-                            description = "Kral Grey'in büyü dünyasında Arthur Leywin olarak reenkarne oluşu, Dicathen-Alacrya savaşı ve asura güçleri.",
-                            practiceTask = "Büyü çekirdeği geliştirme aşamalarını ve Arthur'un savaş zekasını oku."
-                        ),
-                        TopicCheckItem(
-                            id = "man_tower_of_god",
-                            title = "Tower of God (Sin-ui Tap)",
-                            description = "SIU'nun devasa kurgusu, kule testleri, kuralsızlar (irregulars), Zahard ve 10 büyük aile entrikaları.",
-                            practiceTask = "Kulenin katlarındaki benzersiz kuralları ve Baam'ın güç uyanışlarını takip et."
-                        ),
-                        TopicCheckItem(
-                            id = "man_lookism_ptj",
-                            title = "Lookism & Viral Hit (PTJ Evreni)",
-                            description = "Kore sokak dövüşleri, 4 büyük çete, görünüş ayrımcılığı ve dövüş sanatı tekniklerinin gerçekçi aktarımı.",
-                            practiceTask = "Farklı dövüş disiplinlerinin (boks, muay thai, jiu-jitsu) çizimlerdeki koreografisini gözlemle."
-                        )
-                    )
-                ),
-                TopicSection(
-                    title = "MURIM & DÖVÜŞ SANATLARI MANHWALARI",
-                    emoji = "🥋",
-                    items = listOf(
-                        TopicCheckItem(
-                            id = "man_legend_northern",
-                            title = "Legend of the Northern Blade",
-                            description = "Murim dünyasının en stilistik, siyah-beyaz mürekkep etkili akıcı kılıç koreografileri ve Jin Mu-won'un intikamı.",
-                            practiceTask = "Dövüş panellerindeki hareket hissini ve sessiz kılıç sanatının görselliğini incele."
-                        ),
-                        TopicCheckItem(
-                            id = "man_mount_hua",
-                            title = "Return of the Blossoming Blade (Mount Hua)",
-                            description = "Kılıç Azizi Chung Myung'un 100 yıl sonra yeniden doğup yıkılmış Mount Hua tarikatını mizah ve güçle şahlandırması.",
-                            practiceTask = "Erik çiçeği kılıç tekniğinin estetik panellerini ve Chung Myung'un liderlik tarzını oku."
-                        ),
-                        TopicCheckItem(
-                            id = "man_nano_machine",
-                            title = "Nano Machine",
-                            description = "Geleneksel Murim dövüş sanatlarıyla geleceğin yapay zeka nano teknolojisini birleştiren acımasız güç tırmanışı.",
-                            practiceTask = "Nano makinenin dövüş tekniklerini analiz edip vücuda yükleme mekaniğini takip et."
-                        ),
-                        TopicCheckItem(
-                            id = "man_murim_login",
-                            title = "Murim Login & SSS-Class Suicide Hunter",
-                            description = "Modern avcı dünyası ile geleneksel Murim arasında geçiş yapan özgün konseptler ve derin karakter arkları.",
-                            practiceTask = "Oyunlaştırma (gamification) ile kadim qi sanatlarının sentezini keyifle oku."
                         )
                     )
                 )
@@ -1748,48 +1502,7 @@ object RoadmapDataStore {
                 )
             )
         ),
-        "sub_medium" to SubItemRoadmap(
-            subItemId = "sub_medium",
-            title = "Medium",
-            subtitle = "Öğrendiklerimi Unutmama & Teknik Hafıza",
-            emoji = "✍️",
-            targetLevel = "Hedef: Kişisel Teknik Hafıza & Dijital Kütüphane",
-            overview = "Amaç takipçi kasmak veya influencer olmak değil; öğrenilen ufak tefek her teknik detayı, mimari kararı, hata çözümünü ve Linux/Android püf noktasını yazıya dökerek kalıcı kılmak.",
-            sections = listOf(
-                TopicSection(
-                    title = "TEKNİK YAZARLIK & FEYNMAN STRATEJİSİ",
-                    emoji = "🧠",
-                    items = listOf(
-                        TopicCheckItem("med_mindset", "Kendime Notlar & Feynman Metodu", "Öğrendiğin konuyu en sade haliyle anlatarak kafada tam netleştirme"),
-                        TopicCheckItem("med_format_template", "Yazı İskeleti Standartı", "Problem Tanımı -> Karşılaşılan Zorluklar -> Kod Çözümü -> Alınan Dersler"),
-                        TopicCheckItem("med_gist_diagram", "Kod Parçacıkları (GitHub Gist) & Mimari Şemalar", "Görsel ve kod bloklarıyla okuması keyifli temiz içerik üretimi")
-                    )
-                ),
-                TopicSection(
-                    title = ".NET, BACKEND & VERİTABANI YAZILARI",
-                    emoji = "⚙️",
-                    items = listOf(
-                        TopicCheckItem("med_exc_handling", "ASP.NET Core'da Global Exception Handling & ProblemDetails", "IExceptionHandler ile temiz hata yönetimi ve RFC 7807 uyumluluğu"),
-                        TopicCheckItem("med_jwt_auth", "JWT ile Güvenli Authentication ve Refresh Token Döngüsü", "Token süresi dolunca sessiz yenileme mekanizması ve güvenlik ipuçları"),
-                        TopicCheckItem("med_clean_arch", "Neden Clean Architecture? Domain Katmanını Bağımsız Tutmak", "Katmanlar arası sınırların korunması ve bağımlılıkların yönetimi"),
-                        TopicCheckItem("med_ef_tracking", "EF Core Tracking Mantığı: AsNoTracking Neden Hayat Kurtarır?", "Read-only sorgularda bellek optimizasyonu ve performans karşılaştırması"),
-                        TopicCheckItem("med_rabbitmq_event", "RabbitMQ ile Asenkron İletişim: Producer & Consumer", "Mesaj kuyrukları, event-driven yapı ve dead-letter queue mantığı"),
-                        TopicCheckItem("med_sql_indexing", "Veritabanlarında B-Tree İndeksleme Mantığı ve Sorgu Hızı", "Index scan vs index seek farkı ve execution plan okuma")
-                    )
-                ),
-                TopicSection(
-                    title = "ANDROID, LINUX & ÖZEL MİMARİ TRİKLERİ",
-                    emoji = "🐧",
-                    items = listOf(
-                        TopicCheckItem("med_compose_state", "Jetpack Compose'da Recomposition Mantığı & State Hoisting", "Gereksiz recomposition'ları önleme ve derivedStateOf püf noktaları"),
-                        TopicCheckItem("med_linux_bash_tips", "Hayat Kurtaran Linux CLI & Bash Kısayolları", "Terminalde hızlanmak için pratik komutlar, alias'lar ve piping trikleri"),
-                        TopicCheckItem("med_git_rescue", "Git'te Hata Yapınca Ne Yapılır? Reflog & Kurtarma Rehberi", "Yanlış commit veya rebase sonrası kodu kurtarma adımları"),
-                        TopicCheckItem("med_thesis_kvcache", "LLM Çıkarımlarında KV Cache ve Bellek Optimizasyonunun Mantığı", "Bitirme tezinden çıkan sistem seviyesinde teorik özet"),
-                        TopicCheckItem("med_debug_stories", "Haftanın Bug'ı: İlginç Bir Hatayı Çözme Günlüğü", "Geliştirme esnasında saatler alan bir bug'ın analizi ve çözümü")
-                    )
-                )
-            )
-        ),
+        "sub_medium" to MediumRoadmapSeed.mediumRoadmap,
         "sub_projects" to SubItemRoadmap(
             subItemId = "sub_projects",
             title = "Projeler",
