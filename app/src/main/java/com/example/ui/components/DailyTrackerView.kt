@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -36,8 +37,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.SkillNode
 import com.example.ui.theme.*
+import com.example.ui.util.HealthSyncManager
 import com.example.ui.util.WinterArcNotificationHelper
 import com.example.ui.util.rememberHapticEngine
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -195,6 +198,87 @@ fun DailyTrackerView(
         prefs.edit().putBoolean("${id}_$todayKey", updated).apply()
     }
 
+    // ----------------------------------------------------
+    // Sağlık Senkronizasyonu State (Health Connect & Huawei Health)
+    // ----------------------------------------------------
+    val coroutineScope = rememberCoroutineScope()
+    var isSyncingHealth by remember { mutableStateOf(false) }
+    var lastHealthSync by remember(todayKey) {
+        mutableStateOf(HealthSyncManager.getLastSync(context, todayKey))
+    }
+
+    fun applyHealthSyncResult(result: HealthSyncManager.HealthSyncResult) {
+        HealthSyncManager.saveLastSync(context, todayKey, result)
+        lastHealthSync = result
+
+        // 1. Adım ve Yürüyüş kontrolü (7000+ adım ise hab_walk otomatik tamamlanır)
+        if (result.stepsCount >= HealthSyncManager.WALK_STEP_TARGET) {
+            routineStatusMap = routineStatusMap.toMutableMap().also { it["hab_walk"] = true }
+            prefs.edit().putBoolean("hab_walk_$todayKey", true).apply()
+        }
+
+        // 2. Uyku kontrolü (6+ saat ise sleep_6h_plus otomatik tamamlanır)
+        if (result.isSleep6hPlus) {
+            slept6HoursPlus = true
+            prefs.edit().putBoolean("sleep_6h_plus_$todayKey", true).apply()
+            sleepQuality = result.sleepQuality
+            prefs.edit().putString("sleep_quality_$todayKey", result.sleepQuality).apply()
+        }
+
+        hapticEngine.vibrateSkillCompleted()
+        val sleepHours = result.sleepMinutesTotal / 60
+        val sleepMins = result.sleepMinutesTotal % 60
+        val msg = if (result.isSuccess) {
+            "Sağlık verileri eşitlendi! 🚶 ${result.stepsCount} Adım | 🛌 ${sleepHours}s ${sleepMins}dk"
+        } else {
+            result.message.ifEmpty { "Sağlık verileri eşitlendi." }
+        }
+        Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+    }
+
+    val healthPermissionLauncher = rememberLauncherForActivityResult(
+        contract = HealthSyncManager.createPermissionContract()
+    ) { grantedPermissions ->
+        if (grantedPermissions.containsAll(HealthSyncManager.REQUIRED_HEALTH_PERMISSIONS)) {
+            coroutineScope.launch {
+                isSyncingHealth = true
+                val result = HealthSyncManager.fetchTodayHealthData(context)
+                applyHealthSyncResult(result)
+                isSyncingHealth = false
+            }
+        } else {
+            Toast.makeText(context, "Health Connect izinleri verilmedi.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun syncHealthData() {
+        hapticEngine.vibrateSelection()
+        coroutineScope.launch {
+            isSyncingHealth = true
+            try {
+                val availability = HealthSyncManager.checkHealthConnectAvailability(context)
+                if (availability == HealthSyncManager.HealthConnectAvailability.NOT_INSTALLED) {
+                    Toast.makeText(context, "Health Connect cihazda yüklü değil. Yönlendiriliyorsunuz...", Toast.LENGTH_SHORT).show()
+                    HealthSyncManager.launchHealthConnectOrStore(context)
+                    return@launch
+                }
+
+                val hasPerms = HealthSyncManager.hasHealthPermissions(context)
+                if (!hasPerms && availability == HealthSyncManager.HealthConnectAvailability.AVAILABLE) {
+                    healthPermissionLauncher.launch(HealthSyncManager.REQUIRED_HEALTH_PERMISSIONS)
+                    return@launch
+                }
+
+                val result = HealthSyncManager.fetchTodayHealthData(context)
+                applyHealthSyncResult(result)
+            } catch (e: Exception) {
+                Toast.makeText(context, "Senkronizasyon hatası: ${e.message}", Toast.LENGTH_SHORT).show()
+            } finally {
+                isSyncingHealth = false
+            }
+        }
+    }
+
     // Toplam tamamlanma hesaplama
     val completedCount = routineStatusMap.count { it.value } +
             (if (dopamineStatus == "maintained") 1 else 0) +
@@ -320,7 +404,292 @@ fun DailyTrackerView(
         }
 
         // ==========================================
-        // 2. Dopamin Detoksu Widget (Bozdum / Bozmadım)
+        // 2. Section: Sağlık & Akıllı Saat Senkronizasyonu
+        // ==========================================
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .border(
+                        1.dp,
+                        if (lastHealthSync != null && (lastHealthSync!!.isWalkGoalMet || lastHealthSync!!.isSleep6hPlus))
+                            StatusCompleted.copy(alpha = 0.5f)
+                        else AccentCyan.copy(alpha = 0.4f),
+                        RoundedCornerShape(14.dp)
+                    ),
+                colors = CardDefaults.cardColors(containerColor = PanelNavyElevated)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    // Title & Status Badge
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(text = "⌚", fontSize = 20.sp)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text(
+                                    text = "SAĞLIK SENKRONİZASYONU",
+                                    style = MaterialTheme.typography.titleSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = TextPrimary,
+                                        letterSpacing = 0.8.sp
+                                    )
+                                )
+                                Text(
+                                    text = lastHealthSync?.source ?: "Huawei Sağlık / Health Connect",
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        color = TextMuted,
+                                        fontSize = 10.5.sp
+                                    )
+                                )
+                            }
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = if (lastHealthSync != null) StatusCompleted.copy(alpha = 0.15f) else PanelNavyHighlight
+                        ) {
+                            Text(
+                                text = if (lastHealthSync != null) "EŞİTLENDİ ✅" else "BEKLENİYOR",
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (lastHealthSync != null) StatusCompleted else TextMuted,
+                                    fontSize = 10.sp
+                                )
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Stats Grid: Adım & Uyku Kartları
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        // 1. Box: Adım (Yürüyüş)
+                        val currentSteps = lastHealthSync?.stepsCount ?: 0L
+                        val stepProgress = (currentSteps.toFloat() / 10000f).coerceIn(0f, 1f)
+                        val stepMet = currentSteps >= HealthSyncManager.WALK_STEP_TARGET
+
+                        Surface(
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp),
+                            color = PanelNavyHighlight,
+                            border = BorderStroke(1.dp, if (stepMet) StatusCompleted.copy(alpha = 0.4f) else BorderSubtle)
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "🚶 Adım",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            color = TextMuted,
+                                            fontWeight = FontWeight.Medium,
+                                            fontSize = 11.sp
+                                        )
+                                    )
+                                    if (stepMet) {
+                                        Text(
+                                            text = "Tamam ✅",
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                color = StatusCompleted,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 9.5.sp
+                                            )
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = if (currentSteps > 0) "$currentSteps" else "--",
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (stepMet) StatusCompleted else TextPrimary,
+                                        fontSize = 16.sp
+                                    )
+                                )
+                                Text(
+                                    text = if (stepMet) "Hedef aşıldı! (+25 XP)" else "/ 7.000 hedef",
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        color = if (stepMet) StatusCompleted else TextDarkMuted,
+                                        fontSize = 10.sp
+                                    )
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                LinearProgressIndicator(
+                                    progress = { stepProgress },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(5.dp)
+                                        .clip(RoundedCornerShape(3.dp)),
+                                    color = if (stepMet) StatusCompleted else AccentCyan,
+                                    trackColor = BorderSubtle.copy(alpha = 0.4f)
+                                )
+                            }
+                        }
+
+                        // 2. Box: Uyku
+                        val sleepMinutes = lastHealthSync?.sleepMinutesTotal ?: 0L
+                        val sleepHours = sleepMinutes / 60
+                        val sleepMinsRemaining = sleepMinutes % 60
+                        val sleepMet = (lastHealthSync?.sleepHours ?: 0.0) >= HealthSyncManager.SLEEP_HOURS_TARGET
+
+                        Surface(
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp),
+                            color = PanelNavyHighlight,
+                            border = BorderStroke(1.dp, if (sleepMet) StatusCompleted.copy(alpha = 0.4f) else BorderSubtle)
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "🛌 Uyku",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            color = TextMuted,
+                                            fontWeight = FontWeight.Medium,
+                                            fontSize = 11.sp
+                                        )
+                                    )
+                                    if (sleepMet) {
+                                        Text(
+                                            text = "6+ Saat ⚡",
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                color = StatusCompleted,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 9.5.sp
+                                            )
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = if (sleepMinutes > 0) "${sleepHours}s ${sleepMinsRemaining}dk" else "--",
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (sleepMet) StatusCompleted else TextPrimary,
+                                        fontSize = 16.sp
+                                    )
+                                )
+                                Text(
+                                    text = if (sleepMinutes > 0) {
+                                        when (lastHealthSync?.sleepQuality) {
+                                            "refreshed" -> "Dinlenmiş ⚡"
+                                            "tired" -> "Yorgun 🥱"
+                                            else -> "Normal 💤"
+                                        }
+                                    } else "Veri bekleniyor",
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        color = TextDarkMuted,
+                                        fontSize = 10.sp
+                                    )
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                val sleepProgress = ((lastHealthSync?.sleepHours ?: 0.0) / 8.0).toFloat().coerceIn(0f, 1f)
+                                LinearProgressIndicator(
+                                    progress = { sleepProgress },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(5.dp)
+                                        .clip(RoundedCornerShape(3.dp)),
+                                    color = if (sleepMet) StatusCompleted else AccentPurple,
+                                    trackColor = BorderSubtle.copy(alpha = 0.4f)
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Buttons: Sync & Open Companion App
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = { syncHealthData() },
+                            enabled = !isSyncingHealth,
+                            modifier = Modifier.weight(1.3f),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = AccentCyan),
+                            contentPadding = PaddingValues(vertical = 10.dp, horizontal = 12.dp)
+                        ) {
+                            if (isSyncingHealth) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    color = Color.Black,
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Okunuyor...",
+                                    color = Color.Black,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.5.sp
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = null,
+                                    tint = Color.Black,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Şimdi Senkronize Et",
+                                    color = Color.Black,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.5.sp
+                                )
+                            }
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                val launched = HealthSyncManager.launchInstalledHealthApp(context)
+                                if (!launched) {
+                                    HealthSyncManager.launchHealthConnectOrStore(context)
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp),
+                            border = BorderStroke(1.dp, BorderSubtle),
+                            colors = ButtonDefaults.outlinedButtonColors(containerColor = PanelNavyHighlight),
+                            contentPadding = PaddingValues(vertical = 10.dp, horizontal = 8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.OpenInNew,
+                                contentDescription = null,
+                                tint = TextSecondary,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Uygulamayı Aç ⌚",
+                                color = TextSecondary,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 11.sp
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // ==========================================
+        // 3. Dopamin Detoksu Widget (Bozdum / Bozmadım)
         // ==========================================
         item {
             Card(
@@ -738,18 +1107,35 @@ fun DailyTrackerView(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // Open Huawei Health App button
+                    if (lastHealthSync != null && lastHealthSync!!.sleepMinutesTotal > 0) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = AccentPurple.copy(alpha = 0.15f),
+                            border = BorderStroke(1.dp, AccentPurple.copy(alpha = 0.3f)),
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "⌚ Senkronize Uyku: ${(lastHealthSync!!.sleepMinutesTotal / 60)}s ${lastHealthSync!!.sleepMinutesTotal % 60}dk (${lastHealthSync!!.source})",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        color = AccentPurple,
+                                        fontSize = 10.5.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                )
+                            }
+                        }
+                    }
+
+                    // Open Health App button
                     OutlinedButton(
                         onClick = {
-                            try {
-                                val launchIntent = context.packageManager.getLaunchIntentForPackage("com.huawei.health")
-                                if (launchIntent != null) {
-                                    context.startActivity(launchIntent)
-                                } else {
-                                    Toast.makeText(context, "Huawei Sağlık uygulaması bulunamadı", Toast.LENGTH_SHORT).show()
-                                }
-                            } catch (e: Exception) {
-                                Toast.makeText(context, "Uygulama açılamadı: ${e.message}", Toast.LENGTH_SHORT).show()
+                            val launched = HealthSyncManager.launchInstalledHealthApp(context)
+                            if (!launched) {
+                                HealthSyncManager.launchHealthConnectOrStore(context)
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -765,7 +1151,7 @@ fun DailyTrackerView(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "Huawei Sağlık Uygulamasını Aç ⌚",
+                            text = "Huawei Sağlık / Saat Uygulamasını Aç ⌚",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 color = TextSecondary,
                                 fontSize = 11.sp
@@ -971,10 +1357,14 @@ fun DailyTrackerView(
         items(physicalHabits.size, key = { physicalHabits[it].id }) { index ->
             val habit = physicalHabits[index]
             val isDone = routineStatusMap[habit.id] ?: false
+            val extraSubtitle = if (habit.id == "hab_walk" && (lastHealthSync?.stepsCount ?: 0L) > 0L) {
+                "👟 Senkronize: ${lastHealthSync!!.stepsCount} Adım"
+            } else null
 
             DailyHabitCard(
                 habit = habit,
                 isCompleted = isDone,
+                extraSubtitle = extraSubtitle,
                 onToggle = { toggleRoutine(habit.id) }
             )
         }
@@ -1014,6 +1404,7 @@ fun DailyTrackerView(
 private fun DailyHabitCard(
     habit: DailyHabitItem,
     isCompleted: Boolean,
+    extraSubtitle: String? = null,
     onToggle: () -> Unit
 ) {
     Card(
@@ -1073,6 +1464,16 @@ private fun DailyHabitCard(
                         fontSize = 13.sp
                     )
                 )
+                if (extraSubtitle != null) {
+                    Text(
+                        text = extraSubtitle,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            color = if (isCompleted) StatusCompleted else AccentCyan,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 10.5.sp
+                        )
+                    )
+                }
                 Text(
                     text = habit.category,
                     style = MaterialTheme.typography.labelSmall.copy(
