@@ -28,12 +28,18 @@ import com.example.ui.util.rememberHapticEngine
 @Composable
 fun SkillTreeApp(
     viewModel: SkillTreeViewModel,
+    currentThemeId: AppThemeId = LocalAppPalette.current.id,
+    onSelectTheme: (AppThemeId) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val hapticEngine = rememberHapticEngine()
+    var isThemePickerOpen by remember { mutableStateOf(false) }
 
     // Handle Back button for dialogs and sheets
+    BackHandler(enabled = isThemePickerOpen) {
+        isThemePickerOpen = false
+    }
     BackHandler(enabled = uiState.activeRewardNotification != null) {
         viewModel.dismissRewardNotification()
     }
@@ -62,7 +68,8 @@ fun SkillTreeApp(
             MinimalDarkTopBar(
                 currentMode = uiState.currentViewMode,
                 userXp = uiState.userXp,
-                onOpenAchievements = { viewModel.setAchievementsDialogVisible(true) }
+                onOpenAchievements = { viewModel.setAchievementsDialogVisible(true) },
+                onOpenThemePicker = { isThemePickerOpen = true }
             )
         },
         bottomBar = {
@@ -165,6 +172,18 @@ fun SkillTreeApp(
                 onDismiss = viewModel::dismissRewardNotification
             )
         }
+
+        // Theme Picker Bottom Sheet
+        if (isThemePickerOpen) {
+            ThemePickerSheet(
+                currentThemeId = currentThemeId,
+                onSelectTheme = { themeId ->
+                    hapticEngine.click()
+                    onSelectTheme(themeId)
+                },
+                onDismiss = { isThemePickerOpen = false }
+            )
+        }
     }
 }
 
@@ -173,6 +192,7 @@ private fun MinimalDarkTopBar(
     currentMode: SkillDashboardViewMode,
     userXp: com.example.data.model.UserXpProfile,
     onOpenAchievements: () -> Unit,
+    onOpenThemePicker: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -212,40 +232,60 @@ private fun MinimalDarkTopBar(
             )
         }
 
-        // Quick Level/XP Pill
-        Surface(
-            shape = RoundedCornerShape(10.dp),
-            color = PanelNavyElevated,
-            border = androidx.compose.foundation.BorderStroke(1.dp, AccentCyan.copy(alpha = 0.4f)),
-            modifier = Modifier.clickable { onOpenAchievements() }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                verticalAlignment = Alignment.CenterVertically
+            // Theme Picker Button
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = PanelNavyElevated,
+                border = androidx.compose.foundation.BorderStroke(1.dp, BorderSubtle),
+                modifier = Modifier.clickable { onOpenThemePicker() }
             ) {
-                Text(
-                    text = "LVL ${userXp.level}",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = AccentCyan,
-                        fontSize = 11.sp
+                Box(
+                    modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = "🎨", fontSize = 14.sp)
+                }
+            }
+
+            // Quick Level/XP Pill
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = PanelNavyElevated,
+                border = androidx.compose.foundation.BorderStroke(1.dp, AccentCyan.copy(alpha = 0.4f)),
+                modifier = Modifier.clickable { onOpenAchievements() }
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "LVL ${userXp.level}",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = AccentCyan,
+                            fontSize = 11.sp
+                        )
                     )
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "•",
-                    color = TextDarkMuted,
-                    fontSize = 10.sp
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "${userXp.totalXp} XP",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = AccentAmber,
-                        fontSize = 11.sp
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "•",
+                        color = TextDarkMuted,
+                        fontSize = 10.sp
                     )
-                )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "${userXp.totalXp} XP",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = AccentAmber,
+                            fontSize = 11.sp
+                        )
+                    )
+                }
             }
         }
     }

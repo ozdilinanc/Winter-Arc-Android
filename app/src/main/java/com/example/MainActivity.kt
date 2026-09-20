@@ -11,14 +11,18 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.content.ContextCompat
+import com.example.data.repository.ThemePreferencesRepository
 import com.example.ui.SkillDashboardViewMode
 import com.example.ui.SkillTreeApp
 import com.example.ui.SkillTreeViewModel
+import com.example.ui.theme.AppThemePalette
 import com.example.ui.theme.SkillTreeTheme
 import com.example.ui.util.WinterArcNotificationHelper
 
@@ -45,9 +49,22 @@ class MainActivity : ComponentActivity() {
         handleIntent(intent)
 
         setContent {
-            SkillTreeTheme {
+            val context = this
+            var currentThemeId by remember {
+                mutableStateOf(ThemePreferencesRepository.getSelectedThemeId(context))
+            }
+            val currentPalette = remember(currentThemeId) {
+                AppThemePalette.fromId(currentThemeId)
+            }
+
+            SkillTreeTheme(palette = currentPalette) {
                 SkillTreeApp(
                     viewModel = viewModel,
+                    currentThemeId = currentThemeId,
+                    onSelectTheme = { newThemeId ->
+                        currentThemeId = newThemeId
+                        ThemePreferencesRepository.setSelectedThemeId(context, newThemeId)
+                    },
                     modifier = Modifier.fillMaxSize()
                 )
             }
