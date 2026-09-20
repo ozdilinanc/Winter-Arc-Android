@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.BranchId
@@ -264,6 +265,7 @@ fun CategoriesDashboardView(
     onCreateProject: (String, String, String, ProjectWorkflowStage, String, String, String, List<String>) -> Unit = { _, _, _, _, _, _, _, _ -> },
     onDeleteProject: (String) -> Unit = {},
     modifier: Modifier = Modifier,
+    onOpenThemePicker: () -> Unit = {},
     onCategorySelected: (CategoryMeta) -> Unit = {}
 ) {
     var activeCategory by remember { mutableStateOf<String?>(null) }
@@ -309,6 +311,7 @@ fun CategoriesDashboardView(
                 subItems = careerSubItems,
                 projects = projects,
                 categoryIcon = Icons.Outlined.WorkOutline,
+                onOpenThemePicker = onOpenThemePicker,
                 onAdvanceProjectStage = onAdvanceProjectStage,
                 onRegressProjectStage = onRegressProjectStage,
                 onCreateProject = onCreateProject,
@@ -327,6 +330,7 @@ fun CategoriesDashboardView(
                 accentColor = BranchTools,
                 subItems = techCultureSubItems,
                 categoryIcon = Icons.Outlined.Terminal,
+                onOpenThemePicker = onOpenThemePicker,
                 onBack = { activeCategory = null },
                 modifier = modifier
             )
@@ -341,6 +345,7 @@ fun CategoriesDashboardView(
                 accentColor = AccentAmber,
                 subItems = personalDevSubItems,
                 categoryIcon = Icons.Outlined.FitnessCenter,
+                onOpenThemePicker = onOpenThemePicker,
                 onBack = { activeCategory = null },
                 modifier = modifier
             )
@@ -355,6 +360,7 @@ fun CategoriesDashboardView(
                 accentColor = BranchPortfolio,
                 subItems = portfolioSubItems,
                 categoryIcon = Icons.Outlined.RocketLaunch,
+                onOpenThemePicker = onOpenThemePicker,
                 onBack = { activeCategory = null },
                 modifier = modifier
             )
@@ -429,23 +435,33 @@ fun CategoriesDashboardView(
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         item {
-            Column(modifier = Modifier.padding(bottom = 8.dp)) {
-                Text(
-                    text = "KATEGORİLER",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary,
-                        letterSpacing = 1.2.sp
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "KATEGORİLER",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary,
+                            letterSpacing = 1.2.sp
+                        )
                     )
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = "Gelişim alanlarını keşfet ve derinleş.",
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        color = TextSecondary,
-                        fontSize = 12.sp
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Gelişim alanlarını keşfet ve derinleş.",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            color = TextSecondary,
+                            fontSize = 12.sp
+                        )
                     )
-                )
+                }
+
+                ThemeToggleButton(onOpenThemePicker = onOpenThemePicker)
             }
         }
 
@@ -477,6 +493,7 @@ fun CategoriesDashboardView(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .height(76.dp)
                     .clip(RoundedCornerShape(18.dp))
                     .border(1.dp, BorderSubtle.copy(alpha = 0.6f), RoundedCornerShape(18.dp))
                     .clickable {
@@ -489,8 +506,8 @@ fun CategoriesDashboardView(
             ) {
                 Row(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
@@ -501,7 +518,7 @@ fun CategoriesDashboardView(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(48.dp)
+                                .size(46.dp)
                                 .clip(RoundedCornerShape(14.dp))
                                 .background(cat.accentColor.copy(alpha = 0.14f))
                                 .border(1.dp, cat.accentColor.copy(alpha = 0.28f), RoundedCornerShape(14.dp)),
@@ -519,16 +536,18 @@ fun CategoriesDashboardView(
                             }
                         }
 
-                        Spacer(modifier = Modifier.width(16.dp))
+                        Spacer(modifier = Modifier.width(14.dp))
 
                         Text(
                             text = cat.title,
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 color = TextPrimary,
-                                letterSpacing = 0.6.sp,
-                                fontSize = 16.sp
-                            )
+                                letterSpacing = 0.5.sp,
+                                fontSize = if (cat.title.length > 14) 14.sp else 15.5.sp
+                            ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
 

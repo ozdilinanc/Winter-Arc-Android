@@ -3,16 +3,19 @@ package com.example.ui.components
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,6 +24,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.sp
@@ -52,6 +56,7 @@ fun CategorySubItemsHubView(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     categoryIcon: ImageVector? = null,
+    onOpenThemePicker: () -> Unit = {},
     projects: List<EngineeringProject> = emptyList(),
     onAdvanceProjectStage: (String, ProjectWorkflowStage) -> Unit = { _, _ -> },
     onRegressProjectStage: (String) -> Unit = {},
@@ -117,6 +122,17 @@ fun CategorySubItemsHubView(
         return
     }
 
+    // Top-level stats calculation for 3-card header
+    val allSubItemStats = remember(subItems, prefsUpdateTrigger, projects) {
+        subItems.map { RoadmapProgressHelper.getSubItemStats(it.id, roadmapPrefs, projects) }
+    }
+    val totalCategoryItems = allSubItemStats.sumOf { it.totalCount }
+    val totalCategoryCompleted = allSubItemStats.sumOf { it.completedCount }
+    val totalCategoryProgressFraction = if (totalCategoryItems > 0) {
+        (totalCategoryCompleted.toFloat() / totalCategoryItems.toFloat()).coerceIn(0f, 1f)
+    } else 0f
+    val totalCategoryProgressPercent = (totalCategoryProgressFraction * 100).toInt().coerceIn(0, 100)
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = CanvasDark,
@@ -139,80 +155,50 @@ fun CategorySubItemsHubView(
                 .padding(padding)
                 .padding(horizontal = 16.dp),
             contentPadding = PaddingValues(top = 14.dp, bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Back Button Bar
+            // 1. Header Navigation Row with Back, Title & Theme Button
             item {
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onBack() }
-                        .padding(vertical = 4.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Geri",
-                        tint = AccentCyan,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "KATEGORİLERE DÖN",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = AccentCyan,
-                            letterSpacing = 1.2.sp
-                        )
-                    )
-                }
-            }
-
-            // Category Header Banner
-            item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .border(1.dp, accentColor.copy(alpha = 0.3f), RoundedCornerShape(16.dp)),
-                    colors = CardDefaults.cardColors(containerColor = PanelNavyElevated)
+                        .padding(bottom = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(
-                        modifier = Modifier.padding(18.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .clickable { onBack() }
+                            .padding(vertical = 4.dp)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(50.dp)
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(accentColor.copy(alpha = 0.15f))
-                                .border(1.dp, accentColor.copy(alpha = 0.3f), RoundedCornerShape(14.dp)),
-                            contentAlignment = Alignment.Center
+                        Surface(
+                            shape = CircleShape,
+                            color = PanelNavyElevated,
+                            border = BorderStroke(1.dp, BorderSubtle),
+                            modifier = Modifier.size(38.dp)
                         ) {
-                            if (categoryIcon != null) {
+                            Box(contentAlignment = Alignment.Center) {
                                 Icon(
-                                    imageVector = categoryIcon,
-                                    contentDescription = null,
-                                    tint = accentColor,
-                                    modifier = Modifier.size(26.dp)
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Geri",
+                                    tint = AccentCyan,
+                                    modifier = Modifier.size(18.dp)
                                 )
-                            } else {
-                                Text(text = categoryEmoji, fontSize = 26.sp)
                             }
                         }
-
-                        Spacer(modifier = Modifier.width(14.dp))
-
+                        Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(
-                                text = "$categoryTitle HUB",
+                                text = categoryTitle,
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.Bold,
                                     color = TextPrimary,
-                                    letterSpacing = 1.sp
+                                    letterSpacing = 1.1.sp,
+                                    fontSize = 17.sp
                                 )
                             )
-                            Spacer(modifier = Modifier.height(2.dp))
+                            Spacer(modifier = Modifier.height(1.dp))
                             Text(
                                 text = categorySubtitle,
                                 style = MaterialTheme.typography.bodySmall.copy(
@@ -221,35 +207,55 @@ fun CategorySubItemsHubView(
                                     fontSize = 11.5.sp
                                 )
                             )
-                            Spacer(modifier = Modifier.height(3.dp))
-                            Text(
-                                text = categoryDescription,
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    color = TextSecondary,
-                                    fontSize = 11.sp,
-                                    lineHeight = 15.sp
-                                )
-                            )
                         }
                     }
+
+                    ThemeToggleButton(onOpenThemePicker = onOpenThemePicker)
                 }
             }
 
-            // Sub-modules Title
+            // 2. Three Sleek Stat Cards (Inspired by Reference 5)
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    CategoryMiniStatCard(
+                        title = "Alt Alan",
+                        value = "${subItems.size}",
+                        accentColor = AccentCyan,
+                        modifier = Modifier.weight(1f)
+                    )
+                    CategoryMiniStatCard(
+                        title = "Toplam Konu",
+                        value = "$totalCategoryItems",
+                        accentColor = AccentAmber,
+                        modifier = Modifier.weight(1f)
+                    )
+                    CategoryMiniStatCard(
+                        title = "İlerleme",
+                        value = "%$totalCategoryProgressPercent",
+                        accentColor = if (totalCategoryProgressPercent > 0) AccentEmerald else TextDarkMuted,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+
+            // 3. Section Title
             item {
                 Text(
-                    text = "$categoryTitle ALT BAŞLIKLARI (${subItems.size})",
+                    text = "GELİŞİM MODÜLLERİ (${subItems.size})",
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontWeight = FontWeight.SemiBold,
                         color = TextMuted,
                         letterSpacing = 1.sp,
-                        fontSize = 11.sp
+                        fontSize = 10.5.sp
                     ),
-                    modifier = Modifier.padding(top = 4.dp)
+                    modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
                 )
             }
 
-            // Sub-items List
+            // 4. Sub-items List (Inspired by Reference 3 & 5 Left Side)
             items(subItems, key = { it.id }) { item ->
                 val stats = remember(item.id, prefsUpdateTrigger, projects) {
                     RoadmapProgressHelper.getSubItemStats(item.id, roadmapPrefs, projects)
@@ -271,19 +277,25 @@ fun CategorySubItemsHubView(
                         },
                     colors = CardDefaults.cardColors(containerColor = PanelNavyElevated)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(14.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                // 46x46dp Icon Box
                                 Box(
                                     modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(RoundedCornerShape(10.dp))
+                                        .size(46.dp)
+                                        .clip(RoundedCornerShape(12.dp))
                                         .background(accentColor.copy(alpha = 0.12f))
-                                        .border(1.dp, accentColor.copy(alpha = 0.25f), RoundedCornerShape(10.dp)),
+                                        .border(1.dp, accentColor.copy(alpha = 0.25f), RoundedCornerShape(12.dp)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     if (item.icon != null) {
@@ -291,132 +303,171 @@ fun CategorySubItemsHubView(
                                             imageVector = item.icon,
                                             contentDescription = null,
                                             tint = accentColor,
-                                            modifier = Modifier.size(22.dp)
+                                            modifier = Modifier.size(23.dp)
                                         )
                                     } else {
-                                        Text(text = item.emoji, fontSize = 20.sp)
+                                        Text(text = item.emoji, fontSize = 21.sp)
                                     }
                                 }
 
-                                Spacer(modifier = Modifier.width(12.dp))
+                                Spacer(modifier = Modifier.width(13.dp))
 
-                                Column {
+                                Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         text = item.title,
                                         style = MaterialTheme.typography.titleMedium.copy(
                                             fontWeight = FontWeight.Bold,
-                                            color = TextPrimary
-                                        )
+                                            color = TextPrimary,
+                                            fontSize = 14.5.sp
+                                        ),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
+                                    Spacer(modifier = Modifier.height(2.dp))
                                     Text(
                                         text = item.subtitle,
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            color = accentColor,
-                                            fontWeight = FontWeight.Medium,
-                                            fontSize = 11.sp
-                                        )
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            color = TextSecondary,
+                                            fontSize = 11.5.sp
+                                        ),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Surface(
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = PanelNavy,
+                                            border = BorderStroke(1.dp, BorderSubtle)
+                                        ) {
+                                            Text(
+                                                text = item.tag,
+                                                style = MaterialTheme.typography.labelSmall.copy(
+                                                    color = accentColor,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    fontSize = 10.sp
+                                                ),
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            )
+                                        }
+
+                                        Surface(
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = PanelNavy,
+                                            border = BorderStroke(1.dp, BorderSubtle)
+                                        ) {
+                                            Text(
+                                                text = when (item.id) {
+                                                    "sub_personal_projects", "sub_projects" -> "${stats.completedCount}/${stats.totalCount} Proje"
+                                                    "sub_btk_akademi" -> "${stats.completedCount}/${stats.totalCount} Sertifika"
+                                                    else -> "${stats.completedCount}/${stats.totalCount} Konu"
+                                                },
+                                                style = MaterialTheme.typography.labelSmall.copy(
+                                                    color = if (stats.completedCount > 0) AccentEmerald else TextDarkMuted,
+                                                    fontWeight = FontWeight.Medium,
+                                                    fontSize = 10.sp
+                                                ),
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            )
+                                        }
+                                    }
                                 }
                             }
 
-                            Icon(
-                                imageVector = Icons.Default.ChevronRight,
-                                contentDescription = null,
-                                tint = TextMuted,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
+                            Spacer(modifier = Modifier.width(10.dp))
 
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        Text(
-                            text = item.description,
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                color = TextSecondary,
-                                fontSize = 12.sp,
-                                lineHeight = 17.sp
-                            )
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // Progress Metric Row
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = if (stats.progressPercent > 0) "%${stats.progressPercent} İlerleme" else "%0 Başlanmadı",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (stats.progressPercent > 0) accentColor else TextDarkMuted,
-                                    fontSize = 11.5.sp
-                                )
-                            )
-
-                            Text(
-                                text = when (item.id) {
-                                    "sub_personal_projects", "sub_projects" -> "${stats.completedCount}/${stats.totalCount} Proje Bitti"
-                                    "sub_btk_akademi" -> "${stats.completedCount}/${stats.totalCount} Sertifika"
-                                    else -> "${stats.completedCount}/${stats.totalCount} Tamamlandı"
-                                },
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    color = if (stats.completedCount > 0) TextSecondary else TextDarkMuted,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(6.dp))
-
-                        LinearProgressIndicator(
-                            progress = { stats.progressFraction },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(5.dp)
-                                .clip(RoundedCornerShape(3.dp)),
-                            color = accentColor,
-                            trackColor = PanelNavy
-                        )
-
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                            // Circular Action / Percentage Button (Image 5 style)
                             Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = PanelNavy,
-                                border = androidx.compose.foundation.BorderStroke(1.dp, BorderSubtle)
+                                shape = CircleShape,
+                                color = if (stats.progressPercent > 0) accentColor.copy(alpha = 0.12f) else PanelNavyHighlight,
+                                border = BorderStroke(1.dp, if (stats.progressPercent > 0) accentColor.copy(alpha = 0.35f) else BorderSubtle),
+                                modifier = Modifier.size(36.dp)
                             ) {
-                                Text(
-                                    text = item.tag,
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        color = accentColor,
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 10.5.sp
-                                    ),
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                                )
+                                Box(contentAlignment = Alignment.Center) {
+                                    if (stats.progressPercent == 100) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.CheckCircle,
+                                            contentDescription = null,
+                                            tint = AccentEmerald,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    } else if (stats.progressPercent > 0) {
+                                        Text(
+                                            text = "%${stats.progressPercent}",
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontWeight = FontWeight.Bold,
+                                                color = accentColor,
+                                                fontSize = 10.sp
+                                            )
+                                        )
+                                    } else {
+                                        Icon(
+                                            imageVector = Icons.Default.ChevronRight,
+                                            contentDescription = null,
+                                            tint = TextMuted,
+                                            modifier = Modifier.size(17.dp)
+                                        )
+                                    }
+                                }
                             }
+                        }
 
-                            if (stats.practiceCount > 0 || stats.theoryCount > 0) {
-                                Text(
-                                    text = "${stats.practiceCount} Pratik • ${stats.theoryCount} Teori",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        color = TextDarkMuted,
-                                        fontSize = 10.sp
-                                    )
-                                )
-                            }
+                        if (stats.progressFraction > 0f) {
+                            LinearProgressIndicator(
+                                progress = { stats.progressFraction },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(3.dp),
+                                color = accentColor,
+                                trackColor = Color.Transparent
+                            )
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun CategoryMiniStatCard(
+    title: String,
+    value: String,
+    accentColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .border(1.dp, BorderSubtle, RoundedCornerShape(12.dp)),
+        colors = CardDefaults.cardColors(containerColor = PanelNavyElevated)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp, horizontal = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = accentColor,
+                    fontSize = 17.sp
+                )
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    color = TextSecondary,
+                    fontSize = 10.5.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            )
         }
     }
 }

@@ -37,9 +37,11 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Build
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.FolderOpen
+import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material3.*
@@ -47,11 +49,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.util.Locale
 import com.example.data.model.CustomTopicItem
 import com.example.data.model.CustomTopicRepository
 import com.example.data.model.MediumRoadmapSeed
@@ -243,7 +249,12 @@ fun SubItemChecklistView(
                                 .border(1.dp, accentColor.copy(alpha = 0.3f), RoundedCornerShape(12.dp)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(text = roadmap.emoji, fontSize = 24.sp)
+                            Icon(
+                                imageVector = Icons.Outlined.Layers,
+                                contentDescription = null,
+                                tint = accentColor,
+                                modifier = Modifier.size(24.dp)
+                            )
                         }
 
                         Spacer(modifier = Modifier.width(14.dp))
@@ -715,12 +726,12 @@ private fun TopicSectionCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .border(1.dp, BorderSubtle, RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(16.dp))
+            .border(1.dp, BorderSubtle, RoundedCornerShape(16.dp))
             .animateContentSize(),
         colors = CardDefaults.cardColors(containerColor = PanelNavyElevated)
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
             // Section Header
             Row(
                 modifier = Modifier
@@ -730,29 +741,52 @@ private fun TopicSectionCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = section.emoji, fontSize = 18.sp)
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = accentColor.copy(alpha = 0.12f),
+                        border = BorderStroke(1.dp, accentColor.copy(alpha = 0.25f)),
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Outlined.Layers,
+                                contentDescription = null,
+                                tint = accentColor,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
                         text = section.title,
                         style = MaterialTheme.typography.titleSmall.copy(
                             fontWeight = FontWeight.Bold,
                             color = TextPrimary,
-                            fontSize = 13.5.sp,
+                            fontSize = 14.sp,
                             letterSpacing = 0.5.sp
                         )
                     )
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "$sectionCompletedCount/${section.items.size}",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            color = if (sectionCompletedCount == section.items.size && section.items.isNotEmpty()) AccentEmerald else TextMuted,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 11.sp
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = if (sectionCompletedCount == section.items.size && section.items.isNotEmpty())
+                            AccentEmerald.copy(alpha = 0.15f)
+                        else PanelNavy,
+                        border = BorderStroke(1.dp, if (sectionCompletedCount == section.items.size && section.items.isNotEmpty()) AccentEmerald.copy(alpha = 0.4f) else BorderSubtle)
+                    ) {
+                        Text(
+                            text = "$sectionCompletedCount/${section.items.size}",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                color = if (sectionCompletedCount == section.items.size && section.items.isNotEmpty()) AccentEmerald else TextMuted,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp
+                            ),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                         )
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
                     Icon(
                         imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                         contentDescription = null,
@@ -764,12 +798,14 @@ private fun TopicSectionCard(
 
             AnimatedVisibility(visible = isExpanded) {
                 Column(
-                    modifier = Modifier.padding(top = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier.padding(top = 16.dp)
                 ) {
-                    section.items.forEach { item ->
+                    section.items.forEachIndexed { index, item ->
                         val currentState = itemStates[item.id] ?: TopicProgressState.NOT_STARTED
-                        TopicItemCard(
+                        val isLast = index == section.items.size - 1
+                        TopicTimelineItem(
+                            index = index,
+                            isLast = isLast,
                             item = item,
                             state = currentState,
                             accentColor = accentColor,
@@ -784,7 +820,9 @@ private fun TopicSectionCard(
 }
 
 @Composable
-private fun TopicItemCard(
+private fun TopicTimelineItem(
+    index: Int,
+    isLast: Boolean,
     item: TopicCheckItem,
     state: TopicProgressState,
     accentColor: Color,
@@ -794,7 +832,7 @@ private fun TopicItemCard(
     var isExpanded by remember { mutableStateOf(false) }
 
     val stateColor = when (state) {
-        TopicProgressState.NOT_STARTED -> TextMuted
+        TopicProgressState.NOT_STARTED -> TextDarkMuted
         TopicProgressState.THEORY -> Color(0xFF38BDF8) // Sky Blue
         TopicProgressState.PRACTICED -> AccentAmber      // Amber / Orange
         TopicProgressState.COMPLETED -> AccentEmerald    // Emerald
@@ -814,138 +852,171 @@ private fun TopicItemCard(
         TopicProgressState.COMPLETED -> AccentEmerald.copy(alpha = 0.4f)
     }
 
-    Column(
+    val lineColor = BorderSubtle.copy(alpha = 0.45f)
+
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(stateBg)
-            .border(1.dp, stateBorder, RoundedCornerShape(10.dp))
-            .animateContentSize()
+            .drawBehind {
+                if (!isLast) {
+                    val nodeCenterX = 15.dp.toPx()
+                    val nodeCenterY = 15.dp.toPx()
+                    drawLine(
+                        color = lineColor,
+                        start = Offset(nodeCenterX, nodeCenterY),
+                        end = Offset(nodeCenterX, size.height),
+                        strokeWidth = 2.dp.toPx()
+                    )
+                }
+            }
+            .padding(bottom = if (isLast) 2.dp else 14.dp)
     ) {
-        // Main Row (Click anywhere except status chip to toggle practice details)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { isExpanded = !isExpanded }
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Status Icon Indicator
-            Box(
-                modifier = Modifier
-                    .size(26.dp)
-                    .clip(CircleShape)
-                    .background(
-                        if (state == TopicProgressState.NOT_STARTED) Color.Transparent
-                        else stateColor.copy(alpha = 0.2f)
-                    )
-                    .border(
-                        1.5.dp,
-                        if (state == TopicProgressState.NOT_STARTED) TextMuted else stateColor,
-                        CircleShape
-                    )
-                    .clickable { onUpdateState(state.next()) },
-                contentAlignment = Alignment.Center
-            ) {
+        // Timeline Node (Inspired by Reference 1 & 4)
+        Surface(
+            shape = CircleShape,
+            color = when (state) {
+                TopicProgressState.COMPLETED -> AccentEmerald
+                TopicProgressState.PRACTICED -> AccentAmber
+                TopicProgressState.THEORY -> Color(0xFF38BDF8)
+                TopicProgressState.NOT_STARTED -> PanelNavyHighlight
+            },
+            border = BorderStroke(
+                1.5.dp,
                 when (state) {
-                    TopicProgressState.NOT_STARTED -> {}
-                    TopicProgressState.THEORY -> {
+                    TopicProgressState.COMPLETED -> AccentEmerald
+                    TopicProgressState.PRACTICED -> AccentAmber
+                    TopicProgressState.THEORY -> Color(0xFF38BDF8)
+                    TopicProgressState.NOT_STARTED -> BorderSubtle
+                }
+            ),
+            modifier = Modifier
+                .size(30.dp)
+                .clickable { onUpdateState(state.next()) }
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                when (state) {
+                    TopicProgressState.COMPLETED -> {
                         Icon(
-                            imageVector = Icons.Default.MenuBook,
-                            contentDescription = null,
-                            tint = stateColor,
-                            modifier = Modifier.size(13.dp)
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Tamamlandı",
+                            tint = CanvasDark,
+                            modifier = Modifier.size(16.dp)
                         )
                     }
                     TopicProgressState.PRACTICED -> {
                         Icon(
-                            imageVector = Icons.Default.Build,
-                            contentDescription = null,
-                            tint = stateColor,
-                            modifier = Modifier.size(13.dp)
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = "Pratik",
+                            tint = CanvasDark,
+                            modifier = Modifier.size(17.dp)
                         )
                     }
-                    TopicProgressState.COMPLETED -> {
+                    TopicProgressState.THEORY -> {
                         Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = null,
-                            tint = stateColor,
+                            imageVector = Icons.AutoMirrored.Outlined.MenuBook,
+                            contentDescription = "Teori",
+                            tint = CanvasDark,
                             modifier = Modifier.size(14.dp)
                         )
                     }
+                    TopicProgressState.NOT_STARTED -> {
+                        Text(
+                            text = String.format(Locale.getDefault(), "%02d", index + 1),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = TextMuted,
+                                fontSize = 10.5.sp
+                            )
+                        )
+                    }
                 }
             }
+        }
 
-            Spacer(modifier = Modifier.width(10.dp))
+        Spacer(modifier = Modifier.width(12.dp))
 
-            // Topic Text Content
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = item.title,
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (state != TopicProgressState.NOT_STARTED) TextPrimary else TextSecondary,
-                        fontSize = 12.5.sp
-                    )
-                )
-                if (item.description.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(2.dp))
+        // Topic Item Card
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .clip(RoundedCornerShape(12.dp))
+                .background(stateBg)
+                .border(1.dp, stateBorder, RoundedCornerShape(12.dp))
+                .animateContentSize()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { isExpanded = !isExpanded }
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = item.description,
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            color = TextMuted,
-                            fontSize = 11.sp,
-                            lineHeight = 15.sp
+                        text = item.title,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (state != TopicProgressState.NOT_STARTED) TextPrimary else TextSecondary,
+                            fontSize = 13.sp
                         )
                     )
+                    if (item.description.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = item.description,
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = TextMuted,
+                                fontSize = 11.sp,
+                                lineHeight = 15.sp
+                            ),
+                            maxLines = if (isExpanded) Int.MAX_VALUE else 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
-            }
 
-            Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(8.dp))
 
-            // Interactive Status Chip: Click to advance to next state
-            Surface(
-                shape = RoundedCornerShape(7.dp),
-                color = if (state == TopicProgressState.NOT_STARTED) PanelNavyElevated else stateColor.copy(alpha = 0.15f),
-                border = BorderStroke(1.dp, if (state == TopicProgressState.NOT_STARTED) BorderSubtle else stateColor.copy(alpha = 0.5f)),
-                modifier = Modifier.clickable { onUpdateState(state.next()) }
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                // Interactive Status Chip: Click to advance to next state
+                Surface(
+                    shape = RoundedCornerShape(7.dp),
+                    color = if (state == TopicProgressState.NOT_STARTED) PanelNavyElevated else stateColor.copy(alpha = 0.15f),
+                    border = BorderStroke(1.dp, if (state == TopicProgressState.NOT_STARTED) BorderSubtle else stateColor.copy(alpha = 0.5f)),
+                    modifier = Modifier.clickable { onUpdateState(state.next()) }
                 ) {
                     Text(
-                        text = "${state.emoji} ${state.shortLabel}",
+                        text = state.shortLabel,
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
                             color = stateColor,
                             fontSize = 10.5.sp
-                        )
+                        ),
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 4.dp)
                     )
                 }
-            }
 
-            Spacer(modifier = Modifier.width(4.dp))
-
-            Icon(
-                imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                contentDescription = null,
-                tint = TextMuted,
-                modifier = Modifier.size(18.dp)
-            )
-
-            if (onDeleteItem != null) {
                 Spacer(modifier = Modifier.width(4.dp))
-                IconButton(
-                    onClick = { onDeleteItem() },
-                    modifier = Modifier.size(24.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.DeleteOutline,
-                        contentDescription = "Sil",
-                        tint = TextDarkMuted,
-                        modifier = Modifier.size(16.dp)
-                    )
+
+                Icon(
+                    imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = null,
+                    tint = TextMuted,
+                    modifier = Modifier.size(18.dp)
+                )
+
+                if (onDeleteItem != null) {
+                    Spacer(modifier = Modifier.width(4.dp))
+                    IconButton(
+                        onClick = { onDeleteItem() },
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DeleteOutline,
+                            contentDescription = "Sil",
+                            tint = TextDarkMuted,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
             }
         }

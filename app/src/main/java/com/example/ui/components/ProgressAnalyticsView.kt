@@ -30,6 +30,7 @@ import com.example.ui.theme.*
 fun ProgressAnalyticsView(
     uiState: SkillTreeUiState,
     onOpenAchievements: () -> Unit,
+    onOpenThemePicker: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val xp = uiState.userXp
@@ -47,23 +48,31 @@ fun ProgressAnalyticsView(
     ) {
         // Header
         item {
-            Column {
-                Text(
-                    text = "İLERLEME & İSTATİSTİK",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary,
-                        letterSpacing = 1.2.sp
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "İLERLEME & İSTATİSTİK",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary,
+                            letterSpacing = 1.2.sp
+                        )
                     )
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = "Gelişim metriğin ve seviye istatistiklerin.",
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        color = TextSecondary,
-                        fontSize = 12.sp
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Gelişim metriğin ve seviye istatistiklerin.",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            color = TextSecondary,
+                            fontSize = 12.sp
+                        )
                     )
-                )
+                }
+
+                ThemeToggleButton(onOpenThemePicker = onOpenThemePicker)
             }
         }
 

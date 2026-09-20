@@ -1,5 +1,11 @@
 package com.example.ui
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -11,15 +17,21 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountTree
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.CalendarToday
+import androidx.compose.material.icons.outlined.Construction
 import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material3.*
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -71,14 +83,6 @@ fun SkillTreeApp(
             .windowInsetsPadding(WindowInsets.statusBars)
             .testTag("skilltree_main_scaffold"),
         containerColor = CanvasDark,
-        topBar = {
-            MinimalDarkTopBar(
-                currentMode = uiState.currentViewMode,
-                userXp = uiState.userXp,
-                onOpenAchievements = { viewModel.setAchievementsDialogVisible(true) },
-                onOpenThemePicker = { isThemePickerOpen = true }
-            )
-        },
         bottomBar = {
             ElegantDarkBottomNav(
                 currentMode = uiState.currentViewMode,
@@ -95,7 +99,8 @@ fun SkillTreeApp(
             when (uiState.currentViewMode) {
                 SkillDashboardViewMode.TREE_MAP -> {
                     SkillTreeComingSoonView(
-                        onNavigateToCategories = { viewModel.onSetViewMode(SkillDashboardViewMode.CATEGORIES) }
+                        onNavigateToCategories = { viewModel.onSetViewMode(SkillDashboardViewMode.CATEGORIES) },
+                        onOpenThemePicker = { isThemePickerOpen = true }
                     )
                 }
 
@@ -107,6 +112,7 @@ fun SkillTreeApp(
                         onRegressProjectStage = viewModel::regressProjectStage,
                         onCreateProject = viewModel::createProject,
                         onDeleteProject = viewModel::deleteProject,
+                        onOpenThemePicker = { isThemePickerOpen = true },
                         onCategorySelected = { /* Deep category details to be added later */ }
                     )
                 }
@@ -118,14 +124,16 @@ fun SkillTreeApp(
                             hapticEngine.vibrateSkillCompleted()
                             viewModel.onUpdateSkillStatus(skill.id, SkillStatus.COMPLETED)
                         },
-                        onCycleFocus = viewModel::cycleNextDailyFocusSkill
+                        onCycleFocus = viewModel::cycleNextDailyFocusSkill,
+                        onOpenThemePicker = { isThemePickerOpen = true }
                     )
                 }
 
                 SkillDashboardViewMode.PROGRESS_ANALYTICS -> {
                     ProgressAnalyticsView(
                         uiState = uiState,
-                        onOpenAchievements = { viewModel.setAchievementsDialogVisible(true) }
+                        onOpenAchievements = { viewModel.setAchievementsDialogVisible(true) },
+                        onOpenThemePicker = { isThemePickerOpen = true }
                     )
                 }
             }
@@ -194,114 +202,7 @@ fun SkillTreeApp(
     }
 }
 
-@Composable
-private fun MinimalDarkTopBar(
-    currentMode: SkillDashboardViewMode,
-    userXp: com.example.data.model.UserXpProfile,
-    onOpenAchievements: () -> Unit,
-    onOpenThemePicker: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(CanvasDark)
-            .border(1.dp, BorderSubtle.copy(alpha = 0.5f))
-            .padding(horizontal = 18.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column {
-            Text(
-                text = when (currentMode) {
-                    SkillDashboardViewMode.TREE_MAP -> "AĞAÇ HARİTASI"
-                    SkillDashboardViewMode.CATEGORIES -> "KATEGORİLER"
-                    SkillDashboardViewMode.DAILY_TRACKER -> "GÜNLÜK TAKİP"
-                    SkillDashboardViewMode.PROGRESS_ANALYTICS -> "İLERLEME"
-                },
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary,
-                    letterSpacing = 1.2.sp
-                )
-            )
-            Text(
-                text = when (currentMode) {
-                    SkillDashboardViewMode.TREE_MAP -> "Yetenek Ağacı (Yakında Eklenecektir)"
-                    SkillDashboardViewMode.CATEGORIES -> "5 Temel Gelişim Sütunu"
-                    SkillDashboardViewMode.DAILY_TRACKER -> "Bugünün Rutinleri & Odak"
-                    SkillDashboardViewMode.PROGRESS_ANALYTICS -> "Seviye, Rozetler & İstatistik"
-                },
-                style = MaterialTheme.typography.labelSmall.copy(
-                    color = TextMuted,
-                    fontSize = 10.5.sp
-                )
-            )
-        }
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // Theme Picker Button
-            Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = PanelNavyElevated,
-                border = androidx.compose.foundation.BorderStroke(1.dp, BorderSubtle),
-                modifier = Modifier.clickable { onOpenThemePicker() }
-            ) {
-                Box(
-                    modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Palette,
-                        contentDescription = "Temalar",
-                        tint = AccentCyan,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-            }
-
-            // Quick Level/XP Pill
-            Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = PanelNavyElevated,
-                border = androidx.compose.foundation.BorderStroke(1.dp, AccentCyan.copy(alpha = 0.4f)),
-                modifier = Modifier.clickable { onOpenAchievements() }
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "LVL ${userXp.level}",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = AccentCyan,
-                            fontSize = 11.sp
-                        )
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "•",
-                        color = TextDarkMuted,
-                        fontSize = 10.sp
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "${userXp.totalXp} XP",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = AccentAmber,
-                            fontSize = 11.sp
-                        )
-                    )
-                }
-            }
-        }
-    }
-}
 
 private data class NavDestination(
     val mode: SkillDashboardViewMode,
@@ -315,53 +216,126 @@ private fun ElegantDarkBottomNav(
     onModeSelected: (SkillDashboardViewMode) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Row(
+    val haptic = LocalHapticFeedback.current
+
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(CanvasDark)
-            .border(1.dp, BorderSubtle.copy(alpha = 0.7f))
             .navigationBarsPadding()
-            .height(58.dp)
-            .padding(horizontal = 12.dp),
-        horizontalArrangement = Arrangement.SpaceAround,
-        verticalAlignment = Alignment.CenterVertically
+            .padding(start = 16.dp, end = 16.dp, bottom = 10.dp, top = 4.dp),
+        contentAlignment = Alignment.Center
     ) {
-        val navItems = listOf(
-            NavDestination(SkillDashboardViewMode.TREE_MAP, Icons.Outlined.AccountTree, "AĞAÇ"),
-            NavDestination(SkillDashboardViewMode.CATEGORIES, Icons.Outlined.Dashboard, "KATEGORİ"),
-            NavDestination(SkillDashboardViewMode.DAILY_TRACKER, Icons.Outlined.CalendarToday, "GÜNLÜK"),
-            NavDestination(SkillDashboardViewMode.PROGRESS_ANALYTICS, Icons.Outlined.BarChart, "İLERLEME")
-        )
-
-        navItems.forEach { item ->
-            val isSelected = currentMode == item.mode
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .clip(RoundedCornerShape(8.dp))
-                    .clickable { onModeSelected(item.mode) }
-                    .padding(vertical = 6.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Icon(
-                    imageVector = item.icon,
-                    contentDescription = item.label,
-                    tint = if (isSelected) AccentCyan else TextDarkMuted,
-                    modifier = Modifier
-                        .size(19.dp)
-                        .padding(bottom = 2.dp)
-                )
-                Text(
-                    text = item.label,
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 8.5.sp,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                        letterSpacing = 1.4.sp,
-                        color = if (isSelected) AccentCyan else TextDarkMuted
+        Surface(
+            shape = RoundedCornerShape(26.dp),
+            color = PanelNavyElevated.copy(alpha = 0.95f),
+            border = BorderStroke(
+                1.2.dp,
+                Brush.horizontalGradient(
+                    listOf(
+                        BorderSubtle.copy(alpha = 0.7f),
+                        AccentCyan.copy(alpha = 0.35f),
+                        BorderSubtle.copy(alpha = 0.7f)
                     )
                 )
+            ),
+            shadowElevation = 12.dp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(64.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 6.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val navItems = listOf(
+                    NavDestination(SkillDashboardViewMode.TREE_MAP, Icons.Outlined.AccountTree, "AĞAÇ"),
+                    NavDestination(SkillDashboardViewMode.CATEGORIES, Icons.Outlined.Dashboard, "KATEGORİ"),
+                    NavDestination(SkillDashboardViewMode.DAILY_TRACKER, Icons.Outlined.CalendarToday, "GÜNLÜK"),
+                    NavDestination(SkillDashboardViewMode.PROGRESS_ANALYTICS, Icons.Outlined.BarChart, "İLERLEME")
+                )
+
+                navItems.forEach { item ->
+                    val isSelected = currentMode == item.mode
+
+                    val animatedBgColor by animateColorAsState(
+                        targetValue = if (isSelected) AccentCyan.copy(alpha = 0.14f) else Color.Transparent,
+                        animationSpec = tween(durationMillis = 220),
+                        label = "nav_bg_${item.label}"
+                    )
+                    val animatedBorderColor by animateColorAsState(
+                        targetValue = if (isSelected) AccentCyan.copy(alpha = 0.3f) else Color.Transparent,
+                        animationSpec = tween(durationMillis = 220),
+                        label = "nav_border_${item.label}"
+                    )
+                    val animatedContentColor by animateColorAsState(
+                        targetValue = if (isSelected) AccentCyan else TextDarkMuted,
+                        animationSpec = tween(durationMillis = 200),
+                        label = "nav_tint_${item.label}"
+                    )
+                    val iconScale by animateFloatAsState(
+                        targetValue = if (isSelected) 1.08f else 1.0f,
+                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                        label = "nav_scale_${item.label}"
+                    )
+                    val indicatorWidth by animateDpAsState(
+                        targetValue = if (isSelected) 14.dp else 0.dp,
+                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                        label = "nav_indicator_${item.label}"
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .padding(vertical = 3.dp, horizontal = 2.dp)
+                            .clip(RoundedCornerShape(18.dp))
+                            .background(animatedBgColor)
+                            .border(1.dp, animatedBorderColor, RoundedCornerShape(18.dp))
+                            .clickable {
+                                if (!isSelected) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    onModeSelected(item.mode)
+                                }
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                            modifier = Modifier.padding(vertical = 2.dp)
+                        ) {
+                            Icon(
+                                imageVector = item.icon,
+                                contentDescription = item.label,
+                                tint = animatedContentColor,
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .scale(iconScale)
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = item.label,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontSize = 9.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    letterSpacing = 1.1.sp,
+                                    color = animatedContentColor
+                                )
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Box(
+                                modifier = Modifier
+                                    .height(2.5.dp)
+                                    .width(indicatorWidth)
+                                    .clip(RoundedCornerShape(1.5.dp))
+                                    .background(if (isSelected) AccentCyan else Color.Transparent)
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -370,15 +344,21 @@ private fun ElegantDarkBottomNav(
 @Composable
 private fun SkillTreeComingSoonView(
     onNavigateToCategories: () -> Unit,
+    onOpenThemePicker: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(CanvasDark)
-            .padding(24.dp),
+            .padding(horizontal = 24.dp, vertical = 16.dp),
         contentAlignment = Alignment.Center
     ) {
+        ThemeToggleButton(
+            onOpenThemePicker = onOpenThemePicker,
+            modifier = Modifier.align(Alignment.TopEnd)
+        )
+
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -402,7 +382,12 @@ private fun SkillTreeComingSoonView(
                         .border(1.5.dp, AccentCyan.copy(alpha = 0.35f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = "🌳", fontSize = 38.sp)
+                    Icon(
+                        imageVector = Icons.Outlined.AccountTree,
+                        contentDescription = null,
+                        tint = AccentCyan,
+                        modifier = Modifier.size(38.dp)
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(20.dp))
@@ -412,16 +397,27 @@ private fun SkillTreeComingSoonView(
                     color = AccentAmber.copy(alpha = 0.15f),
                     border = BorderStroke(1.dp, AccentAmber.copy(alpha = 0.4f))
                 ) {
-                    Text(
-                        text = "🚧 YAKINDA EKLENECEKTİR",
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = AccentAmber,
-                            fontSize = 11.sp,
-                            letterSpacing = 1.sp
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Construction,
+                            contentDescription = null,
+                            tint = AccentAmber,
+                            modifier = Modifier.size(14.dp)
                         )
-                    )
+                        Text(
+                            text = "YAKINDA EKLENECEKTİR",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = AccentAmber,
+                                fontSize = 11.sp,
+                                letterSpacing = 1.sp
+                            )
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(14.dp))
@@ -468,14 +464,25 @@ private fun SkillTreeComingSoonView(
                     colors = ButtonDefaults.buttonColors(containerColor = AccentCyan),
                     contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
                 ) {
-                    Text(
-                        text = "🗂️ Kategorilere Git",
-                        style = MaterialTheme.typography.labelLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = CanvasDark,
-                            fontSize = 13.sp
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Dashboard,
+                            contentDescription = null,
+                            tint = CanvasDark,
+                            modifier = Modifier.size(18.dp)
                         )
-                    )
+                        Text(
+                            text = "Kategorilere Git",
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = CanvasDark,
+                                fontSize = 13.sp
+                            )
+                        )
+                    }
                 }
             }
         }

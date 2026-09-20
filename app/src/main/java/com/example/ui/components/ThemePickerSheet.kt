@@ -219,3 +219,29 @@ fun ThemePickerSheet(
         }
     }
 }
+
+@Composable
+fun ThemeToggleButton(
+    onOpenThemePicker: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = PanelNavyElevated.copy(alpha = 0.75f),
+        border = androidx.compose.foundation.BorderStroke(1.dp, BorderSubtle.copy(alpha = 0.8f)),
+        modifier = modifier.clickable { onOpenThemePicker() }
+    ) {
+        Box(
+            modifier = Modifier.padding(9.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Palette,
+                contentDescription = "Temalar",
+                tint = AccentCyan,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+    }
+}
+

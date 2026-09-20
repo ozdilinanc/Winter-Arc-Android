@@ -59,6 +59,7 @@ fun DailyTrackerView(
     focusSkill: SkillNode?,
     onCompleteSkill: ((SkillNode) -> Unit)? = null,
     onCycleFocus: (() -> Unit)? = null,
+    onOpenThemePicker: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -332,32 +333,39 @@ fun DailyTrackerView(
                             )
                         }
 
-                        // Streak Counter Badge
-                        Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = PanelNavyHighlight,
-                            border = BorderStroke(1.dp, AccentAmber.copy(alpha = 0.5f))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                            // Streak Counter Badge
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = PanelNavyHighlight,
+                                border = BorderStroke(1.dp, AccentAmber.copy(alpha = 0.5f))
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.LocalFireDepartment,
-                                    contentDescription = null,
-                                    tint = AccentAmber,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "$streakCount Gün Seri",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        color = AccentAmber,
-                                        fontSize = 11.sp
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.LocalFireDepartment,
+                                        contentDescription = null,
+                                        tint = AccentAmber,
+                                        modifier = Modifier.size(16.dp)
                                     )
-                                )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "$streakCount Gün Seri",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            color = AccentAmber,
+                                            fontSize = 11.sp
+                                        )
+                                    )
+                                }
                             }
+
+                            ThemeToggleButton(onOpenThemePicker = onOpenThemePicker)
                         }
                     }
 
