@@ -178,7 +178,7 @@ fun SkillTreeApp(
             ThemePickerSheet(
                 currentThemeId = currentThemeId,
                 onSelectTheme = { themeId ->
-                    hapticEngine.click()
+                    hapticEngine.vibrateSelection()
                     onSelectTheme(themeId)
                 },
                 onDismiss = { isThemePickerOpen = false }

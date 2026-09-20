@@ -79,92 +79,26 @@ val AccentEmerald: Color
     @ReadOnlyComposable
     get() = LocalAppPalette.current.accentEmerald
 
-// Status Colors
-val StatusNotStarted: Color
-    @Composable
-    @ReadOnlyComposable
-    get() = LocalAppPalette.current.textMuted
+// Status Colors (Matching elegant badges & completion tags)
+val StatusNotStarted = Color(0xFF64748B)   // Slate-500
+val StatusLearning = Color(0xFFF59E0B)     // Amber
+val StatusPracticed = Color(0xFF10B981)    // Emerald-500
+val StatusCompleted = Color(0xFF10B981)    // Emerald
+val StatusStrong = Color(0xFF34D399)       // Mint green
 
-val StatusLearning: Color
-    @Composable
-    @ReadOnlyComposable
-    get() = LocalAppPalette.current.accentAmber
-
-val StatusPracticed: Color
-    @Composable
-    @ReadOnlyComposable
-    get() = LocalAppPalette.current.accentEmerald
-
-val StatusCompleted: Color
-    @Composable
-    @ReadOnlyComposable
-    get() = LocalAppPalette.current.accentEmerald
-
-val StatusStrong: Color
-    @Composable
-    @ReadOnlyComposable
-    get() = LocalAppPalette.current.accentCyan
-
-// Branch Accent Palettes
-val BranchDotNet: Color
-    @Composable
-    @ReadOnlyComposable
-    get() = LocalAppPalette.current.branchDotNet
-
-val BranchDevOps: Color
-    @Composable
-    @ReadOnlyComposable
-    get() = LocalAppPalette.current.branchDevOps
-
-val BranchAndroid: Color
-    @Composable
-    @ReadOnlyComposable
-    get() = LocalAppPalette.current.branchAndroid
-
-val BranchCS: Color
-    @Composable
-    @ReadOnlyComposable
-    get() = LocalAppPalette.current.branchCS
-
-val BranchGraduation: Color
-    @Composable
-    @ReadOnlyComposable
-    get() = LocalAppPalette.current.branchGraduation
-
-val BranchTools: Color
-    @Composable
-    @ReadOnlyComposable
-    get() = LocalAppPalette.current.branchTools
-
-val BranchSecurity: Color
-    @Composable
-    @ReadOnlyComposable
-    get() = LocalAppPalette.current.branchSecurity
-
-val BranchEnglish: Color
-    @Composable
-    @ReadOnlyComposable
-    get() = LocalAppPalette.current.branchEnglish
-
-val BranchPortfolio: Color
-    @Composable
-    @ReadOnlyComposable
-    get() = LocalAppPalette.current.branchPortfolio
-
-val BranchKnowledge: Color
-    @Composable
-    @ReadOnlyComposable
-    get() = LocalAppPalette.current.branchKnowledge
-
-val BranchCerts: Color
-    @Composable
-    @ReadOnlyComposable
-    get() = LocalAppPalette.current.branchCerts
-
-val BranchLanguage: Color
-    @Composable
-    @ReadOnlyComposable
-    get() = LocalAppPalette.current.branchLanguage
+// Branch Accent Palettes (Static constants for Enum compatibility)
+val BranchDotNet = Color(0xFF818CF8)       // Sharp Indigo (.NET Core Primary)
+val BranchDevOps = Color(0xFFA78BFA)       // Soft Violet (DevOps / K8s)
+val BranchAndroid = Color(0xFF10B981)      // Emerald (Android / Mobile)
+val BranchCS = Color(0xFFC084FC)          // Lavender (CS Foundations)
+val BranchGraduation = Color(0xFFF43F5E)   // Rose / Crimson (Graduation / KV Cache)
+val BranchTools = Color(0xFF38BDF8)        // Sky Blue (Git / Linux / LazyVim)
+val BranchSecurity = Color(0xFFF59E0B)     // Amber (Security)
+val BranchEnglish = Color(0xFF38BDF8)      // Sky Blue (B2+ English)
+val BranchPortfolio = Color(0xFF10B981)    // Emerald (Portfolio Pipeline)
+val BranchKnowledge = Color(0xFF818CF8)    // Indigo (Knowledge Loop)
+val BranchCerts = Color(0xFF94A3B8)        // Slate (Certifications)
+val BranchLanguage = Color(0xFFE2E8F0)     // Cool Slate (Second Language)
 
 // Typography & Content Colors
 val TextPrimary: Color
