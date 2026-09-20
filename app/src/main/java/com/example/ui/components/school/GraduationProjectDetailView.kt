@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.HourglassTop
+import androidx.compose.material.icons.outlined.School
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -102,7 +103,12 @@ fun GraduationProjectDetailView(
                             .border(1.dp, BranchGraduation.copy(alpha = 0.4f), RoundedCornerShape(16.dp)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(text = "🎓", fontSize = 32.sp)
+                        Icon(
+                            imageVector = Icons.Outlined.School,
+                            contentDescription = null,
+                            tint = BranchGraduation,
+                            modifier = Modifier.size(32.dp)
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(14.dp))
@@ -128,7 +134,7 @@ fun GraduationProjectDetailView(
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.Bold,
                                     color = AccentAmber,
-                                    fontSize = 10.5.sp,
+                                    fontSize = 11.sp,
                                     letterSpacing = 0.8.sp
                                 )
                             )
@@ -138,26 +144,36 @@ fun GraduationProjectDetailView(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
-                        text = "BİTİRME PROJESİ",
-                        style = MaterialTheme.typography.titleMedium.copy(
+                        text = "Bitirme Projesi",
+                        style = MaterialTheme.typography.headlineSmall.copy(
                             fontWeight = FontWeight.Bold,
                             color = TextPrimary,
-                            fontSize = 18.sp,
-                            letterSpacing = 0.5.sp
+                            fontSize = 22.sp
                         )
                     )
 
                     Spacer(modifier = Modifier.height(6.dp))
 
                     Text(
-                        text = "Bu bölümün proje konusu, danışman bilgisi, sistem mimarisi, benchmark hedefleri ve tez savunma takvimi daha sonra belirlenip eklenecektir.",
+                        text = "Akademik Tez & Mühendislik Projesi",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            color = AccentAmber,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 13.sp
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "Bu alan mezuniyet projesi detayları netleştiğinde kapsamlı modül olarak açılacaktır. Şimdilik sadece okul dersleri ve haftalık program aktiftir.",
                         style = MaterialTheme.typography.bodySmall.copy(
                             color = TextSecondary,
                             fontSize = 12.sp,
-                            lineHeight = 18.sp,
-                            textAlign = TextAlign.Center
+                            textAlign = TextAlign.Center,
+                            lineHeight = 17.sp
                         ),
-                        modifier = Modifier.padding(horizontal = 8.dp)
+                        modifier = Modifier.padding(horizontal = 12.dp)
                     )
                 }
             }
@@ -174,7 +190,7 @@ fun GraduationProjectDetailView(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "📌 BURADA NELER TAKİP EDİLECEK?",
+                        text = "BURADA NELER TAKİP EDİLECEK?",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
                             color = TextMuted,
@@ -185,25 +201,33 @@ fun GraduationProjectDetailView(
                     Spacer(modifier = Modifier.height(10.dp))
 
                     val upcomingFeatures = listOf(
-                        "🔬 Bitirme Tezi Konusu & Akademik Danışman Bilgisi",
-                        "🏛️ Sistem Mimarisi & Geliştirme Teknolojileri",
-                        "🚩 Kilometre Taşları (Milestones) & İlerleme Yüzdesi",
-                        "📊 Karşılaştırmalı Test & Benchmark Sonuçları",
-                        "📄 Tez Dokümantasyonu & Jüri Savunma Takvimi"
+                        "Bitirme Tezi Konusu & Akademik Danışman Bilgisi",
+                        "Sistem Mimarisi & Geliştirme Teknolojileri",
+                        "Kilometre Taşları (Milestones) & İlerleme Yüzdesi",
+                        "Karşılaştırmalı Test & Benchmark Sonuçları",
+                        "Tez Dokümantasyonu & Jüri Savunma Takvimi"
                     )
 
                     upcomingFeatures.forEach { feature ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 4.dp),
+                                .padding(vertical = 5.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .clip(androidx.compose.foundation.shape.CircleShape)
+                                    .background(AccentAmber)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
                             Text(
                                 text = feature,
                                 style = MaterialTheme.typography.bodySmall.copy(
                                     color = TextSecondary,
-                                    fontSize = 12.sp
+                                    fontSize = 12.sp,
+                                    lineHeight = 16.sp
                                 )
                             )
                         }

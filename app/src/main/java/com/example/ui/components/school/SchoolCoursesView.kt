@@ -13,6 +13,10 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.MenuBook
+import androidx.compose.material.icons.outlined.Room
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -144,7 +148,12 @@ fun SchoolCoursesView(
                         .padding(end = 12.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = "📚", fontSize = 22.sp)
+                        Icon(
+                            imageVector = Icons.Outlined.MenuBook,
+                            contentDescription = null,
+                            tint = AccentCyan,
+                            modifier = Modifier.size(20.dp)
+                        )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "OKUL DERSLERİ",
@@ -201,12 +210,21 @@ fun SchoolCoursesView(
                         .padding(vertical = 8.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "📚 Dersler & Notlar",
-                        fontSize = 12.sp,
-                        fontWeight = if (selectedViewTab == 0) FontWeight.Bold else FontWeight.Medium,
-                        color = if (selectedViewTab == 0) Color.White else TextSecondary
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Outlined.MenuBook,
+                            contentDescription = null,
+                            tint = if (selectedViewTab == 0) Color.White else TextSecondary,
+                            modifier = Modifier.size(15.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Dersler & Notlar",
+                            fontSize = 12.sp,
+                            fontWeight = if (selectedViewTab == 0) FontWeight.Bold else FontWeight.Medium,
+                            color = if (selectedViewTab == 0) Color.White else TextSecondary
+                        )
+                    }
                 }
 
                 Box(
@@ -218,12 +236,21 @@ fun SchoolCoursesView(
                         .padding(vertical = 8.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "🗓️ Haftalık Program",
-                        fontSize = 12.sp,
-                        fontWeight = if (selectedViewTab == 1) FontWeight.Bold else FontWeight.Medium,
-                        color = if (selectedViewTab == 1) Color.White else TextSecondary
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Outlined.CalendarMonth,
+                            contentDescription = null,
+                            tint = if (selectedViewTab == 1) Color.White else TextSecondary,
+                            modifier = Modifier.size(15.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Haftalık Program",
+                            fontSize = 12.sp,
+                            fontWeight = if (selectedViewTab == 1) FontWeight.Bold else FontWeight.Medium,
+                            color = if (selectedViewTab == 1) Color.White else TextSecondary
+                        )
+                    }
                 }
             }
         }
@@ -321,7 +348,12 @@ fun SchoolCoursesView(
                                 .border(1.dp, AccentCyan.copy(alpha = 0.3f), RoundedCornerShape(14.dp)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(text = "📚", fontSize = 28.sp)
+                            Icon(
+                                imageVector = Icons.Outlined.MenuBook,
+                                contentDescription = null,
+                                tint = AccentCyan,
+                                modifier = Modifier.size(28.dp)
+                            )
                         }
 
                         Spacer(modifier = Modifier.height(16.dp))
@@ -589,15 +621,26 @@ private fun CourseCardItem(
                         color = Color(0xFF6366F1).copy(alpha = 0.18f),
                         border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF6366F1).copy(alpha = 0.4f))
                     ) {
-                        Text(
-                            text = "🌐 U.Ö. Online",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                color = Color(0xFFA5B4FC),
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 10.sp
-                            ),
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Language,
+                                contentDescription = null,
+                                tint = Color(0xFFA5B4FC),
+                                modifier = Modifier.size(11.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "U.Ö. Online",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    color = Color(0xFFA5B4FC),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 10.sp
+                                )
+                            )
+                        }
                     }
                 } else if (course.classroom.isNotBlank()) {
                     Surface(
@@ -605,14 +648,25 @@ private fun CourseCardItem(
                         color = PanelNavy,
                         border = androidx.compose.foundation.BorderStroke(1.dp, BorderSubtle)
                     ) {
-                        Text(
-                            text = "📍 ${course.classroom}",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                color = TextSecondary,
-                                fontSize = 10.sp
-                            ),
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Room,
+                                contentDescription = null,
+                                tint = TextSecondary,
+                                modifier = Modifier.size(11.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = course.classroom,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    color = TextSecondary,
+                                    fontSize = 10.sp
+                                )
+                            )
+                        }
                     }
                 }
             }
@@ -804,8 +858,8 @@ private fun CourseCardItem(
                     )
                     Text(
                         text = when {
-                            isFailed -> "🚨 KALDI (${course.absentCount} / 4 Hak)"
-                            isWarning -> "⚠️ SON HAK (4 / 4)"
+                            isFailed -> "KALDI (${course.absentCount} / 4 Hak)"
+                            isWarning -> "SON HAK (4 / 4)"
                             else -> "${course.absentCount} / 4 Hak"
                         },
                         style = MaterialTheme.typography.labelSmall.copy(
@@ -992,7 +1046,12 @@ private fun CourseAttendanceDetailView(
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(text = "🚨", fontSize = 16.sp)
+                                Icon(
+                                    imageVector = Icons.Default.Warning,
+                                    contentDescription = null,
+                                    tint = Color(0xFFEF4444),
+                                    modifier = Modifier.size(16.dp)
+                                )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = "5. devamsızlık yapıldı! 4 hak aşıldığı için dersten devamsızlıkla kalındı.",
@@ -1015,7 +1074,12 @@ private fun CourseAttendanceDetailView(
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(text = "⚠️", fontSize = 16.sp)
+                                Icon(
+                                    imageVector = Icons.Default.Warning,
+                                    contentDescription = null,
+                                    tint = AccentAmber,
+                                    modifier = Modifier.size(16.dp)
+                                )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = "4 devamsızlık hakkının tamamı doldu! 1 hafta daha gitmezsen dersten kalırsın.",

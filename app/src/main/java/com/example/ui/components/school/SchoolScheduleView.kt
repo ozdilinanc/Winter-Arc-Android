@@ -13,6 +13,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.Room
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -118,7 +122,12 @@ fun SchoolScheduleView(
                                     .border(1.dp, AccentCyan.copy(alpha = 0.35f), RoundedCornerShape(12.dp)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(text = "🗓️", fontSize = 22.sp)
+                                Icon(
+                                    imageVector = Icons.Outlined.CalendarMonth,
+                                    contentDescription = null,
+                                    tint = AccentCyan,
+                                    modifier = Modifier.size(24.dp)
+                                )
                             }
 
                             Spacer(modifier = Modifier.width(12.dp))
@@ -339,15 +348,26 @@ private fun ScheduleCourseCard(
                         color = Color(0xFF6366F1).copy(alpha = 0.2f),
                         border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF6366F1).copy(alpha = 0.5f))
                     ) {
-                        Text(
-                            text = "🌐 U.Ö. Online",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                color = Color(0xFFA5B4FC),
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 10.5.sp
-                            ),
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.5.dp)
-                        )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Language,
+                                contentDescription = null,
+                                tint = Color(0xFFA5B4FC),
+                                modifier = Modifier.size(11.dp)
+                            )
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text(
+                                text = "U.Ö. Online",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    color = Color(0xFFA5B4FC),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 10.5.sp
+                                )
+                            )
+                        }
                     }
                 } else {
                     Surface(
@@ -468,8 +488,8 @@ private fun ScheduleCourseCard(
                     )
                     Text(
                         text = when {
-                            isFailed -> "🚨 KALDI (${course.absentCount}/4)"
-                            isWarning -> "⚠️ SON HAK (4/4)"
+                            isFailed -> "KALDI (${course.absentCount}/4)"
+                            isWarning -> "SON HAK (4/4)"
                             else -> "${course.absentCount} / 4 Hak"
                         },
                         style = MaterialTheme.typography.labelSmall.copy(
@@ -523,7 +543,12 @@ private fun FreeDayCard(day: String) {
                     .border(1.dp, AccentEmerald.copy(alpha = 0.35f), RoundedCornerShape(10.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = "🌲", fontSize = 20.sp)
+                Icon(
+                    imageVector = Icons.Outlined.CheckCircle,
+                    contentDescription = null,
+                    tint = AccentEmerald,
+                    modifier = Modifier.size(22.dp)
+                )
             }
 
             Spacer(modifier = Modifier.width(12.dp))

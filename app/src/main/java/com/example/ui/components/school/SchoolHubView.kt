@@ -10,6 +10,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.outlined.AutoStories
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.MenuBook
+import androidx.compose.material.icons.outlined.School
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -52,9 +57,11 @@ fun SchoolHubView(
         SchoolSubScreen.COURSES -> {
             SchoolCoursesView(
                 onBack = { currentSubScreen = SchoolSubScreen.OVERVIEW },
+                modifier = modifier,
                 initialTab = initialCoursesTab,
                 initialAttendanceCourseId = activeAttendanceCourseId
             )
+            return
         }
         SchoolSubScreen.SCHEDULE -> {
             val context = LocalContext.current
@@ -66,168 +73,191 @@ fun SchoolHubView(
                     activeAttendanceCourseId = courseId
                     initialCoursesTab = 0
                     currentSubScreen = SchoolSubScreen.COURSES
-                }
+                },
+                modifier = modifier
             )
+            return
         }
         SchoolSubScreen.GRADUATION_PROJECT -> {
-            GraduationProjectDetailView(onBack = { currentSubScreen = SchoolSubScreen.OVERVIEW })
+            GraduationProjectDetailView(
+                onBack = { currentSubScreen = SchoolSubScreen.OVERVIEW },
+                modifier = modifier
+            )
+            return
         }
         SchoolSubScreen.BOOKS -> {
-            SchoolBooksView(onBack = { currentSubScreen = SchoolSubScreen.OVERVIEW })
+            SchoolBooksView(
+                onBack = { currentSubScreen = SchoolSubScreen.OVERVIEW },
+                modifier = modifier
+            )
+            return
         }
         SchoolSubScreen.OVERVIEW -> {
-            LazyColumn(
-                modifier = modifier
-                    .fillMaxSize()
-                    .background(CanvasDark)
-                    .padding(horizontal = 16.dp),
-                contentPadding = PaddingValues(top = 14.dp, bottom = 32.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                // Back Button
-                item {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onBackToCategories() }
-                            .padding(vertical = 4.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Geri",
-                            tint = AccentCyan,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "KATEGORİLERE DÖN",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = AccentCyan,
-                                letterSpacing = 1.2.sp
-                            )
-                        )
-                    }
-                }
+            // Render Hub Overview Menu
+        }
+    }
 
-                // Header Banner
-                item {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
-                            .border(1.dp, BranchCS.copy(alpha = 0.3f), RoundedCornerShape(16.dp)),
-                        colors = CardDefaults.cardColors(containerColor = PanelNavyElevated)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(18.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(50.dp)
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(BranchCS.copy(alpha = 0.15f))
-                                    .border(1.dp, BranchCS.copy(alpha = 0.3f), RoundedCornerShape(14.dp)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(text = "🎓", fontSize = 26.sp)
-                            }
-
-                            Spacer(modifier = Modifier.width(14.dp))
-
-                            Column {
-                                Text(
-                                    text = "OKUL HUB",
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        color = TextPrimary,
-                                        letterSpacing = 1.sp
-                                    )
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = "Müfredat dersleri, bitirme projesi ve temel kitaplar.",
-                                    style = MaterialTheme.typography.bodySmall.copy(
-                                        color = TextSecondary,
-                                        fontSize = 11.5.sp
-                                    )
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // Section Label
-                item {
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        containerColor = CanvasDark
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(CanvasDark)
+                .padding(padding)
+                .padding(horizontal = 16.dp),
+            contentPadding = PaddingValues(top = 14.dp, bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            // Back Button Bar
+            item {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onBackToCategories() }
+                        .padding(vertical = 4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Geri",
+                        tint = AccentCyan,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "OKUL GELİŞİM ALANLARI",
+                        text = "KATEGORİLERE DÖN",
                         style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            color = TextMuted,
-                            letterSpacing = 1.sp,
-                            fontSize = 11.sp
-                        ),
-                        modifier = Modifier.padding(top = 4.dp)
+                            fontWeight = FontWeight.Bold,
+                            color = AccentCyan,
+                            letterSpacing = 1.sp
+                        )
                     )
                 }
+            }
 
-                // Option 1: Okul Dersleri
-                item {
-                    SchoolOptionCard(
-                        emoji = "📚",
-                        title = "Okul Dersleri",
-                        subtitle = "Müfredat, Krediler & Not Takibi",
-                        description = "Dönemlik aldığın dersler, krediler, harf notları ve 16 haftalık devamsızlık durumu.",
-                        tag = "Ders Ekle / Yönet",
-                        accentColor = AccentCyan,
-                        onClick = {
-                            initialCoursesTab = 0
-                            activeAttendanceCourseId = null
-                            currentSubScreen = SchoolSubScreen.COURSES
+            // Hero School Category Card
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .border(1.dp, BranchCS.copy(alpha = 0.3f), RoundedCornerShape(16.dp)),
+                    colors = CardDefaults.cardColors(containerColor = PanelNavyElevated)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(18.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(50.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(BranchCS.copy(alpha = 0.15f))
+                                .border(1.dp, BranchCS.copy(alpha = 0.3f), RoundedCornerShape(14.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.School,
+                                contentDescription = null,
+                                tint = BranchCS,
+                                modifier = Modifier.size(28.dp)
+                            )
                         }
-                    )
-                }
 
-                // Option 2: Haftalık Ders Programı
-                item {
-                    SchoolOptionCard(
-                        emoji = "🗓️",
-                        title = "Haftalık Ders Programı",
-                        subtitle = "Derslikler, Saatler & U.Ö.",
-                        description = "Pazartesi, Salı ve Çarşamba ders saatleri, derslik kodları ve online ders bilgisi.",
-                        tag = "Programı Gör",
-                        accentColor = AccentEmerald,
-                        onClick = { currentSubScreen = SchoolSubScreen.SCHEDULE }
-                    )
-                }
+                        Spacer(modifier = Modifier.width(14.dp))
 
-                // Option 2: Bitirme Projesi
-                item {
-                    SchoolOptionCard(
-                        emoji = "🎓",
-                        title = "Bitirme Projesi",
-                        subtitle = "Mezuniyet & Araştırma Projesi",
-                        description = "Proje konusu, danışman bilgisi, sistem mimarisi ve tez adımları daha sonra belirlenecektir.",
-                        tag = "Sonradan Eklenecek",
-                        accentColor = AccentAmber,
-                        onClick = { currentSubScreen = SchoolSubScreen.GRADUATION_PROJECT }
-                    )
+                        Column {
+                            Text(
+                                text = "OKUL HUB",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextPrimary,
+                                    letterSpacing = 1.sp
+                                )
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Müfredat dersleri, bitirme projesi ve temel kitaplar.",
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    color = TextSecondary,
+                                    fontSize = 11.5.sp
+                                )
+                            )
+                        }
+                    }
                 }
+            }
 
-                // Option 3: CS Kitapları
-                item {
-                    SchoolOptionCard(
-                        emoji = "📖",
-                        title = "CS Kitapları",
-                        subtitle = "4 Başucu Kitabı & Sayfa Takibi",
-                        description = "OSTEP, CS:APP, DDIA ve Computer Networks kitaplarında okuma ilerlemesi ve sayfa takibi.",
-                        tag = "Sayfa Takibi",
-                        accentColor = BranchTools,
-                        onClick = { currentSubScreen = SchoolSubScreen.BOOKS }
-                    )
-                }
+            // Section Label
+            item {
+                Text(
+                    text = "OKUL GELİŞİM ALANLARI",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextMuted,
+                        letterSpacing = 1.sp,
+                        fontSize = 11.sp
+                    ),
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+
+            // Option 1: Okul Dersleri
+            item {
+                SchoolOptionCard(
+                    icon = Icons.Outlined.MenuBook,
+                    title = "Okul Dersleri",
+                    subtitle = "Müfredat, Krediler & Not Takibi",
+                    description = "Dönemlik aldığın dersler, krediler, harf notları ve 16 haftalık devamsızlık durumu.",
+                    tag = "Ders Ekle / Yönet",
+                    accentColor = AccentCyan,
+                    onClick = {
+                        initialCoursesTab = 0
+                        activeAttendanceCourseId = null
+                        currentSubScreen = SchoolSubScreen.COURSES
+                    }
+                )
+            }
+
+            // Option 2: Haftalık Ders Programı
+            item {
+                SchoolOptionCard(
+                    icon = Icons.Outlined.CalendarMonth,
+                    title = "Haftalık Ders Programı",
+                    subtitle = "Derslikler, Saatler & U.Ö.",
+                    description = "Pazartesi, Salı ve Çarşamba ders saatleri, derslik kodları ve online ders bilgisi.",
+                    tag = "Programı Gör",
+                    accentColor = AccentEmerald,
+                    onClick = { currentSubScreen = SchoolSubScreen.SCHEDULE }
+                )
+            }
+
+            // Option 3: Bitirme Projesi
+            item {
+                SchoolOptionCard(
+                    icon = Icons.Outlined.School,
+                    title = "Bitirme Projesi",
+                    subtitle = "Mezuniyet & Araştırma Projesi",
+                    description = "Proje konusu, danışman bilgisi, sistem mimarisi ve tez adımları daha sonra belirlenecektir.",
+                    tag = "Sonradan Eklenecek",
+                    accentColor = AccentAmber,
+                    onClick = { currentSubScreen = SchoolSubScreen.GRADUATION_PROJECT }
+                )
+            }
+
+            // Option 4: CS Kitapları
+            item {
+                SchoolOptionCard(
+                    icon = Icons.Outlined.AutoStories,
+                    title = "CS Kitapları",
+                    subtitle = "4 Başucu Kitabı & Sayfa Takibi",
+                    description = "OSTEP, CS:APP, DDIA ve Computer Networks kitaplarında okuma ilerlemesi ve sayfa takibi.",
+                    tag = "Sayfa Takibi",
+                    accentColor = BranchTools,
+                    onClick = { currentSubScreen = SchoolSubScreen.BOOKS }
+                )
             }
         }
     }
@@ -235,13 +265,14 @@ fun SchoolHubView(
 
 @Composable
 private fun SchoolOptionCard(
-    emoji: String,
     title: String,
     subtitle: String,
     description: String,
     tag: String,
     accentColor: Color,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    icon: ImageVector? = null,
+    emoji: String = ""
 ) {
     Card(
         modifier = Modifier
@@ -266,7 +297,16 @@ private fun SchoolOptionCard(
                             .border(1.dp, accentColor.copy(alpha = 0.3f), RoundedCornerShape(10.dp)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(text = emoji, fontSize = 22.sp)
+                        if (icon != null) {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = null,
+                                tint = accentColor,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        } else {
+                            Text(text = emoji, fontSize = 22.sp)
+                        }
                     }
 
                     Spacer(modifier = Modifier.width(12.dp))

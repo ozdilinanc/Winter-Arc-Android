@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.sp
 import com.example.data.model.EngineeringProject
 import com.example.data.model.ProjectWorkflowStage
@@ -34,9 +35,10 @@ data class CategorySubItem(
     val id: String,
     val title: String,
     val subtitle: String,
-    val emoji: String,
+    val emoji: String = "",
     val description: String,
-    val tag: String
+    val tag: String,
+    val icon: ImageVector? = null
 )
 
 @Composable
@@ -49,6 +51,7 @@ fun CategorySubItemsHubView(
     subItems: List<CategorySubItem>,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    categoryIcon: ImageVector? = null,
     projects: List<EngineeringProject> = emptyList(),
     onAdvanceProjectStage: (String, ProjectWorkflowStage) -> Unit = { _, _ -> },
     onRegressProjectStage: (String) -> Unit = {},
@@ -186,7 +189,16 @@ fun CategorySubItemsHubView(
                                 .border(1.dp, accentColor.copy(alpha = 0.3f), RoundedCornerShape(14.dp)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(text = categoryEmoji, fontSize = 26.sp)
+                            if (categoryIcon != null) {
+                                Icon(
+                                    imageVector = categoryIcon,
+                                    contentDescription = null,
+                                    tint = accentColor,
+                                    modifier = Modifier.size(26.dp)
+                                )
+                            } else {
+                                Text(text = categoryEmoji, fontSize = 26.sp)
+                            }
                         }
 
                         Spacer(modifier = Modifier.width(14.dp))
@@ -274,7 +286,16 @@ fun CategorySubItemsHubView(
                                         .border(1.dp, accentColor.copy(alpha = 0.25f), RoundedCornerShape(10.dp)),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text(text = item.emoji, fontSize = 20.sp)
+                                    if (item.icon != null) {
+                                        Icon(
+                                            imageVector = item.icon,
+                                            contentDescription = null,
+                                            tint = accentColor,
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                    } else {
+                                        Text(text = item.emoji, fontSize = 20.sp)
+                                    }
                                 }
 
                                 Spacer(modifier = Modifier.width(12.dp))
@@ -385,7 +406,7 @@ fun CategorySubItemsHubView(
 
                             if (stats.practiceCount > 0 || stats.theoryCount > 0) {
                                 Text(
-                                    text = "🛠️ ${stats.practiceCount} Pratik • 📘 ${stats.theoryCount} Teori",
+                                    text = "${stats.practiceCount} Pratik • ${stats.theoryCount} Teori",
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         color = TextDarkMuted,
                                         fontSize = 10.sp

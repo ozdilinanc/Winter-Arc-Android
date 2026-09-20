@@ -22,12 +22,22 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
+import androidx.compose.material.icons.outlined.AutoStories
+import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Code
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Hub
+import androidx.compose.material.icons.outlined.Psychology
+import androidx.compose.material.icons.outlined.Storage
+import androidx.compose.material.icons.outlined.Terminal
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -158,7 +168,12 @@ fun SchoolBooksView(
             item {
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = "📚", fontSize = 22.sp)
+                        Icon(
+                            imageVector = Icons.Outlined.AutoStories,
+                            contentDescription = null,
+                            tint = AccentCyan,
+                            modifier = Modifier.size(20.dp)
+                        )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "CS BAŞUCU KİTAPLARI",
@@ -180,56 +195,37 @@ fun SchoolBooksView(
                 }
             }
 
-            // Global Reading Statistics Banner
+            // Summary Progress Card
             item {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
-                        .border(1.dp, AccentCyan.copy(alpha = 0.35f), RoundedCornerShape(16.dp)),
+                        .border(1.dp, BorderSubtle, RoundedCornerShape(16.dp)),
                     colors = CardDefaults.cardColors(containerColor = PanelNavyElevated)
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .background(
-                                Brush.linearGradient(
-                                    listOf(
-                                        PanelNavyElevated,
-                                        PanelNavy.copy(alpha = 0.95f)
-                                    )
-                                )
-                            )
-                            .padding(16.dp)
-                    ) {
+                    Column(modifier = Modifier.padding(18.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "GENEL OKUMA İLERLEMESİ",
+                                text = "KÜTÜPHANE GENEL İLERLEMESİ",
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.Bold,
                                     color = TextMuted,
-                                    letterSpacing = 1.2.sp
+                                    letterSpacing = 1.sp
                                 )
                             )
-
-                            Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = PanelNavyHighlight,
-                                border = androidx.compose.foundation.BorderStroke(1.dp, BorderSubtle)
-                            ) {
-                                Text(
-                                    text = "%${(overallProgress * 100).toInt()} Tamamlandı",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        color = AccentEmerald,
-                                        fontSize = 11.sp
-                                    ),
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                            Text(
+                                text = "%${(overallProgress * 100).toInt()}",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = AccentEmerald,
+                                    fontSize = 16.sp
                                 )
-                            }
+                            )
                         }
 
                         Spacer(modifier = Modifier.height(12.dp))
@@ -242,17 +238,20 @@ fun SchoolBooksView(
                             StatItem(
                                 title = "Kitaplar",
                                 value = "$totalBooksCount Eser",
-                                emoji = "📖"
+                                icon = Icons.Outlined.AutoStories,
+                                iconTint = AccentCyan
                             )
                             StatItem(
                                 title = "Okunan Sayfa",
                                 value = "$totalReadPagesAll / $totalPagesAll",
-                                emoji = "📄"
+                                icon = Icons.Outlined.Description,
+                                iconTint = AccentAmber
                             )
                             StatItem(
                                 title = "Biten Bölüm",
                                 value = "$totalCompletedChaptersAll / $totalChaptersAll",
-                                emoji = "✅"
+                                icon = Icons.Outlined.CheckCircle,
+                                iconTint = AccentEmerald
                             )
                         }
 
@@ -368,7 +367,9 @@ fun SchoolBooksView(
 private fun StatItem(
     title: String,
     value: String,
-    emoji: String
+    icon: ImageVector? = null,
+    iconTint: Color = AccentCyan,
+    emoji: String = ""
 ) {
     Column {
         Text(
@@ -380,8 +381,18 @@ private fun StatItem(
         )
         Spacer(modifier = Modifier.height(2.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(text = emoji, fontSize = 13.sp)
-            Spacer(modifier = Modifier.width(4.dp))
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.size(13.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+            } else if (emoji.isNotBlank()) {
+                Text(text = emoji, fontSize = 13.sp)
+                Spacer(modifier = Modifier.width(4.dp))
+            }
             Text(
                 text = value,
                 style = MaterialTheme.typography.bodyMedium.copy(
@@ -424,7 +435,12 @@ private fun BookCatalogCard(
                         .border(1.dp, AccentCyan.copy(alpha = 0.35f), RoundedCornerShape(12.dp)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = book.coverEmoji, fontSize = 24.sp)
+                    Icon(
+                        imageVector = getBookCoverIcon(book.id),
+                        contentDescription = null,
+                        tint = AccentCyan,
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
 
                 Spacer(modifier = Modifier.width(12.dp))
@@ -465,7 +481,16 @@ private fun BookCatalogCard(
                                 modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(text = book.status.emoji, fontSize = 10.sp)
+                                Icon(
+                                    imageVector = getStatusIcon(book.status),
+                                    contentDescription = null,
+                                    tint = when (book.status) {
+                                        BookReadingStatus.COMPLETED -> StatusCompleted
+                                        BookReadingStatus.READING -> AccentCyan
+                                        BookReadingStatus.NOT_STARTED -> TextMuted
+                                    },
+                                    modifier = Modifier.size(11.dp)
+                                )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = book.status.label,
@@ -783,7 +808,12 @@ private fun BookStudyDetailView(
                                 .border(1.dp, AccentCyan.copy(alpha = 0.4f), RoundedCornerShape(12.dp)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(text = book.coverEmoji, fontSize = 28.sp)
+                            Icon(
+                                imageVector = getBookCoverIcon(book.id),
+                                contentDescription = null,
+                                tint = AccentCyan,
+                                modifier = Modifier.size(28.dp)
+                            )
                         }
 
                         Spacer(modifier = Modifier.width(14.dp))
@@ -852,7 +882,12 @@ private fun BookStudyDetailView(
                                     horizontalArrangement = Arrangement.Center,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(text = st.emoji, fontSize = 11.sp)
+                                    Icon(
+                                        imageVector = getStatusIcon(st),
+                                        contentDescription = null,
+                                        tint = if (isSelected) Color.White else TextMuted,
+                                        modifier = Modifier.size(12.dp)
+                                    )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
                                         text = st.label,
@@ -1031,7 +1066,12 @@ private fun BookStudyDetailView(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text(text = section.emoji, fontSize = 16.sp)
+                            Icon(
+                                imageVector = Icons.Outlined.BookmarkBorder,
+                                contentDescription = null,
+                                tint = AccentCyan,
+                                modifier = Modifier.size(16.dp)
+                            )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = section.title,
@@ -1257,3 +1297,24 @@ private fun ChapterItemRow(
         }
     }
 }
+
+private fun getBookCoverIcon(bookId: String): ImageVector {
+    return when (bookId) {
+        "book_ostep" -> Icons.Outlined.Terminal
+        "book_ddia" -> Icons.Outlined.Storage
+        "book_crafting_interpreters" -> Icons.Outlined.Code
+        "book_grokking_sim" -> Icons.Outlined.Hub
+        "book_clean_code" -> Icons.Outlined.AutoStories
+        "book_pragmatic_programmer" -> Icons.Outlined.Psychology
+        else -> Icons.Outlined.AutoStories
+    }
+}
+
+private fun getStatusIcon(status: BookReadingStatus): ImageVector {
+    return when (status) {
+        BookReadingStatus.COMPLETED -> Icons.Outlined.CheckCircle
+        BookReadingStatus.READING -> Icons.Outlined.AutoStories
+        BookReadingStatus.NOT_STARTED -> Icons.Filled.RadioButtonUnchecked
+    }
+}
+

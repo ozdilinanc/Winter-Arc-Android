@@ -7,7 +7,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AccountTree
+import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.outlined.CalendarToday
+import androidx.compose.material.icons.outlined.Dashboard
+import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material3.*
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -247,7 +254,12 @@ private fun MinimalDarkTopBar(
                     modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = "🎨", fontSize = 14.sp)
+                    Icon(
+                        imageVector = Icons.Outlined.Palette,
+                        contentDescription = "Temalar",
+                        tint = AccentCyan,
+                        modifier = Modifier.size(16.dp)
+                    )
                 }
             }
 
@@ -291,6 +303,12 @@ private fun MinimalDarkTopBar(
     }
 }
 
+private data class NavDestination(
+    val mode: SkillDashboardViewMode,
+    val icon: ImageVector,
+    val label: String
+)
+
 @Composable
 private fun ElegantDarkBottomNav(
     currentMode: SkillDashboardViewMode,
@@ -309,31 +327,34 @@ private fun ElegantDarkBottomNav(
         verticalAlignment = Alignment.CenterVertically
     ) {
         val navItems = listOf(
-            Triple(SkillDashboardViewMode.TREE_MAP, "🌳", "AĞAÇ"),
-            Triple(SkillDashboardViewMode.CATEGORIES, "🗂️", "KATEGORİ"),
-            Triple(SkillDashboardViewMode.DAILY_TRACKER, "📅", "GÜNLÜK"),
-            Triple(SkillDashboardViewMode.PROGRESS_ANALYTICS, "📊", "İLERLEME")
+            NavDestination(SkillDashboardViewMode.TREE_MAP, Icons.Outlined.AccountTree, "AĞAÇ"),
+            NavDestination(SkillDashboardViewMode.CATEGORIES, Icons.Outlined.Dashboard, "KATEGORİ"),
+            NavDestination(SkillDashboardViewMode.DAILY_TRACKER, Icons.Outlined.CalendarToday, "GÜNLÜK"),
+            NavDestination(SkillDashboardViewMode.PROGRESS_ANALYTICS, Icons.Outlined.BarChart, "İLERLEME")
         )
 
-        navItems.forEach { (mode, icon, label) ->
-            val isSelected = currentMode == mode
+        navItems.forEach { item ->
+            val isSelected = currentMode == item.mode
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
                     .clip(RoundedCornerShape(8.dp))
-                    .clickable { onModeSelected(mode) }
+                    .clickable { onModeSelected(item.mode) }
                     .padding(vertical = 6.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(
-                    text = icon,
-                    fontSize = 17.sp,
-                    modifier = Modifier.padding(bottom = 2.dp)
+                Icon(
+                    imageVector = item.icon,
+                    contentDescription = item.label,
+                    tint = if (isSelected) AccentCyan else TextDarkMuted,
+                    modifier = Modifier
+                        .size(19.dp)
+                        .padding(bottom = 2.dp)
                 )
                 Text(
-                    text = label,
+                    text = item.label,
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontSize = 8.5.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,

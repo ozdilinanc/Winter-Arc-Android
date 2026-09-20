@@ -11,12 +11,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.automirrored.outlined.Article
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -38,7 +41,8 @@ data class CategoryMeta(
     val description: String,
     val accentColor: Color,
     val tags: List<String>,
-    val branchIds: List<BranchId> = emptyList()
+    val branchIds: List<BranchId> = emptyList(),
+    val icon: ImageVector? = null
 )
 
 private val careerSubItems = listOf(
@@ -48,7 +52,8 @@ private val careerSubItems = listOf(
         subtitle = "C#, ASP.NET Core, EF Core, CQRS & Mimari",
         emoji = "⚡",
         description = "Modern RESTful API'ler, Clean Architecture, MediatR/CQRS, Dapper, SignalR, Polly & Redis pratikleri.",
-        tag = "ASP.NET Core"
+        tag = "ASP.NET Core",
+        icon = Icons.Outlined.Storage
     ),
     CategorySubItem(
         id = "sub_devops_dist",
@@ -56,7 +61,8 @@ private val careerSubItems = listOf(
         subtitle = "Docker, Kubernetes, CI/CD & Dağıtık Mimari",
         emoji = "🐳",
         description = "Container orkestrasyonu, GitHub Actions CI/CD pipeline'ları, mesaj kuyrukları ve dayanıklı servis mimarileri.",
-        tag = "Cloud Native"
+        tag = "Cloud Native",
+        icon = Icons.Outlined.Cloud
     ),
     CategorySubItem(
         id = "sub_android",
@@ -64,7 +70,8 @@ private val careerSubItems = listOf(
         subtitle = "Kotlin, XML Layouts, ViewBinding & MVVM",
         emoji = "🤖",
         description = "Geleneksel XML View sistemi, ConstraintLayout, ViewBinding, RecyclerView, MVVM, Room DB, Hilt ve Retrofit mimarisi.",
-        tag = "Kotlin & XML"
+        tag = "Kotlin & XML",
+        icon = Icons.Outlined.Android
     ),
     CategorySubItem(
         id = "sub_personal_projects",
@@ -72,7 +79,8 @@ private val careerSubItems = listOf(
         subtitle = "Uçtan Uca Geliştirilen Bağımsız Projeler",
         emoji = "🛠️",
         description = "Teorik bilgileri ürüne dönüştüren uçtan uca mimariye sahip full-stack ve mobil projeler.",
-        tag = "Side Projects"
+        tag = "Side Projects",
+        icon = Icons.Outlined.Code
     ),
     CategorySubItem(
         id = "sub_btk_akademi",
@@ -80,7 +88,8 @@ private val careerSubItems = listOf(
         subtitle = "e-Devlet & Barkodlu Sertifika Takibi",
         emoji = "🎓",
         description = "Android, .NET, PostgreSQL, Docker, Test ve hızlı diploma kasmalık tüm ücretsiz e-Devlet onaylı sertifika takip listesi.",
-        tag = "Ücretsiz Sertifikalar"
+        tag = "Ücretsiz Sertifikalar",
+        icon = Icons.Outlined.WorkspacePremium
     )
 )
 
@@ -91,7 +100,8 @@ private val techCultureSubItems = listOf(
         subtitle = "SOLID, Clean Code, Tasarım Desenleri & Test",
         emoji = "📐",
         description = "Nesne yönelimli tasarım ilkeleri (SOLID), GoF tasarım desenleri, refactoring, DRY/KISS ve Test Piramidi (Unit & AAA).",
-        tag = "SWE & Tasarım"
+        tag = "SWE & Tasarım",
+        icon = Icons.Outlined.Architecture
     ),
     CategorySubItem(
         id = "sub_data_structures_bigo",
@@ -99,7 +109,8 @@ private val techCultureSubItems = listOf(
         subtitle = "Big-O, Karmaşıklık & Temel Veri Tipleri",
         emoji = "⚡",
         description = "Zaman ve bellek analizi (Big-O), Hash Table, Ağaçlar (BST & Heap), İkili Arama ve QuickSort/MergeSort algoritmaları.",
-        tag = "Big-O & Algoritma"
+        tag = "Big-O & Algoritma",
+        icon = Icons.Outlined.DataObject
     ),
     CategorySubItem(
         id = "sub_system_design",
@@ -107,7 +118,8 @@ private val techCultureSubItems = listOf(
         subtitle = "Ölçeklenebilirlik, Caching, CAP & Kuyruklar",
         emoji = "🏗️",
         description = "Yatay büyüme, Load Balancer, Caching (Cache-Aside), Rate Limiting, CAP Teoremi ve Event-Driven mesaj kuyrukları.",
-        tag = "Sistem Tasarımı"
+        tag = "Sistem Tasarımı",
+        icon = Icons.Outlined.Hub
     ),
     CategorySubItem(
         id = "sub_networking_web",
@@ -115,7 +127,8 @@ private val techCultureSubItems = listOf(
         subtitle = "DNS, TCP/IP, HTTP/1-2-3 & İletişim",
         emoji = "🌐",
         description = "google.com istek yolculuğu, TCP 3-Way Handshake, TLS/HTTPS güvenliği, WebSocket, CDN ve CORS politikası.",
-        tag = "Ağ & Protokol"
+        tag = "Ağ & Protokol",
+        icon = Icons.Outlined.Lan
     ),
     CategorySubItem(
         id = "sub_git_github",
@@ -123,7 +136,8 @@ private val techCultureSubItems = listOf(
         subtitle = "Versiyon Kontrol & İş Akışları",
         emoji = "🐙",
         description = "Git branching stratejileri (GitFlow, Trunk-based), rebase, conflict çözümü, PR inceleme kültürü ve GitHub Actions CI.",
-        tag = "VCS & Git"
+        tag = "VCS & Git",
+        icon = Icons.Outlined.ForkRight
     ),
     CategorySubItem(
         id = "sub_linux_terminal",
@@ -131,7 +145,8 @@ private val techCultureSubItems = listOf(
         subtitle = "Bash, CLI Araçları & Çekirdek Mantığı",
         emoji = "🐧",
         description = "Linux dosya hiyerarşisi, process yönetimi, Bash betikleme, boru hatları (pipes), SSH ve LazyVim geliştirme ortamı.",
-        tag = "Linux & CLI"
+        tag = "Linux & CLI",
+        icon = Icons.Outlined.Terminal
     ),
     CategorySubItem(
         id = "sub_cyber_security",
@@ -139,7 +154,8 @@ private val techCultureSubItems = listOf(
         subtitle = "AppSec, Web & Ağ Güvenliği",
         emoji = "🛡️",
         description = "Web ve API güvenliği (SQLi, XSS, CSRF), JWT açıkları, şifreleme algoritmaları ve güvenli parola (BCrypt) saklama.",
-        tag = "Siber Güvenlik"
+        tag = "Siber Güvenlik",
+        icon = Icons.Outlined.Security
     ),
     CategorySubItem(
         id = "sub_ai_llm",
@@ -147,7 +163,8 @@ private val techCultureSubItems = listOf(
         subtitle = "Büyük Dil Modelleri, RAG & AI Ajanları",
         emoji = "🤖",
         description = "Token & Context Window sınırları, Prompt Mühendisliği (CoT), RAG & Vektör Veritabanları ve Function Calling mimarisi.",
-        tag = "AI & LLM"
+        tag = "AI & LLM",
+        icon = Icons.Outlined.Psychology
     )
 )
 
@@ -158,7 +175,8 @@ private val personalDevSubItems = listOf(
         subtitle = "Uyku, Dopamin Detoksu, Su, Beslenme & Spor",
         emoji = "❄️",
         description = "Bozdum/Bozmadım dopamin detoksu, sirkadiyen uyku ritmi, 3.5L su, temiz beslenme, fitness, tenis ve yürüyüş.",
-        tag = "Disiplin & Rutin"
+        tag = "Disiplin & Rutin",
+        icon = Icons.Outlined.AcUnit
     ),
     CategorySubItem(
         id = "sub_reading_books",
@@ -166,7 +184,8 @@ private val personalDevSubItems = listOf(
         subtitle = "Tarih, Kişisel Gelişim, Roman & Felsefe",
         emoji = "📚",
         description = "Bilgisayar mühendisliği başucu kitaplarının haricinde tarih, biyografi, Stoacı felsefe ve dünya klasikleri.",
-        tag = "Genel Kültür"
+        tag = "Genel Kültür",
+        icon = Icons.Outlined.AutoStories
     ),
     CategorySubItem(
         id = "sub_card_sleights",
@@ -174,7 +193,8 @@ private val personalDevSubItems = listOf(
         subtitle = "Sleight of Hand, Mekanikler & Repertuar",
         emoji = "🎴",
         description = "Double Lift, False Shuffles, Elmsley Count ve repertuardaki illüzyon & kart sihirbazlığı numaraları.",
-        tag = "Sleight of Hand"
+        tag = "Sleight of Hand",
+        icon = Icons.Outlined.Style
     ),
     CategorySubItem(
         id = "sub_anime_manhwa",
@@ -182,7 +202,8 @@ private val personalDevSubItems = listOf(
         subtitle = "İzlenen Seriler & Güncel Chapterlar",
         emoji = "🍿",
         description = "Solo Leveling, ORV, AoT, HxH gibi favori anime serileri ve güncel manhwa bölüm takipleri.",
-        tag = "Anime & Manhwa"
+        tag = "Anime & Manhwa",
+        icon = Icons.Outlined.Tv
     ),
     CategorySubItem(
         id = "sub_english",
@@ -190,7 +211,8 @@ private val personalDevSubItems = listOf(
         subtitle = "Teknik Dokümantasyon, Speaking & Dinleme",
         emoji = "🇬🇧",
         description = "Oxford 5000 kelime dağarcığı, AI sesli konuşma pratiği, teknik podcast'ler ve mesleki akıcılık.",
-        tag = "B2+ Fluency"
+        tag = "B2+ Fluency",
+        icon = Icons.Outlined.Language
     ),
     CategorySubItem(
         id = "sub_second_language",
@@ -198,7 +220,8 @@ private val personalDevSubItems = listOf(
         subtitle = "Kelime Uygulaması & Keyifli Hobi",
         emoji = "🇪🇸",
         description = "Kişisel kelime uygulamasına eklenecek temel İspanyolca kelimeler ve stressiz hobi dili temelleri.",
-        tag = "İspanyolca (Hobi)"
+        tag = "İspanyolca (Hobi)",
+        icon = Icons.Outlined.Language
     )
 )
 
@@ -209,7 +232,8 @@ private val portfolioSubItems = listOf(
         subtitle = "Açık Kaynak Depoları & Vitrin",
         emoji = "🐙",
         description = "Depoları doldurmak, açık kaynak projeler, mimari şemalı profesyonel README'ler ve düzenli yeşil katkı takvimi.",
-        tag = "Open Source"
+        tag = "Open Source",
+        icon = Icons.Outlined.Code
     ),
     CategorySubItem(
         id = "sub_play_store",
@@ -217,7 +241,8 @@ private val portfolioSubItems = listOf(
         subtitle = "Canlı Mobil Uygulamalar",
         emoji = "📱",
         description = "Google Play Console süreci, yayınlanan utility/hobi/araç native Android uygulamaları ve güncellemeler.",
-        tag = "Production Apps"
+        tag = "Production Apps",
+        icon = Icons.Outlined.Smartphone
     ),
     CategorySubItem(
         id = "sub_medium",
@@ -225,7 +250,8 @@ private val portfolioSubItems = listOf(
         subtitle = "Öğrenilenleri Yazıya Dökme & Teknik Hafıza",
         emoji = "✍️",
         description = "Öğrenilen ufak tefek her şeyi, mimari analizleri, backend ipuçlarını ve hata çözümlerini teknik makaleye dönüştürmek.",
-        tag = "Tech Blog"
+        tag = "Tech Blog",
+        icon = Icons.AutoMirrored.Outlined.Article
     )
 )
 
@@ -282,6 +308,7 @@ fun CategoriesDashboardView(
                 accentColor = BranchDotNet,
                 subItems = careerSubItems,
                 projects = projects,
+                categoryIcon = Icons.Outlined.WorkOutline,
                 onAdvanceProjectStage = onAdvanceProjectStage,
                 onRegressProjectStage = onRegressProjectStage,
                 onCreateProject = onCreateProject,
@@ -299,6 +326,7 @@ fun CategoriesDashboardView(
                 categoryDescription = "Mühendislik ilkeleri, algoritmalar, sistem tasarımı, ağ protokolleri, Git, Linux, siber güvenlik ve yapay zeka.",
                 accentColor = BranchTools,
                 subItems = techCultureSubItems,
+                categoryIcon = Icons.Outlined.Terminal,
                 onBack = { activeCategory = null },
                 modifier = modifier
             )
@@ -312,6 +340,7 @@ fun CategoriesDashboardView(
                 categoryDescription = "Dopamin detoksu, uyku, beslenme, spor, tenis, kitaplar, kart illüzyonları, anime/manhwa ve İngilizce.",
                 accentColor = AccentAmber,
                 subItems = personalDevSubItems,
+                categoryIcon = Icons.Outlined.FitnessCenter,
                 onBack = { activeCategory = null },
                 modifier = modifier
             )
@@ -325,6 +354,7 @@ fun CategoriesDashboardView(
                 categoryDescription = "GitHub depolarını doldurmak, Play Store'a canlı uygulamalar çıkarmak ve öğrenilen her şeyi Medium'da teknik yazıya dökmek.",
                 accentColor = BranchPortfolio,
                 subItems = portfolioSubItems,
+                categoryIcon = Icons.Outlined.RocketLaunch,
                 onBack = { activeCategory = null },
                 modifier = modifier
             )
@@ -337,6 +367,7 @@ fun CategoriesDashboardView(
             id = "cat_school",
             title = "OKUL",
             emoji = "🎓",
+            icon = Icons.Outlined.School,
             subtitle = "Bilgisayar Mühendisliği & Akademik",
             description = "Üniversite ders müfredatı, veri yapıları & algoritmalar, bitirme tezi ve CS başucu kitapları.",
             accentColor = BranchCS,
@@ -347,6 +378,7 @@ fun CategoriesDashboardView(
             id = "cat_career",
             title = "KARİYER",
             emoji = "💼",
+            icon = Icons.Outlined.WorkOutline,
             subtitle = "Sektör Odaklı Uzmanlık & Mimari",
             description = ".NET Backend, Dağıtık Sistemler, DevOps, Native Android, Kişisel Projeler ve BTK Akademi.",
             accentColor = BranchDotNet,
@@ -357,6 +389,7 @@ fun CategoriesDashboardView(
             id = "cat_tech_culture",
             title = "TEKNİK GENEL KÜLTÜR",
             emoji = "🧠",
+            icon = Icons.Outlined.Terminal,
             subtitle = "Sistem Mantığı & Mühendislik",
             description = "Git/GitHub pratikleri, Linux terminal yetkinliği, siber güvenlik temelleri ve yazılım prensipleri.",
             accentColor = BranchTools,
@@ -367,6 +400,7 @@ fun CategoriesDashboardView(
             id = "cat_personal_dev",
             title = "KİŞİSEL GELİŞİM",
             emoji = "🌱",
+            icon = Icons.Outlined.FitnessCenter,
             subtitle = "Winter Arc, Alışkanlıklar & Hobiler",
             description = "Dopamin detoksu, uyku, spor/tenis, tarih ve gelişim kitapları, kart illüzyonları, anime/manhwa ve İngilizce.",
             accentColor = AccentAmber,
@@ -377,6 +411,7 @@ fun CategoriesDashboardView(
             id = "cat_portfolio",
             title = "PORTFÖY",
             emoji = "🚀",
+            icon = Icons.Outlined.RocketLaunch,
             subtitle = "GitHub, Play Store & Medium Çıktıları",
             description = "GitHub depolarını doldurmak, Play Store'a canlı uygulamalar çıkarmak ve öğrenilen her şeyi Medium'da teknik yazıya dökmek.",
             accentColor = BranchPortfolio,
@@ -391,10 +426,10 @@ fun CategoriesDashboardView(
             .background(CanvasDark)
             .padding(horizontal = 16.dp),
         contentPadding = PaddingValues(top = 16.dp, bottom = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         item {
-            Column(modifier = Modifier.padding(bottom = 6.dp)) {
+            Column(modifier = Modifier.padding(bottom = 8.dp)) {
                 Text(
                     text = "KATEGORİLER",
                     style = MaterialTheme.typography.titleMedium.copy(
@@ -405,7 +440,7 @@ fun CategoriesDashboardView(
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "Gelişim alanlarını 5 ana sütun altında takip et.",
+                    text = "Gelişim alanlarını keşfet ve derinleş.",
                     style = MaterialTheme.typography.bodySmall.copy(
                         color = TextSecondary,
                         fontSize = 12.sp
@@ -442,151 +477,98 @@ fun CategoriesDashboardView(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .border(1.dp, BorderSubtle, RoundedCornerShape(14.dp))
+                    .clip(RoundedCornerShape(18.dp))
+                    .border(1.dp, BorderSubtle.copy(alpha = 0.6f), RoundedCornerShape(18.dp))
                     .clickable {
                         activeCategory = cat.id
                         onCategorySelected(cat)
                     },
-                colors = CardDefaults.cardColors(containerColor = PanelNavyElevated)
+                colors = CardDefaults.cardColors(
+                    containerColor = PanelNavyElevated.copy(alpha = 0.65f)
+                )
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    // Left: Translucent Frosted Icon Box & Title
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        modifier = Modifier.weight(1f)
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(42.dp)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(cat.accentColor.copy(alpha = 0.15f))
-                                    .border(1.dp, cat.accentColor.copy(alpha = 0.3f), RoundedCornerShape(10.dp)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(text = cat.emoji, fontSize = 22.sp)
-                            }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text(
-                                    text = cat.title,
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        color = TextPrimary,
-                                        letterSpacing = 0.5.sp
-                                    )
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(cat.accentColor.copy(alpha = 0.14f))
+                                .border(1.dp, cat.accentColor.copy(alpha = 0.28f), RoundedCornerShape(14.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (cat.icon != null) {
+                                Icon(
+                                    imageVector = cat.icon,
+                                    contentDescription = cat.title,
+                                    tint = cat.accentColor,
+                                    modifier = Modifier.size(24.dp)
                                 )
-                                Text(
-                                    text = cat.subtitle,
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        color = cat.accentColor,
-                                        fontWeight = FontWeight.Medium,
-                                        fontSize = 11.sp
-                                    )
-                                )
+                            } else {
+                                Text(text = cat.emoji, fontSize = 24.sp)
                             }
+                        }
+
+                        Spacer(modifier = Modifier.width(16.dp))
+
+                        Text(
+                            text = cat.title,
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary,
+                                letterSpacing = 0.6.sp,
+                                fontSize = 16.sp
+                            )
+                        )
+                    }
+
+                    // Right: Modern Circular Progress Ring & Chevron
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier.size(38.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                progress = { 1f },
+                                modifier = Modifier.fillMaxSize(),
+                                color = BorderSubtle.copy(alpha = 0.4f),
+                                strokeWidth = 2.5.dp
+                            )
+                            CircularProgressIndicator(
+                                progress = { stats.progressFraction },
+                                modifier = Modifier.fillMaxSize(),
+                                color = if (stats.progressPercent > 0) cat.accentColor else TextDarkMuted,
+                                strokeWidth = 2.5.dp
+                            )
+                            Text(
+                                text = "${stats.progressPercent}%",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 9.5.sp,
+                                    color = if (stats.progressPercent > 0) cat.accentColor else TextMuted
+                                )
+                            )
                         }
 
                         Icon(
                             imageVector = Icons.Default.ChevronRight,
                             contentDescription = null,
                             tint = TextMuted,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(18.dp)
                         )
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    Text(
-                        text = cat.description,
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            color = TextSecondary,
-                            lineHeight = 18.sp,
-                            fontSize = 12.sp
-                        )
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Progress Metric Row
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = if (stats.progressPercent > 0) "%${stats.progressPercent} İlerleme" else "%0 Başlanmadı",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = if (stats.progressPercent > 0) cat.accentColor else TextDarkMuted,
-                                fontSize = 11.5.sp
-                            )
-                        )
-
-                        Text(
-                            text = when (cat.id) {
-                                "cat_school" -> "${stats.completedCount}/${stats.totalCount} Modül • 4 Kitap"
-                                "cat_career" -> "${stats.completedCount}/${stats.totalCount} Konu & Proje"
-                                "cat_portfolio" -> "${stats.completedCount}/${stats.totalCount} Çıktı & Proje"
-                                else -> "${stats.completedCount}/${stats.totalCount} Konu Tamamlandı"
-                            },
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                color = if (stats.completedCount > 0) TextSecondary else TextDarkMuted,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    LinearProgressIndicator(
-                        progress = { stats.progressFraction },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(6.dp)
-                            .clip(RoundedCornerShape(3.dp)),
-                        color = cat.accentColor,
-                        trackColor = PanelNavy
-                    )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    // Tags
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            cat.tags.take(3).forEach { tag ->
-                                Surface(
-                                    shape = RoundedCornerShape(6.dp),
-                                    color = PanelNavy,
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, BorderSubtle)
-                                ) {
-                                    Text(
-                                        text = tag,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontSize = 10.sp,
-                                            color = TextMuted
-                                        )
-                                    )
-                                }
-                            }
-                        }
-
-                        if (stats.practiceCount > 0 || stats.theoryCount > 0) {
-                            Text(
-                                text = "🛠️ ${stats.practiceCount} • 📘 ${stats.theoryCount}",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 10.sp,
-                                    color = TextDarkMuted
-                                )
-                            )
-                        }
                     }
                 }
             }

@@ -34,6 +34,14 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.automirrored.outlined.Article
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
+import androidx.compose.material.icons.outlined.Build
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.FolderOpen
+import androidx.compose.material.icons.outlined.Lightbulb
+import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -107,7 +115,7 @@ fun SubItemChecklistView(
         CustomTopicRepository.addCustomItem(prefs, newItem)
         refreshTrigger++
         isAddDialogOpen = false
-        Toast.makeText(context, "${newItem.title} başarıyla eklendi! ✨", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, "${newItem.title} başarıyla eklendi!", Toast.LENGTH_SHORT).show()
     }
 
     fun handleDeleteItem(item: TopicCheckItem) {
@@ -300,7 +308,12 @@ fun SubItemChecklistView(
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(text = "💡", fontSize = 14.sp)
+                                Icon(
+                                    imageVector = Icons.Outlined.Lightbulb,
+                                    contentDescription = null,
+                                    tint = AccentEmerald,
+                                    modifier = Modifier.size(16.dp)
+                                )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = "Taktik: Videoları 1.5x hızda izleyebilir, final testinden 70+ alarak e-Devlet barkodlu resmi sertifikanı ücretsiz indirebilirsin.",
@@ -364,22 +377,22 @@ fun SubItemChecklistView(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         StatusSummaryChip(
-                            emoji = "✅",
+                            icon = Icons.Outlined.CheckCircle,
                             label = if (subItemId == "sub_btk_akademi") "$completedCount Sertifika Alındı" else "$completedCount Tamam",
                             color = AccentEmerald
                         )
                         StatusSummaryChip(
-                            emoji = "🛠️",
+                            icon = Icons.Outlined.Build,
                             label = if (subItemId == "sub_btk_akademi") "$practiceCount Sınav / Quiz" else "$practiceCount Pratik",
                             color = AccentAmber
                         )
                         StatusSummaryChip(
-                            emoji = "📘",
+                            icon = Icons.AutoMirrored.Outlined.MenuBook,
                             label = if (subItemId == "sub_btk_akademi") "$theoryCount İzleniyor" else "$theoryCount Teori",
                             color = Color(0xFF38BDF8)
                         )
                         StatusSummaryChip(
-                            emoji = "⚪",
+                            icon = Icons.Outlined.RadioButtonUnchecked,
                             label = "$notStartedCount Bekleyen",
                             color = TextMuted
                         )
@@ -388,10 +401,10 @@ fun SubItemChecklistView(
                     if (isCustomizable) {
                         Spacer(modifier = Modifier.height(14.dp))
                         val addLabel = when (subItemId) {
-                            "sub_reading_books" -> "+ Yeni Kitap Ekle 📚"
-                            "sub_card_sleights" -> "+ Yeni Kart Numarası Ekle 🃏"
-                            "sub_anime_manhwa" -> "+ Yeni Anime / Manhwa Ekle 🍿"
-                            else -> "+ Yeni İçerik Ekle ✨"
+                            "sub_reading_books" -> "+ Yeni Kitap Ekle"
+                            "sub_card_sleights" -> "+ Yeni Kart Numarası Ekle"
+                            "sub_anime_manhwa" -> "+ Yeni Anime / Manhwa Ekle"
+                            else -> "+ Yeni İçerik Ekle"
                         }
                         Button(
                             onClick = {
@@ -493,7 +506,7 @@ fun SubItemChecklistView(
                         }
                     ) {
                         Text(
-                            text = "🌟 Tümü ($totalAllCount)",
+                            text = "Tümü ($totalAllCount)",
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = if (isAllSelected) FontWeight.Bold else FontWeight.Medium,
@@ -552,7 +565,12 @@ fun SubItemChecklistView(
                             .padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(text = "📂", fontSize = 32.sp)
+                        Icon(
+                            imageVector = Icons.Outlined.FolderOpen,
+                            contentDescription = null,
+                            tint = accentColor,
+                            modifier = Modifier.size(36.dp)
+                        )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "'$selectedGenreFilter' türünde henüz eklenmiş içerik yok.",
@@ -571,7 +589,7 @@ fun SubItemChecklistView(
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Text(
-                                text = "Bu Türe Yeni İçerik Ekle ✨",
+                                text = "Bu Türe Yeni İçerik Ekle",
                                 color = CanvasDark,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 11.5.sp
@@ -651,7 +669,7 @@ fun SubItemChecklistView(
 
 @Composable
 private fun StatusSummaryChip(
-    emoji: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
     color: Color
 ) {
@@ -664,7 +682,12 @@ private fun StatusSummaryChip(
             modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(text = emoji, fontSize = 10.sp)
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(12.dp)
+            )
             Spacer(modifier = Modifier.width(4.dp))
             Text(
                 text = label,
@@ -1241,7 +1264,12 @@ private fun MediumArticleTemplateCard(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text(text = "📝", fontSize = 20.sp)
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Outlined.Article,
+                        contentDescription = null,
+                        tint = AccentCyan,
+                        modifier = Modifier.size(20.dp)
+                    )
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(
@@ -1324,7 +1352,7 @@ private fun MediumArticleTemplateCard(
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
                             val clip = ClipData.newPlainText("MediumArticleTemplate", MediumRoadmapSeed.ARTICLE_TEMPLATE_MARKDOWN)
                             clipboard?.setPrimaryClip(clip)
-                            Toast.makeText(context, "12 maddelik makale şablonu panoya kopyalandı! 📋", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "12 maddelik makale şablonu panoya kopyalandı!", Toast.LENGTH_SHORT).show()
                         },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp),
@@ -1338,7 +1366,7 @@ private fun MediumArticleTemplateCard(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "Markdown Şablonunu Panoya Kopyala 📋",
+                            text = "Markdown Şablonunu Panoya Kopyala",
                             style = MaterialTheme.typography.labelMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 color = CanvasDark,
