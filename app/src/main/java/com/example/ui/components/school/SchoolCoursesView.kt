@@ -21,20 +21,27 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.repository.SchoolCourseRepository
 import com.example.ui.theme.*
 import java.util.UUID
 
 @Composable
 fun SchoolCoursesView(
     onBack: () -> Unit,
+    initialTab: Int = 0,
+    initialAttendanceCourseId: String? = null,
     modifier: Modifier = Modifier
 ) {
-    // Start with empty course list as requested
-    var courses by remember { mutableStateOf(listOf<SchoolCourse>()) }
+    val context = LocalContext.current
+    var courses by remember {
+        mutableStateOf(SchoolCourseRepository.getCourses(context))
+    }
 
-    var activeAttendanceCourseId by remember { mutableStateOf<String?>(null) }
+    var selectedViewTab by remember { mutableStateOf(initialTab) } // 0: Dersler & Notlar, 1: Haftalık Program
+    var activeAttendanceCourseId by remember { mutableStateOf(initialAttendanceCourseId) }
     var activeGradeDialogCourseId by remember { mutableStateOf<String?>(null) }
     var activeWeightsDialogCourseId by remember { mutableStateOf<String?>(null) }
     var isAddDialogOpen by remember { mutableStateOf(false) }
@@ -46,6 +53,8 @@ fun SchoolCoursesView(
     BackHandler {
         if (activeAttendanceCourseId != null) {
             activeAttendanceCourseId = null
+        } else if (selectedViewTab != 0) {
+            selectedViewTab = 0
         } else {
             onBack()
         }
@@ -58,13 +67,27 @@ fun SchoolCoursesView(
             CourseAttendanceDetailView(
                 course = course,
                 onUpdateCourse = { updated ->
-                    courses = courses.map { if (it.id == updated.id) updated else it }
+                    courses = SchoolCourseRepository.updateCourse(context, updated)
                 },
                 onBack = { activeAttendanceCourseId = null },
                 modifier = modifier
             )
             return
         }
+    }
+
+    // WEEKLY SCHEDULE SCREEN
+    if (selectedViewTab == 1) {
+        SchoolScheduleView(
+            courses = courses,
+            onBack = { selectedViewTab = 0 },
+            onOpenAttendance = { courseId ->
+                activeAttendanceCourseId = courseId
+                selectedViewTab = 0
+            },
+            modifier = modifier
+        )
+        return
     }
 
     val filteredCourses = if (selectedSemesterFilter == 0) {
@@ -154,6 +177,52 @@ fun SchoolCoursesView(
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
                         maxLines = 1
+                    )
+                }
+            }
+        }
+
+        // View Mode Switcher: "Dersler & Notlar" vs "Haftalık Program"
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(PanelNavy)
+                    .border(1.dp, BorderSubtle, RoundedCornerShape(10.dp))
+                    .padding(3.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (selectedViewTab == 0) AccentCyan else Color.Transparent)
+                        .clickable { selectedViewTab = 0 }
+                        .padding(vertical = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "📚 Dersler & Notlar",
+                        fontSize = 12.sp,
+                        fontWeight = if (selectedViewTab == 0) FontWeight.Bold else FontWeight.Medium,
+                        color = if (selectedViewTab == 0) Color.White else TextSecondary
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (selectedViewTab == 1) AccentCyan else Color.Transparent)
+                        .clickable { selectedViewTab = 1 }
+                        .padding(vertical = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "🗓️ Haftalık Program",
+                        fontSize = 12.sp,
+                        fontWeight = if (selectedViewTab == 1) FontWeight.Bold else FontWeight.Medium,
+                        color = if (selectedViewTab == 1) Color.White else TextSecondary
                     )
                 }
             }
@@ -301,7 +370,7 @@ fun SchoolCoursesView(
                 onOpenAttendance = { activeAttendanceCourseId = course.id },
                 onOpenGrades = { activeGradeDialogCourseId = course.id },
                 onOpenWeights = { activeWeightsDialogCourseId = course.id },
-                onDelete = { courses = courses.filter { it.id != course.id } }
+                onDelete = { courses = SchoolCourseRepository.deleteCourse(context, course.id) }
             )
         }
     }
@@ -314,17 +383,14 @@ fun SchoolCoursesView(
                 course = course,
                 onDismiss = { activeGradeDialogCourseId = null },
                 onSave = { vize, secondEval, fin, letterGrade ->
-                    courses = courses.map {
-                        if (it.id == courseId) {
-                            it.copy(
-                                midtermGrade = vize,
-                                secondAssessmentGrade = secondEval,
-                                finalGrade = fin,
-                                letterGrade = letterGrade,
-                                isCompleted = letterGrade != "Devam" && letterGrade != "FF"
-                            )
-                        } else it
-                    }
+                    val updatedCourse = course.copy(
+                        midtermGrade = vize,
+                        secondAssessmentGrade = secondEval,
+                        finalGrade = fin,
+                        letterGrade = letterGrade,
+                        isCompleted = letterGrade != "Devam" && letterGrade != "FF"
+                    )
+                    courses = SchoolCourseRepository.updateCourse(context, updatedCourse)
                     activeGradeDialogCourseId = null
                 }
             )
@@ -339,17 +405,14 @@ fun SchoolCoursesView(
                 course = course,
                 onDismiss = { activeWeightsDialogCourseId = null },
                 onSave = { vWeight, sWeight, fWeight ->
-                    courses = courses.map {
-                        if (it.id == courseId) {
-                            it.copy(
-                                weights = GradeWeights(
-                                    midtermWeight = vWeight,
-                                    secondAssessmentWeight = sWeight,
-                                    finalWeight = fWeight
-                                )
-                            )
-                        } else it
-                    }
+                    val updatedCourse = course.copy(
+                        weights = GradeWeights(
+                            midtermWeight = vWeight,
+                            secondAssessmentWeight = sWeight,
+                            finalWeight = fWeight
+                        )
+                    )
+                    courses = SchoolCourseRepository.updateCourse(context, updatedCourse)
                     activeWeightsDialogCourseId = null
                 }
             )
@@ -360,14 +423,20 @@ fun SchoolCoursesView(
     if (isAddDialogOpen) {
         AddNewCourseDialog(
             onDismiss = { isAddDialogOpen = false },
-            onAddCourse = { name, credits, semester ->
+            onAddCourse = { name, code, credits, semester, instructor, classroom, dayOfWeek, timeSlot, isOnline ->
                 val newCourse = SchoolCourse(
                     id = UUID.randomUUID().toString(),
                     name = name,
+                    code = code,
                     credits = credits,
-                    semester = semester
+                    semester = semester,
+                    instructor = instructor,
+                    classroom = classroom,
+                    dayOfWeek = dayOfWeek,
+                    timeSlot = timeSlot,
+                    isOnline = isOnline
                 )
-                courses = courses + newCourse
+                courses = SchoolCourseRepository.addCourse(context, newCourse)
                 isAddDialogOpen = false
             }
         )
@@ -424,7 +493,7 @@ private fun CourseCardItem(
         colors = CardDefaults.cardColors(containerColor = PanelNavyElevated)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Header Row: Course Name & Delete
+            // Header Row: Course Code, Name & Delete
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -434,6 +503,25 @@ private fun CourseCardItem(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f)
                 ) {
+                    if (course.code.isNotBlank()) {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = AccentCyan.copy(alpha = 0.15f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, AccentCyan.copy(alpha = 0.35f))
+                        ) {
+                            Text(
+                                text = course.code,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    color = AccentCyan,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp
+                                ),
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+
                     Text(
                         text = course.name,
                         style = MaterialTheme.typography.titleMedium.copy(
@@ -459,7 +547,7 @@ private fun CourseCardItem(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // Badges Row: Semester & Credits
+            // Badges Row: Semester & Credits & Classroom / Online
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -493,6 +581,87 @@ private fun CourseCardItem(
                         ),
                         modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.5.dp)
                     )
+                }
+
+                if (course.isOnline) {
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color(0xFF6366F1).copy(alpha = 0.18f),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF6366F1).copy(alpha = 0.4f))
+                    ) {
+                        Text(
+                            text = "🌐 U.Ö. Online",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                color = Color(0xFFA5B4FC),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 10.sp
+                            ),
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                } else if (course.classroom.isNotBlank()) {
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = PanelNavy,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, BorderSubtle)
+                    ) {
+                        Text(
+                            text = "📍 ${course.classroom}",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                color = TextSecondary,
+                                fontSize = 10.sp
+                            ),
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+            }
+
+            // Schedule info (Day, Time, Instructor) if available
+            if (course.dayOfWeek.isNotBlank() || course.instructor.isNotBlank()) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    if (course.dayOfWeek.isNotBlank()) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Schedule,
+                                contentDescription = null,
+                                tint = AccentCyan.copy(alpha = 0.8f),
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "${course.dayOfWeek} ${course.timeSlot}".trim(),
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    color = TextSecondary,
+                                    fontSize = 11.5.sp
+                                )
+                            )
+                        }
+                    }
+
+                    if (course.instructor.isNotBlank()) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = null,
+                                tint = TextMuted,
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = course.instructor,
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    color = TextMuted,
+                                    fontSize = 11.5.sp
+                                )
+                            )
+                        }
+                    }
                 }
             }
 
@@ -1387,16 +1556,34 @@ private fun EditWeightsDialog(
 }
 
 // -------------------------------------------------------------
-// ADD NEW COURSE DIALOG (8 Semesters selection, No Code, Fixed 4 absences)
+// ADD NEW COURSE DIALOG
 // -------------------------------------------------------------
 @Composable
 private fun AddNewCourseDialog(
     onDismiss: () -> Unit,
-    onAddCourse: (String, Int, Int) -> Unit
+    onAddCourse: (
+        name: String,
+        code: String,
+        credits: Int,
+        semester: Int,
+        instructor: String,
+        classroom: String,
+        dayOfWeek: String,
+        timeSlot: String,
+        isOnline: Boolean
+    ) -> Unit
 ) {
+    var code by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
-    var creditsText by remember { mutableStateOf("3") }
+    var creditsText by remember { mutableStateOf("5") }
     var selectedSemester by remember { mutableStateOf(7) } // Default: 7. Dönem (Senior Güz)
+    var instructor by remember { mutableStateOf("") }
+    var classroom by remember { mutableStateOf("") }
+    var dayOfWeek by remember { mutableStateOf("Pazartesi") }
+    var timeSlot by remember { mutableStateOf("") }
+    var isOnline by remember { mutableStateOf(false) }
+
+    val days = listOf("Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma")
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1405,12 +1592,50 @@ private fun AddNewCourseDialog(
             Text("Yeni Ders Ekle", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, color = TextPrimary))
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedTextField(
+                        value = code,
+                        onValueChange = { code = it.uppercase() },
+                        label = { Text("Kod (Örn: BMI4146)", fontSize = 11.sp) },
+                        singleLine = true,
+                        modifier = Modifier.weight(0.45f),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = AccentCyan,
+                            unfocusedBorderColor = BorderSubtle,
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary
+                        )
+                    )
+
+                    OutlinedTextField(
+                        value = creditsText,
+                        onValueChange = { creditsText = it },
+                        label = { Text("Kredi / AKTS", fontSize = 11.sp) },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.weight(0.55f),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = AccentCyan,
+                            unfocusedBorderColor = BorderSubtle,
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary
+                        )
+                    )
+                }
+
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Ders Adı (Örn: Yazılım Mimarisi)", fontSize = 12.sp) },
+                    label = { Text("Ders Adı (Örn: Data Mining)", fontSize = 12.sp) },
                     singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = AccentCyan,
                         unfocusedBorderColor = BorderSubtle,
@@ -1419,19 +1644,110 @@ private fun AddNewCourseDialog(
                     )
                 )
 
-                OutlinedTextField(
-                    value = creditsText,
-                    onValueChange = { creditsText = it },
-                    label = { Text("Kredi (Örn: 3, 4)", fontSize = 12.sp) },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = AccentCyan,
-                        unfocusedBorderColor = BorderSubtle,
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedTextField(
+                        value = instructor,
+                        onValueChange = { instructor = it },
+                        label = { Text("Öğr. Görevlisi", fontSize = 11.sp) },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = AccentCyan,
+                            unfocusedBorderColor = BorderSubtle,
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary
+                        )
                     )
-                )
+
+                    OutlinedTextField(
+                        value = classroom,
+                        onValueChange = { classroom = it },
+                        label = { Text("Derslik (Örn: ED-K1-04)", fontSize = 11.sp) },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = AccentCyan,
+                            unfocusedBorderColor = BorderSubtle,
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary
+                        )
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedTextField(
+                        value = timeSlot,
+                        onValueChange = { timeSlot = it },
+                        label = { Text("Saat (Örn: 09:35 - 12:00)", fontSize = 11.sp) },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = AccentCyan,
+                            unfocusedBorderColor = BorderSubtle,
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary
+                        )
+                    )
+                }
+
+                // Day selection chips
+                Column {
+                    Text(
+                        text = "Ders Günü:",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, color = TextMuted)
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        days.forEach { day ->
+                            val isSel = dayOfWeek == day
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = if (isSel) AccentCyan else PanelNavy,
+                                border = androidx.compose.foundation.BorderStroke(1.dp, if (isSel) AccentCyan else BorderSubtle),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { dayOfWeek = day }
+                            ) {
+                                Box(modifier = Modifier.padding(vertical = 5.dp), contentAlignment = Alignment.Center) {
+                                    Text(
+                                        text = day.take(3),
+                                        fontSize = 10.sp,
+                                        fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (isSel) Color.White else TextSecondary
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Online Checkbox Row
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { isOnline = !isOnline },
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(
+                        checked = isOnline,
+                        onCheckedChange = { isOnline = it },
+                        colors = CheckboxDefaults.colors(checkedColor = AccentCyan)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Uzaktan Öğretim (U.Ö. / Online)",
+                        style = MaterialTheme.typography.bodySmall.copy(color = TextSecondary, fontSize = 12.sp)
+                    )
+                }
 
                 Column {
                     Text(
@@ -1472,34 +1788,24 @@ private fun AddNewCourseDialog(
                         }
                     }
                 }
-
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = PanelNavy,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, BorderSubtle)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 10.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(text = "ℹ️", fontSize = 12.sp)
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Devamsızlık hakkı fix 4 hafta olarak takip edilir. 5. devamsızlıkta kalınır.",
-                            style = MaterialTheme.typography.labelSmall.copy(color = TextMuted, fontSize = 10.5.sp)
-                        )
-                    }
-                }
             }
         },
         confirmButton = {
             Button(
                 onClick = {
                     if (name.isNotBlank()) {
-                        val c = creditsText.toIntOrNull() ?: 3
-                        onAddCourse(name.trim(), c, selectedSemester)
+                        val c = creditsText.toIntOrNull() ?: 5
+                        onAddCourse(
+                            name.trim(),
+                            code.trim(),
+                            c,
+                            selectedSemester,
+                            instructor.trim(),
+                            classroom.trim(),
+                            dayOfWeek,
+                            timeSlot.trim(),
+                            isOnline
+                        )
                     }
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = AccentCyan)

@@ -340,7 +340,7 @@ fun CategoriesDashboardView(
             subtitle = "Bilgisayar Mühendisliği & Akademik",
             description = "Üniversite ders müfredatı, veri yapıları & algoritmalar, bitirme tezi ve CS başucu kitapları.",
             accentColor = BranchCS,
-            tags = listOf("Okul Dersleri", "Bitirme Projesi", "CS Kitapları"),
+            tags = listOf("Okul Dersleri", "Haftalık Program", "CS Kitapları", "Bitirme Projesi"),
             branchIds = listOf(BranchId.COMPUTER_SCIENCE, BranchId.GRADUATION_PROJECT, BranchId.CERTIFICATES)
         ),
         CategoryMeta(

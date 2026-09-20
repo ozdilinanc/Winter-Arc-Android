@@ -17,13 +17,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.repository.SchoolCourseRepository
 import com.example.ui.theme.*
 
 enum class SchoolSubScreen {
     OVERVIEW,
     COURSES,
+    SCHEDULE,
     GRADUATION_PROJECT,
     BOOKS
 }
@@ -34,6 +37,8 @@ fun SchoolHubView(
     modifier: Modifier = Modifier
 ) {
     var currentSubScreen by remember { mutableStateOf(SchoolSubScreen.OVERVIEW) }
+    var initialCoursesTab by remember { mutableStateOf(0) }
+    var activeAttendanceCourseId by remember { mutableStateOf<String?>(null) }
 
     BackHandler {
         if (currentSubScreen != SchoolSubScreen.OVERVIEW) {
@@ -45,7 +50,24 @@ fun SchoolHubView(
 
     when (currentSubScreen) {
         SchoolSubScreen.COURSES -> {
-            SchoolCoursesView(onBack = { currentSubScreen = SchoolSubScreen.OVERVIEW })
+            SchoolCoursesView(
+                onBack = { currentSubScreen = SchoolSubScreen.OVERVIEW },
+                initialTab = initialCoursesTab,
+                initialAttendanceCourseId = activeAttendanceCourseId
+            )
+        }
+        SchoolSubScreen.SCHEDULE -> {
+            val context = LocalContext.current
+            val courses = remember(context) { SchoolCourseRepository.getCourses(context) }
+            SchoolScheduleView(
+                courses = courses,
+                onBack = { currentSubScreen = SchoolSubScreen.OVERVIEW },
+                onOpenAttendance = { courseId ->
+                    activeAttendanceCourseId = courseId
+                    initialCoursesTab = 0
+                    currentSubScreen = SchoolSubScreen.COURSES
+                }
+            )
         }
         SchoolSubScreen.GRADUATION_PROJECT -> {
             GraduationProjectDetailView(onBack = { currentSubScreen = SchoolSubScreen.OVERVIEW })
@@ -157,10 +179,27 @@ fun SchoolHubView(
                         emoji = "📚",
                         title = "Okul Dersleri",
                         subtitle = "Müfredat, Krediler & Not Takibi",
-                        description = "Dönemlik aldığın dersler, krediler, harf notları ve başarı durumu.",
+                        description = "Dönemlik aldığın dersler, krediler, harf notları ve 16 haftalık devamsızlık durumu.",
                         tag = "Ders Ekle / Yönet",
                         accentColor = AccentCyan,
-                        onClick = { currentSubScreen = SchoolSubScreen.COURSES }
+                        onClick = {
+                            initialCoursesTab = 0
+                            activeAttendanceCourseId = null
+                            currentSubScreen = SchoolSubScreen.COURSES
+                        }
+                    )
+                }
+
+                // Option 2: Haftalık Ders Programı
+                item {
+                    SchoolOptionCard(
+                        emoji = "🗓️",
+                        title = "Haftalık Ders Programı",
+                        subtitle = "Derslikler, Saatler & U.Ö.",
+                        description = "Pazartesi, Salı ve Çarşamba ders saatleri, derslik kodları ve online ders bilgisi.",
+                        tag = "Programı Gör",
+                        accentColor = AccentEmerald,
+                        onClick = { currentSubScreen = SchoolSubScreen.SCHEDULE }
                     )
                 }
 
