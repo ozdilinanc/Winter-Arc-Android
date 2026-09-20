@@ -65,23 +65,14 @@ fun ThemePickerSheet(
 
                     Spacer(modifier = Modifier.width(12.dp))
 
-                    Column {
-                        Text(
-                            text = "TEMA & GÖRÜNÜM",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = TextPrimary,
-                                letterSpacing = 1.sp
-                            )
+                    Text(
+                        text = "Tema",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary,
+                            fontSize = 18.sp
                         )
-                        Text(
-                            text = "Gözü yormayan 7 koyu tema arasından seçim yap",
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                color = TextSecondary,
-                                fontSize = 11.5.sp
-                            )
-                        )
-                    }
+                    )
                 }
 
                 IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {

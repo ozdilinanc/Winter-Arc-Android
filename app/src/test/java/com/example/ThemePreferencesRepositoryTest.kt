@@ -43,27 +43,23 @@ class ThemePreferencesRepositoryTest {
         ThemePreferencesRepository.setSelectedThemeId(context, AppThemeId.WARM_ESPRESSO)
         assertEquals(AppThemeId.WARM_ESPRESSO, ThemePreferencesRepository.getSelectedThemeId(context))
 
-        // Change to GitHub Dimmed
-        ThemePreferencesRepository.setSelectedThemeId(context, AppThemeId.GITHUB_DIMMED)
-        assertEquals(AppThemeId.GITHUB_DIMMED, ThemePreferencesRepository.getSelectedThemeId(context))
+        // Change to Light Paper
+        ThemePreferencesRepository.setSelectedThemeId(context, AppThemeId.LIGHT_PAPER)
+        assertEquals(AppThemeId.LIGHT_PAPER, ThemePreferencesRepository.getSelectedThemeId(context))
 
-        // Change to Dracula Velvet
-        ThemePreferencesRepository.setSelectedThemeId(context, AppThemeId.DRACULA_VELVET)
-        assertEquals(AppThemeId.DRACULA_VELVET, ThemePreferencesRepository.getSelectedThemeId(context))
+        // Change to Cyber Neon
+        ThemePreferencesRepository.setSelectedThemeId(context, AppThemeId.CYBER_NEON)
+        assertEquals(AppThemeId.CYBER_NEON, ThemePreferencesRepository.getSelectedThemeId(context))
 
-        // Change to OLED Pitch
-        ThemePreferencesRepository.setSelectedThemeId(context, AppThemeId.OLED_PITCH)
-        assertEquals(AppThemeId.OLED_PITCH, ThemePreferencesRepository.getSelectedThemeId(context))
-
-        // Change to Obsidian Indigo
-        ThemePreferencesRepository.setSelectedThemeId(context, AppThemeId.OBSIDIAN_INDIGO)
-        assertEquals(AppThemeId.OBSIDIAN_INDIGO, ThemePreferencesRepository.getSelectedThemeId(context))
+        // Change to Matrix Terminal
+        ThemePreferencesRepository.setSelectedThemeId(context, AppThemeId.MATRIX_TERMINAL)
+        assertEquals(AppThemeId.MATRIX_TERMINAL, ThemePreferencesRepository.getSelectedThemeId(context))
     }
 
     @Test
-    fun verifyAllSevenPalettesExistAndAreComplete() {
+    fun verifyAllPalettesExistAndAreComplete() {
         val palettes = AppThemePalette.allPalettes
-        assertEquals("Tam olarak 7 koyu tema bulunmalı", 7, palettes.size)
+        assertEquals("13 farklı tema bulunmalı", 13, palettes.size)
 
         val ids = palettes.map { it.id }
         assertTrue(ids.contains(AppThemeId.FOREST_PINE))
@@ -73,6 +69,12 @@ class ThemePreferencesRepositoryTest {
         assertTrue(ids.contains(AppThemeId.DRACULA_VELVET))
         assertTrue(ids.contains(AppThemeId.OLED_PITCH))
         assertTrue(ids.contains(AppThemeId.OBSIDIAN_INDIGO))
+        assertTrue(ids.contains(AppThemeId.LIGHT_PAPER))
+        assertTrue(ids.contains(AppThemeId.CREAM_PARCHMENT))
+        assertTrue(ids.contains(AppThemeId.CYBER_NEON))
+        assertTrue(ids.contains(AppThemeId.MATRIX_TERMINAL))
+        assertTrue(ids.contains(AppThemeId.SOLARIZED_DARK))
+        assertTrue(ids.contains(AppThemeId.SAKURA_NIGHT))
 
         palettes.forEach { palette ->
             assertTrue("${palette.name} başlığı boş olmamalı", palette.name.isNotBlank())
@@ -92,10 +94,12 @@ class ThemePreferencesRepositoryTest {
         assertEquals(AppThemePalette.ForestPine, AppThemePalette.fromKey("forest_pine"))
         assertEquals(AppThemePalette.NordicFrost, AppThemePalette.fromKey("nordic_frost"))
         assertEquals(AppThemePalette.WarmEspresso, AppThemePalette.fromKey("warm_espresso"))
-        assertEquals(AppThemePalette.GitHubDimmed, AppThemePalette.fromKey("github_dimmed"))
-        assertEquals(AppThemePalette.DraculaVelvet, AppThemePalette.fromKey("dracula_velvet"))
-        assertEquals(AppThemePalette.OledPitch, AppThemePalette.fromKey("oled_pitch"))
-        assertEquals(AppThemePalette.ObsidianIndigo, AppThemePalette.fromKey("obsidian_indigo"))
+        assertEquals(AppThemePalette.LightPaper, AppThemePalette.fromKey("light_paper"))
+        assertEquals(AppThemePalette.CreamParchment, AppThemePalette.fromKey("cream_parchment"))
+        assertEquals(AppThemePalette.CyberNeon, AppThemePalette.fromKey("cyber_neon"))
+        assertEquals(AppThemePalette.MatrixTerminal, AppThemePalette.fromKey("matrix_terminal"))
+        assertEquals(AppThemePalette.SolarizedDark, AppThemePalette.fromKey("solarized_dark"))
+        assertEquals(AppThemePalette.SakuraNight, AppThemePalette.fromKey("sakura_night"))
         // Geçersiz key varsayılan olarak ForestPine dönmeli
         assertEquals(AppThemePalette.ForestPine, AppThemePalette.fromKey("invalid_unknown_key"))
     }
