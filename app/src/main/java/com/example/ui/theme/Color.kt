@@ -85,6 +85,7 @@ val StatusLearning = Color(0xFFF59E0B)     // Amber
 val StatusPracticed = Color(0xFF10B981)    // Emerald-500
 val StatusCompleted = Color(0xFF10B981)    // Emerald
 val StatusStrong = Color(0xFF34D399)       // Mint green
+val StatusFailed = Color(0xFFEF4444)       // Red-500 (Attendance absent / alert)
 
 // Branch Accent Palettes (Static constants for Enum compatibility)
 val BranchDotNet = Color(0xFF818CF8)       // Sharp Indigo (.NET Core Primary)

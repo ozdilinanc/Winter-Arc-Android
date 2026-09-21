@@ -13,6 +13,7 @@ import java.util.UUID
 enum class SkillDashboardViewMode(val label: String, val iconEmoji: String) {
     TREE_MAP("Ağaç", "🌳"),
     CATEGORIES("Kategoriler", "🗂️"),
+    SCHEDULE("Program", "🗓️"),
     DAILY_TRACKER("Günlük", "📅"),
     PROGRESS_ANALYTICS("İlerleme", "📊")
 }

@@ -57,7 +57,7 @@ class SchoolCourseRepositoryTest {
         assertNotNull(dataMining)
         assertEquals(5, dataMining!!.credits)
         assertEquals("Pazartesi", dataMining.dayOfWeek)
-        assertEquals("ED-K1-04 (Derslik 9)", dataMining.classroom)
+        assertEquals("Derslik 9", dataMining.classroom)
         assertEquals("Dr. Öğr. Üyesi B. Milani", dataMining.instructor)
 
         // Kontrol: Yapay Zeka 5 kredi, Pazartesi
@@ -65,21 +65,21 @@ class SchoolCourseRepositoryTest {
         assertNotNull(ai)
         assertEquals(5, ai!!.credits)
         assertEquals("Pazartesi", ai.dayOfWeek)
-        assertEquals("ED-Z-21 (Derslik 3)", ai.classroom)
+        assertEquals("Derslik 3", ai.classroom)
 
         // Kontrol: Sosyal Ağlar 5 kredi, Çarşamba
         val sna = courses.find { it.code == "BMI4150" }
         assertNotNull(sna)
         assertEquals(5, sna!!.credits)
         assertEquals("Çarşamba", sna.dayOfWeek)
-        assertEquals("ED-Z-26 (Derslik 6)", sna.classroom)
+        assertEquals("Derslik 6", sna.classroom)
 
         // Kontrol: Mobile Programming 5 kredi, Çarşamba
         val mob = courses.find { it.code == "BMI4141" }
         assertNotNull(mob)
         assertEquals(5, mob!!.credits)
         assertEquals("Çarşamba", mob.dayOfWeek)
-        assertEquals("ED-K1-11 (Derslik 14)", mob.classroom)
+        assertEquals("Derslik 14", mob.classroom)
     }
 
     @Test

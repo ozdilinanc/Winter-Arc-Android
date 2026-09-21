@@ -1,6 +1,7 @@
 package com.example.ui.components.school
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Room
@@ -25,6 +27,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -80,19 +83,7 @@ fun SchoolCoursesView(
         }
     }
 
-    // WEEKLY SCHEDULE SCREEN
-    if (selectedViewTab == 1) {
-        SchoolScheduleView(
-            courses = courses,
-            onBack = { selectedViewTab = 0 },
-            onOpenAttendance = { courseId ->
-                activeAttendanceCourseId = courseId
-                selectedViewTab = 0
-            },
-            modifier = modifier
-        )
-        return
-    }
+
 
     val filteredCourses = if (selectedSemesterFilter == 0) {
         courses
@@ -238,14 +229,14 @@ fun SchoolCoursesView(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = Icons.Outlined.CalendarMonth,
+                            imageVector = Icons.Outlined.CheckCircle,
                             contentDescription = null,
                             tint = if (selectedViewTab == 1) Color.White else TextSecondary,
                             modifier = Modifier.size(15.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "Haftalık Program",
+                            text = "Yoklama & Devamsızlık",
                             fontSize = 12.sp,
                             fontWeight = if (selectedViewTab == 1) FontWeight.Bold else FontWeight.Medium,
                             color = if (selectedViewTab == 1) Color.White else TextSecondary
@@ -271,21 +262,29 @@ fun SchoolCoursesView(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.SpaceAround,
+                            .padding(14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(text = "${courses.size}", fontWeight = FontWeight.Bold, color = TextPrimary, fontSize = 16.sp)
-                            Text(text = "Toplam Ders", style = MaterialTheme.typography.labelSmall.copy(color = TextMuted, fontSize = 10.5.sp))
+                        Column {
+                            Text(
+                                text = "${courses.size} Ders",
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary,
+                                fontSize = 16.sp
+                            )
+                            Text(text = "Toplam Kayıtlı", style = MaterialTheme.typography.labelSmall.copy(color = TextMuted, fontSize = 10.5.sp))
                         }
-                        Box(modifier = Modifier.height(24.dp).width(1.dp).background(BorderSubtle))
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(text = "$totalCredits", fontWeight = FontWeight.Bold, color = AccentAmber, fontSize = 16.sp)
-                            Text(text = "Toplam Kredi", style = MaterialTheme.typography.labelSmall.copy(color = TextMuted, fontSize = 10.5.sp))
+                            Text(
+                                text = "$totalCredits AKTS",
+                                fontWeight = FontWeight.Bold,
+                                color = AccentCyan,
+                                fontSize = 16.sp
+                            )
+                            Text(text = "Dönem Kredisi", style = MaterialTheme.typography.labelSmall.copy(color = TextMuted, fontSize = 10.5.sp))
                         }
-                        Box(modifier = Modifier.height(24.dp).width(1.dp).background(BorderSubtle))
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Column(horizontalAlignment = Alignment.End) {
                             Text(
                                 text = "$totalAbsent Hafta",
                                 fontWeight = FontWeight.Bold,
@@ -356,39 +355,37 @@ fun SchoolCoursesView(
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(14.dp))
 
                         Text(
-                            text = "Henüz Ders Eklenmedi",
+                            text = "Henüz Ders Eklenmemiş",
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold,
-                                color = TextPrimary,
-                                letterSpacing = 0.5.sp
+                                color = TextPrimary
                             )
                         )
 
                         Spacer(modifier = Modifier.height(6.dp))
 
                         Text(
-                            text = "Bu dönem alacağın dersleri ekle; vize, 2. değerlendirme ve final notlarını gir. 4 devamsızlık hakkını 16 haftalık çizelgede takip et.",
+                            text = "Dönemlik derslerini, kredilerini ve ders saatlerini ekleyerek başla.",
                             style = MaterialTheme.typography.bodySmall.copy(
                                 color = TextSecondary,
-                                fontSize = 12.sp,
-                                lineHeight = 17.sp
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
                             ),
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            modifier = Modifier.padding(horizontal = 20.dp)
                         )
 
-                        Spacer(modifier = Modifier.height(20.dp))
+                        Spacer(modifier = Modifier.height(18.dp))
 
                         Button(
                             onClick = { isAddDialogOpen = true },
-                            shape = RoundedCornerShape(10.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = AccentCyan)
+                            colors = ButtonDefaults.buttonColors(containerColor = AccentCyan),
+                            shape = RoundedCornerShape(10.dp)
                         ) {
-                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.White)
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.Black)
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text(text = "İlk Dersi Ekle", fontWeight = FontWeight.Bold, color = Color.White)
+                            Text(text = "İlk Dersi Ekle", fontWeight = FontWeight.Bold, color = Color.Black)
                         }
                     }
                 }
@@ -397,13 +394,20 @@ fun SchoolCoursesView(
 
         // Courses List
         items(filteredCourses, key = { it.id }) { course ->
-            CourseCardItem(
-                course = course,
-                onOpenAttendance = { activeAttendanceCourseId = course.id },
-                onOpenGrades = { activeGradeDialogCourseId = course.id },
-                onOpenWeights = { activeWeightsDialogCourseId = course.id },
-                onDelete = { courses = SchoolCourseRepository.deleteCourse(context, course.id) }
-            )
+            if (selectedViewTab == 0) {
+                CourseCardItem(
+                    course = course,
+                    onOpenAttendance = { activeAttendanceCourseId = course.id },
+                    onOpenGrades = { activeGradeDialogCourseId = course.id },
+                    onOpenWeights = { activeWeightsDialogCourseId = course.id },
+                    onDelete = { courses = SchoolCourseRepository.deleteCourse(context, course.id) }
+                )
+            } else {
+                CourseAttendanceOverviewCard(
+                    course = course,
+                    onOpenAttendance = { activeAttendanceCourseId = course.id }
+                )
+            }
         }
     }
 
@@ -503,6 +507,189 @@ private fun SemesterFilterChip(
 }
 
 @Composable
+private fun CourseAttendanceOverviewCard(
+    course: SchoolCourse,
+    onOpenAttendance: () -> Unit
+) {
+    val totalAbsent = course.absentCount
+    val isFailed = course.isFailedDueToAbsence
+    val isWarning = course.isLastAbsenceWarning
+    val remaining = course.remainingAbsenceRights
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .border(
+                1.dp,
+                if (isFailed) StatusFailed.copy(alpha = 0.5f)
+                else if (isWarning) AccentAmber.copy(alpha = 0.5f)
+                else BorderSubtle,
+                RoundedCornerShape(14.dp)
+            ),
+        colors = CardDefaults.cardColors(containerColor = PanelNavyElevated)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = course.displayTitle,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = if (course.instructor.isNotBlank()) course.instructor else "Öğretim Üyesi Belirtilmemiş",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            color = TextSecondary,
+                            fontSize = 11.5.sp
+                        )
+                    )
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = when {
+                        isFailed -> StatusFailed.copy(alpha = 0.15f)
+                        isWarning -> AccentAmber.copy(alpha = 0.15f)
+                        else -> AccentEmerald.copy(alpha = 0.15f)
+                    },
+                    border = BorderStroke(
+                        1.dp,
+                        when {
+                            isFailed -> StatusFailed.copy(alpha = 0.4f)
+                            isWarning -> AccentAmber.copy(alpha = 0.4f)
+                            else -> AccentEmerald.copy(alpha = 0.4f)
+                        }
+                    )
+                ) {
+                    Text(
+                        text = when {
+                            isFailed -> "Kaldı ($totalAbsent Hafta)"
+                            isWarning -> "Kritik ($totalAbsent Hafta)"
+                            else -> "Güvenli (Kalan: $remaining)"
+                        },
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = when {
+                                isFailed -> StatusFailed
+                                isWarning -> AccentAmber
+                                else -> AccentEmerald
+                            },
+                            fontSize = 11.sp
+                        ),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // 16-Week Dot Matrix Visualizer (Week 8: Vize, Week 16: Final)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                course.attendance.take(16).forEach { week ->
+                    if (week.weekNumber == 8 || week.weekNumber == 16) {
+                        // Sınav Rozetleri (8: Vize, 16: Final)
+                        val examLetter = if (week.weekNumber == 8) "V" else "F"
+                        Box(
+                            modifier = Modifier
+                                .size(17.dp)
+                                .clip(CircleShape)
+                                .background(AccentAmber.copy(alpha = 0.25f))
+                                .border(1.dp, AccentAmber, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = examLetter,
+                                fontSize = 8.sp,
+                                color = AccentAmber,
+                                fontWeight = FontWeight.Black
+                            )
+                        }
+                    } else {
+                        val dotColor = when (week.status) {
+                            AttendanceStatus.ATTENDED -> AccentEmerald
+                            AttendanceStatus.ABSENT -> StatusFailed
+                            AttendanceStatus.NOT_HELD -> AccentAmber
+                            AttendanceStatus.PENDING -> TextDarkMuted.copy(alpha = 0.35f)
+                        }
+                        Box(
+                            modifier = Modifier
+                                .size(16.dp)
+                                .clip(CircleShape)
+                                .background(dotColor),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = week.weekNumber.toString(),
+                                fontSize = 7.5.sp,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Footnote & Stats
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "V: Vize • F: Final",
+                    style = MaterialTheme.typography.bodySmall.copy(color = TextDarkMuted, fontSize = 10.sp)
+                )
+                Text(
+                    text = "${course.attendedCount}/${course.totalAttendanceWeeks} Hafta Katılım",
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = AccentEmerald,
+                        fontSize = 10.5.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            OutlinedButton(
+                onClick = onOpenAttendance,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(10.dp),
+                border = BorderStroke(1.dp, AccentCyan.copy(alpha = 0.4f)),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentCyan)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.CheckCircle,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "16 Haftalık Yoklamayı Düzenle",
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold)
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun CourseCardItem(
     course: SchoolCourse,
     onOpenAttendance: () -> Unit,
@@ -512,328 +699,147 @@ private fun CourseCardItem(
 ) {
     val isFailed = course.isFailedDueToAbsence
     val isWarning = course.isLastAbsenceWarning
+    val attendancePercent = (course.attendanceRatio * 100).toInt()
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(18.dp))
             .border(
                 1.dp,
-                if (isFailed) Color(0xFFEF4444).copy(alpha = 0.5f) else BorderSubtle,
-                RoundedCornerShape(14.dp)
+                if (isFailed) StatusFailed.copy(alpha = 0.5f)
+                else if (isWarning) AccentAmber.copy(alpha = 0.4f)
+                else BorderSubtle,
+                RoundedCornerShape(18.dp)
             ),
         colors = CardDefaults.cardColors(containerColor = PanelNavyElevated)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Header Row: Course Code, Name & Delete
+            // Header Row: Course Code & Name (Left) + Grade Badge & Delete (Right)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    if (course.code.isNotBlank()) {
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = AccentCyan.copy(alpha = 0.15f),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, AccentCyan.copy(alpha = 0.35f))
-                        ) {
-                            Text(
-                                text = course.code,
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    color = AccentCyan,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 11.sp
-                                ),
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        if (course.code.isNotBlank()) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = AccentCyan.copy(alpha = 0.12f),
+                                border = BorderStroke(1.dp, AccentCyan.copy(alpha = 0.35f))
+                            ) {
+                                Text(
+                                    text = course.code,
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        color = AccentCyan,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 10.5.sp
+                                    ),
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
                         }
-                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Text(
+                            text = "${course.credits} Kredi",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                color = TextMuted,
+                                fontSize = 11.sp
+                            )
+                        )
                     }
+
+                    Spacer(modifier = Modifier.height(3.dp))
 
                     Text(
                         text = course.name,
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
                             color = TextPrimary,
-                            fontSize = 15.5.sp
-                        )
-                    )
-                }
-
-                IconButton(
-                    onClick = onDelete,
-                    modifier = Modifier.size(28.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Dersi Sil",
-                        tint = TextDarkMuted,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            // Badges Row: Semester & Credits & Classroom / Online
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = PanelNavy,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, AccentCyan.copy(alpha = 0.35f))
-                ) {
-                    Text(
-                        text = course.semesterLabel,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            color = AccentCyan,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 10.5.sp
+                            fontSize = 16.sp
                         ),
-                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.5.dp)
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
-                }
-
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = PanelNavy,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, BorderSubtle)
-                ) {
-                    Text(
-                        text = "${course.credits} Kredi",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            color = TextMuted,
-                            fontSize = 10.5.sp
-                        ),
-                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.5.dp)
-                    )
-                }
-
-                if (course.isOnline) {
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = Color(0xFF6366F1).copy(alpha = 0.18f),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF6366F1).copy(alpha = 0.4f))
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Language,
-                                contentDescription = null,
-                                tint = Color(0xFFA5B4FC),
-                                modifier = Modifier.size(11.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "U.Ö. Online",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    color = Color(0xFFA5B4FC),
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 10.sp
-                                )
-                            )
-                        }
-                    }
-                } else if (course.classroom.isNotBlank()) {
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = PanelNavy,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, BorderSubtle)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Room,
-                                contentDescription = null,
-                                tint = TextSecondary,
-                                modifier = Modifier.size(11.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = course.classroom,
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    color = TextSecondary,
-                                    fontSize = 10.sp
-                                )
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Schedule info (Day, Time, Instructor) if available
-            if (course.dayOfWeek.isNotBlank() || course.instructor.isNotBlank()) {
-                Spacer(modifier = Modifier.height(6.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    if (course.dayOfWeek.isNotBlank()) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Schedule,
-                                contentDescription = null,
-                                tint = AccentCyan.copy(alpha = 0.8f),
-                                modifier = Modifier.size(13.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "${course.dayOfWeek} ${course.timeSlot}".trim(),
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    color = TextSecondary,
-                                    fontSize = 11.5.sp
-                                )
-                            )
-                        }
-                    }
 
                     if (course.instructor.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(3.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 imageVector = Icons.Default.Person,
                                 contentDescription = null,
-                                tint = TextMuted,
+                                tint = AccentCyan.copy(alpha = 0.7f),
                                 modifier = Modifier.size(13.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = course.instructor,
                                 style = MaterialTheme.typography.bodySmall.copy(
-                                    color = TextMuted,
-                                    fontSize = 11.5.sp
-                                )
+                                    color = TextSecondary,
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Grades Row (Vize, 2. Değerlendirme, Final)
-            Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = PanelNavy,
-                border = androidx.compose.foundation.BorderStroke(1.dp, BorderSubtle)
-            ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    GradePillItem("Vize (%${course.weights.midtermWeight})", course.midtermGrade)
-                    Box(modifier = Modifier.height(20.dp).width(1.dp).background(BorderSubtle))
-                    GradePillItem("2. Değ (%${course.weights.secondAssessmentWeight})", course.secondAssessmentGrade)
-                    Box(modifier = Modifier.height(20.dp).width(1.dp).background(BorderSubtle))
-                    GradePillItem("Final (%${course.weights.finalWeight})", course.finalGrade)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Average & Letter Grade Row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "Ortalama: ",
-                        style = MaterialTheme.typography.bodySmall.copy(color = TextMuted, fontSize = 12.sp)
-                    )
-                    Text(
-                        text = course.calculatedAverage?.let { String.format("%.1f", it) } ?: "-",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = if (course.calculatedAverage != null) AccentCyan else TextMuted,
-                            fontSize = 13.sp
-                        )
-                    )
-
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    Text(
-                        text = "Harf:",
-                        style = MaterialTheme.typography.bodySmall.copy(color = TextMuted, fontSize = 12.sp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
+                    // Letter Grade Badge
                     Surface(
-                        shape = RoundedCornerShape(6.dp),
+                        shape = RoundedCornerShape(8.dp),
                         color = when (course.letterGrade) {
-                            "AA", "BA" -> AccentEmerald.copy(alpha = 0.15f)
-                            "BB", "CB", "CC" -> AccentCyan.copy(alpha = 0.15f)
-                            "DC", "DD" -> AccentAmber.copy(alpha = 0.15f)
-                            "FD", "FF" -> Color(0xFFEF4444).copy(alpha = 0.15f)
+                            "AA", "BA" -> AccentEmerald.copy(alpha = 0.16f)
+                            "BB", "CB", "CC" -> AccentCyan.copy(alpha = 0.16f)
+                            "DC", "DD" -> AccentAmber.copy(alpha = 0.16f)
+                            "FD", "FF" -> StatusFailed.copy(alpha = 0.16f)
                             else -> PanelNavy
                         },
-                        border = androidx.compose.foundation.BorderStroke(
+                        border = BorderStroke(
                             1.dp,
                             when (course.letterGrade) {
-                                "AA", "BA" -> AccentEmerald
-                                "BB", "CB", "CC" -> AccentCyan
-                                "DC", "DD" -> AccentAmber
-                                "FD", "FF" -> Color(0xFFEF4444)
+                                "AA", "BA" -> AccentEmerald.copy(alpha = 0.4f)
+                                "BB", "CB", "CC" -> AccentCyan.copy(alpha = 0.4f)
+                                "DC", "DD" -> AccentAmber.copy(alpha = 0.4f)
+                                "FD", "FF" -> StatusFailed.copy(alpha = 0.4f)
                                 else -> BorderSubtle
                             }
                         )
                     ) {
                         Text(
-                            text = course.letterGrade,
-                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
+                            text = if (course.letterGrade.isNotBlank()) course.letterGrade else "Devam",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold,
                                 color = when (course.letterGrade) {
                                     "AA", "BA" -> AccentEmerald
                                     "BB", "CB", "CC" -> AccentCyan
                                     "DC", "DD" -> AccentAmber
-                                    "FD", "FF" -> Color(0xFFEF4444)
+                                    "FD", "FF" -> StatusFailed
                                     else -> TextSecondary
                                 },
                                 fontSize = 11.sp
-                            )
+                            ),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                     }
-                }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    // Notları Gir Butonu
-                    FilledTonalButton(
-                        onClick = onOpenGrades,
-                        shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(horizontal = 9.dp, vertical = 4.dp),
-                        colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = PanelNavy,
-                            contentColor = AccentCyan
-                        )
-                    ) {
-                        Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(13.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(text = "Notlar", fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold)
-                    }
-
-                    // Ağırlıklar Butonu
                     IconButton(
-                        onClick = onOpenWeights,
-                        modifier = Modifier.size(30.dp)
+                        onClick = onDelete,
+                        modifier = Modifier.size(28.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Tune,
-                            contentDescription = "Ağırlık Ayarları",
-                            tint = TextMuted,
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Dersi Sil",
+                            tint = TextDarkMuted,
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -841,50 +847,213 @@ private fun CourseCardItem(
             }
 
             Spacer(modifier = Modifier.height(10.dp))
-            Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(BorderSubtle.copy(alpha = 0.6f)))
-            Spacer(modifier = Modifier.height(10.dp))
 
-            // Attendance Row & Trigger
+            // Schedule & Location Meta Row (Clean Classroom, e.g. "Derslik 9")
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Absence Badge with fixed 4-right rule
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "Devamsızlık: ",
-                        style = MaterialTheme.typography.bodySmall.copy(color = TextMuted, fontSize = 11.5.sp)
+                if (course.dayOfWeek.isNotBlank()) {
+                    Icon(
+                        imageVector = Icons.Default.Schedule,
+                        contentDescription = null,
+                        tint = AccentCyan.copy(alpha = 0.85f),
+                        modifier = Modifier.size(13.dp)
                     )
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = when {
-                            isFailed -> "KALDI (${course.absentCount} / 4 Hak)"
-                            isWarning -> "SON HAK (4 / 4)"
-                            else -> "${course.absentCount} / 4 Hak"
-                        },
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = when {
-                                isFailed -> Color(0xFFEF4444)
-                                isWarning -> AccentAmber
-                                else -> AccentEmerald
-                            },
-                            fontSize = 11.5.sp
+                        text = "${course.dayOfWeek} ${course.timeSlot}".trim(),
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            color = TextSecondary,
+                            fontSize = 12.sp
                         )
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "•",
+                        style = MaterialTheme.typography.bodySmall.copy(color = TextDarkMuted, fontSize = 12.sp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                }
+
+                Icon(
+                    imageVector = if (course.isOnline) Icons.Outlined.Language else Icons.Outlined.Room,
+                    contentDescription = null,
+                    tint = if (course.isOnline) Color(0xFFA5B4FC) else AccentEmerald,
+                    modifier = Modifier.size(13.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = course.cleanClassroom,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = if (course.isOnline) Color(0xFFA5B4FC) else TextSecondary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Progress Bar Row (Directly matching User's Reference Image)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Progress percentage (Left)
+                Text(
+                    text = "$attendancePercent%",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = when {
+                            isFailed -> StatusFailed
+                            isWarning -> AccentAmber
+                            else -> AccentCyan
+                        },
+                        fontSize = 12.sp
+                    ),
+                    modifier = Modifier.width(38.dp)
+                )
+
+                // Progress Bar (Center)
+                val progressFill = course.attendanceRatio.coerceIn(0f, 1f)
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(PanelNavy)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .fillMaxWidth(fraction = if (progressFill > 0f) progressFill else 0.02f)
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(
+                                when {
+                                    isFailed -> StatusFailed
+                                    isWarning -> AccentAmber
+                                    else -> AccentCyan
+                                }
+                            )
                     )
                 }
 
-                // Open 16 Weeks Attendance
+                Spacer(modifier = Modifier.width(10.dp))
+
+                // Task count / Weeks count (Right)
+                Text(
+                    text = "${course.attendedCount}/${course.totalAttendanceWeeks} Hafta",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        color = TextSecondary,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Clear, Distinct Action Buttons (Zero ambiguity)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // 1. Notlar & Sınavlar Butonu
+                OutlinedButton(
+                    onClick = onOpenGrades,
+                    modifier = Modifier.weight(1f).height(38.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp),
+                    border = BorderStroke(1.dp, BorderSubtle),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = PanelNavy,
+                        contentColor = TextPrimary
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = null,
+                        tint = AccentCyan,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Notlar",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 12.sp
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                // 2. Yoklama Butonu
                 OutlinedButton(
                     onClick = onOpenAttendance,
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, AccentCyan.copy(alpha = 0.5f)),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentCyan)
+                    modifier = Modifier.weight(1f).height(38.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp),
+                    border = BorderStroke(
+                        1.dp,
+                        when {
+                            isFailed -> StatusFailed.copy(alpha = 0.5f)
+                            isWarning -> AccentAmber.copy(alpha = 0.5f)
+                            else -> AccentEmerald.copy(alpha = 0.4f)
+                        }
+                    ),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = PanelNavy,
+                        contentColor = TextPrimary
+                    )
                 ) {
-                    Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Icon(
+                        imageVector = Icons.Outlined.CheckCircle,
+                        contentDescription = null,
+                        tint = when {
+                            isFailed -> StatusFailed
+                            isWarning -> AccentAmber
+                            else -> AccentEmerald
+                        },
+                        modifier = Modifier.size(14.dp)
+                    )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text(text = "16 Haftalık Yoklama", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = when {
+                            isFailed -> "Kaldı (${course.absentCount}/4)"
+                            isWarning -> "Kritik (${course.absentCount}/4)"
+                            else -> "Yoklama (${course.remainingAbsenceRights} Hak)"
+                        },
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 11.5.sp,
+                            color = when {
+                                isFailed -> StatusFailed
+                                isWarning -> AccentAmber
+                                else -> TextPrimary
+                            }
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                // Quick Ağırlık Ayarı Butonu
+                IconButton(
+                    onClick = onOpenWeights,
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(PanelNavy)
+                        .border(1.dp, BorderSubtle, RoundedCornerShape(10.dp))
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Tune,
+                        contentDescription = "Ağırlık Ayarları",
+                        tint = TextMuted,
+                        modifier = Modifier.size(16.dp)
+                    )
                 }
             }
         }
@@ -1111,24 +1280,12 @@ private fun CourseAttendanceDetailView(
             )
         }
 
-        // Section 2: VİZE HAFTASI
+        // VİZE BÖLÜMÜ (Minimal Çizgi ve Rozet)
         item {
-            AttendanceSectionTitle("VİZE HAFTASI")
-        }
-        items(course.attendance.filter { it.weekNumber == 8 }, key = { it.weekNumber }) { week ->
-            AttendanceWeekRow(
-                week = week,
-                isHighlight = true,
-                onStatusChange = { newStatus ->
-                    val updatedList = course.attendance.map {
-                        if (it.weekNumber == week.weekNumber) it.copy(status = newStatus) else it
-                    }
-                    onUpdateCourse(course.copy(attendance = updatedList))
-                }
-            )
+            ExamDivider(label = "VİZE")
         }
 
-        // Section 3: 9 – 15. HAFTA
+        // Section 2: 9 – 15. HAFTA
         item {
             AttendanceSectionTitle("9 – 15. HAFTA")
         }
@@ -1144,22 +1301,49 @@ private fun CourseAttendanceDetailView(
             )
         }
 
-        // Section 4: FİNAL HAFTASI
+        // FİNAL BÖLÜMÜ (Minimal Çizgi ve Rozet)
         item {
-            AttendanceSectionTitle("FİNAL HAFTASI")
+            ExamDivider(label = "FİNAL")
         }
-        items(course.attendance.filter { it.weekNumber == 16 }, key = { it.weekNumber }) { week ->
-            AttendanceWeekRow(
-                week = week,
-                isHighlight = true,
-                onStatusChange = { newStatus ->
-                    val updatedList = course.attendance.map {
-                        if (it.weekNumber == week.weekNumber) it.copy(status = newStatus) else it
-                    }
-                    onUpdateCourse(course.copy(attendance = updatedList))
-                }
+    }
+}
+
+@Composable
+private fun ExamDivider(label: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp, horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
+    ) {
+        HorizontalDivider(
+            modifier = Modifier.weight(1f),
+            color = BorderSubtle.copy(alpha = 0.5f),
+            thickness = 1.dp
+        )
+        Surface(
+            shape = RoundedCornerShape(6.dp),
+            color = PanelNavyElevated,
+            border = BorderStroke(1.dp, BorderSubtle),
+            modifier = Modifier.padding(horizontal = 12.dp)
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.5.sp,
+                    color = AccentAmber,
+                    fontSize = 11.sp
+                ),
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
             )
         }
+        HorizontalDivider(
+            modifier = Modifier.weight(1f),
+            color = BorderSubtle.copy(alpha = 0.5f),
+            thickness = 1.dp
+        )
     }
 }
 
@@ -1366,10 +1550,38 @@ private fun EditGradesDialog(
     onDismiss: () -> Unit,
     onSave: (Double?, Double?, Double?, String) -> Unit
 ) {
-    var vizeText by remember { mutableStateOf(course.midtermGrade?.toString() ?: "") }
-    var secondEvalText by remember { mutableStateOf(course.secondAssessmentGrade?.toString() ?: "") }
-    var finalText by remember { mutableStateOf(course.finalGrade?.toString() ?: "") }
+    var vizeText by remember {
+        mutableStateOf(course.midtermGrade?.let { if (it % 1.0 == 0.0) it.toInt().toString() else it.toString() } ?: "")
+    }
+    var secondEvalText by remember {
+        mutableStateOf(course.secondAssessmentGrade?.let { if (it % 1.0 == 0.0) it.toInt().toString() else it.toString() } ?: "")
+    }
+    var finalText by remember {
+        mutableStateOf(course.finalGrade?.let { if (it % 1.0 == 0.0) it.toInt().toString() else it.toString() } ?: "")
+    }
     var selectedLetterGrade by remember { mutableStateOf(course.letterGrade) }
+
+    fun sanitizeGrade(raw: String): String {
+        val clean = raw.filter { it.isDigit() || it == '.' }
+        val num = clean.toDoubleOrNull()
+        return when {
+            num == null -> if (clean.isEmpty()) "" else clean.take(1)
+            num > 100.0 -> "100"
+            num < 0.0 -> "0"
+            else -> clean
+        }
+    }
+
+    val vVal = vizeText.toDoubleOrNull()?.coerceIn(0.0, 100.0)
+    val sVal = secondEvalText.toDoubleOrNull()?.coerceIn(0.0, 100.0)
+    val fVal = finalText.toDoubleOrNull()?.coerceIn(0.0, 100.0)
+
+    var totalWeight = 0
+    var weightedSum = 0.0
+    if (vVal != null) { weightedSum += vVal * course.weights.midtermWeight; totalWeight += course.weights.midtermWeight }
+    if (sVal != null) { weightedSum += sVal * course.weights.secondAssessmentWeight; totalWeight += course.weights.secondAssessmentWeight }
+    if (fVal != null) { weightedSum += fVal * course.weights.finalWeight; totalWeight += course.weights.finalWeight }
+    val calculatedLiveAvg = if (totalWeight > 0) weightedSum / totalWeight else null
 
     val letterGrades = listOf("AA", "BA", "BB", "CB", "CC", "DC", "DD", "FD", "FF", "Devam")
 
@@ -1378,16 +1590,49 @@ private fun EditGradesDialog(
         containerColor = PanelNavyElevated,
         title = {
             Text(
-                text = "${course.name} Notlarını Düzenle",
+                text = "${course.name} Notları (0 - 100)",
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, color = TextPrimary)
             )
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                // Live Weighted Average Display inside Dialog
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = PanelNavy,
+                    border = BorderStroke(1.dp, BorderSubtle),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "Ağırlıklı Ortalama",
+                                style = MaterialTheme.typography.labelSmall.copy(color = TextMuted, fontSize = 11.sp)
+                            )
+                            Text(
+                                text = "Vize %${course.weights.midtermWeight} • 2. Değ %${course.weights.secondAssessmentWeight} • Final %${course.weights.finalWeight}",
+                                style = MaterialTheme.typography.bodySmall.copy(color = TextDarkMuted, fontSize = 9.5.sp)
+                            )
+                        }
+                        Text(
+                            text = if (calculatedLiveAvg != null) String.format("%.1f", calculatedLiveAvg) else "—",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = AccentCyan,
+                                fontSize = 18.sp
+                            )
+                        )
+                    }
+                }
+
                 OutlinedTextField(
                     value = vizeText,
-                    onValueChange = { vizeText = it },
-                    label = { Text("Vize Notu (Ağırlık: %${course.weights.midtermWeight})", fontSize = 12.sp) },
+                    onValueChange = { vizeText = sanitizeGrade(it) },
+                    label = { Text("Vize Notu (0 - 100, Ağırlık: %${course.weights.midtermWeight})", fontSize = 12.sp) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -1400,8 +1645,8 @@ private fun EditGradesDialog(
 
                 OutlinedTextField(
                     value = secondEvalText,
-                    onValueChange = { secondEvalText = it },
-                    label = { Text("2. Değerlendirme / Quiz / Proje (%${course.weights.secondAssessmentWeight})", fontSize = 12.sp) },
+                    onValueChange = { secondEvalText = sanitizeGrade(it) },
+                    label = { Text("2. Değerlendirme / Quiz (0 - 100, Ağırlık: %${course.weights.secondAssessmentWeight})", fontSize = 12.sp) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -1414,8 +1659,8 @@ private fun EditGradesDialog(
 
                 OutlinedTextField(
                     value = finalText,
-                    onValueChange = { finalText = it },
-                    label = { Text("Final Notu (Ağırlık: %${course.weights.finalWeight})", fontSize = 12.sp) },
+                    onValueChange = { finalText = sanitizeGrade(it) },
+                    label = { Text("Final Notu (0 - 100, Ağırlık: %${course.weights.finalWeight})", fontSize = 12.sp) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -1426,7 +1671,7 @@ private fun EditGradesDialog(
                     )
                 )
 
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(2.dp))
 
                 Text(
                     text = "Harf Notunu Seç (veya elle belirle):",
@@ -1463,10 +1708,7 @@ private fun EditGradesDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    val v = vizeText.toDoubleOrNull()
-                    val s = secondEvalText.toDoubleOrNull()
-                    val f = finalText.toDoubleOrNull()
-                    onSave(v, s, f, selectedLetterGrade)
+                    onSave(vVal, sVal, fVal, selectedLetterGrade)
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = AccentCyan)
             ) {
@@ -1623,7 +1865,7 @@ private fun EditWeightsDialog(
 // ADD NEW COURSE DIALOG
 // -------------------------------------------------------------
 @Composable
-private fun AddNewCourseDialog(
+internal fun AddNewCourseDialog(
     onDismiss: () -> Unit,
     onAddCourse: (
         name: String,

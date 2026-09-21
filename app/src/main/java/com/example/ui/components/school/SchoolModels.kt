@@ -68,11 +68,33 @@ data class SchoolCourse(
             return if (totalWeight > 0) weightedSum / totalWeight else null
         }
 
+    val cleanClassroom: String
+        get() {
+            if (isOnline) return "Online"
+            val regex = Regex("""(Derslik\s+\d+)""", RegexOption.IGNORE_CASE)
+            val match = regex.find(classroom)
+            if (match != null) {
+                return match.value.replaceFirstChar { it.uppercase() }
+            }
+            return classroom.replace(Regex("""^ED-[A-Z0-9]+-[A-Z0-9]+\s*\(?""", RegexOption.IGNORE_CASE), "")
+                .replace(")", "").trim().ifBlank { classroom }
+        }
+
+    // 8. Hafta Vize, 16. Hafta Final Sınav Haftasıdır (Yoklama Alınmaz / Muaf)
     val absentCount: Int
-        get() = attendance.count { it.status == AttendanceStatus.ABSENT }
+        get() = attendance.filter { it.weekNumber != 8 && it.weekNumber != 16 }.count { it.status == AttendanceStatus.ABSENT }
 
     val attendedCount: Int
-        get() = attendance.count { it.status == AttendanceStatus.ATTENDED }
+        get() = attendance.filter { it.weekNumber != 8 && it.weekNumber != 16 }.count { it.status == AttendanceStatus.ATTENDED }
+
+    val totalAttendanceWeeks: Int
+        get() = attendance.filter { it.weekNumber != 8 && it.weekNumber != 16 }.size
+
+    val attendanceRatio: Float
+        get() {
+            val total = totalAttendanceWeeks
+            return if (total > 0) attendedCount.toFloat() / total.toFloat() else 1f
+        }
 
     // 4 hak var, 5. olanda kalır
     val isFailedDueToAbsence: Boolean
@@ -207,7 +229,7 @@ fun defaultSemesterCourses(): List<SchoolCourse> = listOf(
         credits = 5,
         semester = 7,
         instructor = "Dr. Öğr. Üyesi B. Milani",
-        classroom = "ED-K1-04 (Derslik 9)",
+        classroom = "Derslik 9",
         dayOfWeek = "Pazartesi",
         timeSlot = "09:35 - 12:00",
         isOnline = false
@@ -219,7 +241,7 @@ fun defaultSemesterCourses(): List<SchoolCourse> = listOf(
         credits = 5,
         semester = 7,
         instructor = "Doç. Dr. M. A. Çifçi",
-        classroom = "ED-Z-21 (Derslik 3)",
+        classroom = "Derslik 3",
         dayOfWeek = "Pazartesi",
         timeSlot = "12:50 - 15:15",
         isOnline = false
@@ -231,7 +253,7 @@ fun defaultSemesterCourses(): List<SchoolCourse> = listOf(
         credits = 2,
         semester = 7,
         instructor = "Dr. Öğr. Üyesi Mehmet Sevi",
-        classroom = "U.Ö. (Online)",
+        classroom = "Online",
         dayOfWeek = "Salı",
         timeSlot = "10:25 - 12:00",
         isOnline = true
@@ -243,7 +265,7 @@ fun defaultSemesterCourses(): List<SchoolCourse> = listOf(
         credits = 5,
         semester = 7,
         instructor = "Dr. Öğr. Üyesi A. Karataş",
-        classroom = "ED-Z-26 (Derslik 6)",
+        classroom = "Derslik 6",
         dayOfWeek = "Çarşamba",
         timeSlot = "09:35 - 12:00",
         isOnline = false
@@ -255,7 +277,7 @@ fun defaultSemesterCourses(): List<SchoolCourse> = listOf(
         credits = 5,
         semester = 7,
         instructor = "Dr. Öğr. Üyesi E. Arıcan",
-        classroom = "ED-K1-11 (Derslik 14)",
+        classroom = "Derslik 14",
         dayOfWeek = "Çarşamba",
         timeSlot = "12:50 - 15:15",
         isOnline = false

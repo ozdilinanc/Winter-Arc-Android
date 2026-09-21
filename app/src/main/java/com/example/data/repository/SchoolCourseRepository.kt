@@ -31,9 +31,20 @@ object SchoolCourseRepository {
         return try {
             val jsonArray = JSONArray(jsonString)
             val list = mutableListOf<SchoolCourse>()
+            var needsResave = false
             for (i in 0 until jsonArray.length()) {
                 val obj = jsonArray.optJSONObject(i) ?: continue
-                list.add(SchoolCourse.fromJson(obj))
+                val course = SchoolCourse.fromJson(obj)
+                val cleanRoom = course.cleanClassroom
+                if (cleanRoom != course.classroom) {
+                    list.add(course.copy(classroom = cleanRoom))
+                    needsResave = true
+                } else {
+                    list.add(course)
+                }
+            }
+            if (needsResave) {
+                saveCourses(context, list)
             }
             if (list.isEmpty()) {
                 val defaults = defaultSemesterCourses()

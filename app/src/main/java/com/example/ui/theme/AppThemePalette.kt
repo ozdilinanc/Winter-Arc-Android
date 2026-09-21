@@ -60,6 +60,9 @@ data class AppThemePalette(
     val branchGraduation: Color,
     val isLight: Boolean = false
 ) {
+    val accent: Color get() = accentCyan
+    val accentGlow: Color get() = accentCyanGlow
+
     val previewSwatches: List<Color>
         get() = listOf(canvasDark, panelNavyElevated, accentCyan, textPrimary)
 
