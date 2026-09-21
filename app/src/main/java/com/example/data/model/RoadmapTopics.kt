@@ -1271,7 +1271,7 @@ object RoadmapDataStore {
         // ==========================================
         "sub_anime_manhwa" to SubItemRoadmap(
             subItemId = "sub_anime_manhwa",
-            title = "Anime & Manhwa Takibi",
+            title = "Anime & Manhwa",
             subtitle = "Kült Yapımlar, Popüler Seriler & Güncel Takip",
             emoji = "⚔️",
             targetLevel = "Hedef: Kendi İzleme/Okuma Listeni Kur & Düzenli Takip",

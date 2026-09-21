@@ -17,12 +17,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.foundation.text.KeyboardOptions
@@ -329,153 +332,38 @@ fun DailyTrackerView(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // ====================================================================
-        // 1. HERO SECTION: iOS Activity Rings & Günlük Özet
+        // 1. HERO SECTION: Nutrio-İlhamlı Büyük Çember & 3'lü Disiplin Halkaları
         // ====================================================================
         item {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(22.dp))
-                    .border(
-                        BorderStroke(
-                            1.dp,
-                            Brush.linearGradient(
-                                listOf(
-                                    Color.White.copy(alpha = 0.15f),
-                                    Color.White.copy(alpha = 0.03f)
-                                )
-                            )
-                        ),
-                        RoundedCornerShape(22.dp)
-                    ),
-                colors = CardDefaults.cardColors(containerColor = PanelNavyElevated)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(18.dp)
-                ) {
-                    // Header: Tarih & Tema
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = formattedDate.uppercase(),
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = AccentCyan,
-                                letterSpacing = 1.2.sp,
-                                fontSize = 10.5.sp
-                            )
-                        )
-
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = AccentAmber.copy(alpha = 0.12f),
-                                border = BorderStroke(1.dp, AccentAmber.copy(alpha = 0.4f))
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.LocalFireDepartment,
-                                        contentDescription = null,
-                                        tint = AccentAmber,
-                                        modifier = Modifier.size(15.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(3.dp))
-                                    Text(
-                                        text = "$streakCount Gün",
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            color = AccentAmber,
-                                            fontSize = 11.sp
-                                        )
-                                    )
-                                }
-                            }
-
-                            ThemeToggleButton(onOpenThemePicker = onOpenThemePicker)
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    // Orta Blok: Başlık ve Apple Rings
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Günün Özeti",
-                                style = MaterialTheme.typography.headlineSmall.copy(
-                                    fontWeight = FontWeight.Black,
-                                    color = TextPrimary,
-                                    fontSize = 24.sp
-                                )
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "$completedTotalGoals / $totalGoals Görev Hazır",
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    color = TextSecondary,
-                                    fontSize = 12.5.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            )
-                        }
-
-                        // iOS Activity Rings
-                        TripleActivityRings(
-                            habitProgress = habitRatio,
-                            dopamineProgress = dopamineRatio,
-                            waterProgress = waterRatio,
-                            overallPercent = overallPercent,
-                            modifier = Modifier.size(96.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Mini Legend Çipleri
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(PanelNavyHighlight.copy(alpha = 0.7f))
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        LegendChip(
-                            color = StatusCompleted,
-                            label = "Rutin",
-                            value = "$completedHabitsCount/3"
-                        )
-                        Box(modifier = Modifier.width(1.dp).height(14.dp).background(BorderSubtle))
-                        LegendChip(
-                            color = AccentAmber,
-                            label = "Detoks",
-                            value = if (dopamineStatus == "maintained") "Korundu" else "Bekliyor"
-                        )
-                        Box(modifier = Modifier.width(1.dp).height(14.dp).background(BorderSubtle))
-                        LegendChip(
-                            color = BranchTools,
-                            label = "Su",
-                            value = "${(waterMl / 1000f).let { String.format(Locale.US, "%.1fL", it) }}"
-                        )
-                    }
+            NutrioDailyHeroCard(
+                formattedDate = formattedDate,
+                streakCount = streakCount,
+                completedTotalGoals = completedTotalGoals,
+                totalGoals = totalGoals,
+                overallDailyRatio = overallDailyRatio,
+                completedHabitsCount = completedHabitsCount,
+                totalHabitsCount = routineDefinitions.size,
+                habitRatio = habitRatio,
+                waterMl = waterMl,
+                targetWaterMl = targetWaterMl,
+                waterRatio = waterRatio,
+                socialUsage = socialUsage,
+                dopamineStatus = dopamineStatus,
+                slept6HoursPlus = slept6HoursPlus,
+                onOpenThemePicker = onOpenThemePicker,
+                onTapRoutineRing = {
+                    hapticEngine.vibrateSelection()
+                    Toast.makeText(context, "3 Temel Rutin: $completedHabitsCount/3 tamamlandı ✅", Toast.LENGTH_SHORT).show()
+                },
+                onTapWaterRing = {
+                    updateWater(250)
+                    Toast.makeText(context, "+250 ml su eklendi! (Toplam: ${(waterMl + 250)} ml) 💧", Toast.LENGTH_SHORT).show()
+                },
+                onTapDopamineRing = {
+                    hapticEngine.vibrateSelection()
+                    showScreenTimeDialog = true
                 }
-            }
+            )
         }
 
         // ====================================================================
@@ -656,123 +544,490 @@ fun DailyTrackerView(
 }
 
 // ====================================================================
-// ALT BİLEŞEN 1: TRIPLE ACTIVITY RINGS (Canvas Çizimi)
+// ALT BİLEŞEN 1: NUTRIO-STYLE HERO CARD & ÇEMBERLER (Modern Ring Architecture)
 // ====================================================================
 @Composable
-private fun TripleActivityRings(
-    habitProgress: Float,
-    dopamineProgress: Float,
-    waterProgress: Float,
-    overallPercent: Int,
-    modifier: Modifier = Modifier
+private fun NutrioDailyHeroCard(
+    formattedDate: String,
+    streakCount: Int,
+    completedTotalGoals: Int,
+    totalGoals: Int,
+    overallDailyRatio: Float,
+    completedHabitsCount: Int,
+    totalHabitsCount: Int,
+    habitRatio: Float,
+    waterMl: Int,
+    targetWaterMl: Int,
+    waterRatio: Float,
+    socialUsage: ScreenTimeHelper.SocialMediaUsage,
+    dopamineStatus: String,
+    slept6HoursPlus: Boolean,
+    onOpenThemePicker: () -> Unit,
+    onTapRoutineRing: () -> Unit,
+    onTapWaterRing: () -> Unit,
+    onTapDopamineRing: () -> Unit
 ) {
-    val animHabit by animateFloatAsState(targetValue = habitProgress, animationSpec = tween(700), label = "animHabit")
-    val animDopamine by animateFloatAsState(targetValue = dopamineProgress, animationSpec = tween(700), label = "animDopamine")
-    val animWater by animateFloatAsState(targetValue = waterProgress, animationSpec = tween(700), label = "animWater")
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .border(
+                BorderStroke(
+                    1.dp,
+                    Brush.linearGradient(
+                        listOf(
+                            Color.White.copy(alpha = 0.16f),
+                            Color.White.copy(alpha = 0.03f)
+                        )
+                    )
+                ),
+                RoundedCornerShape(24.dp)
+            ),
+        colors = CardDefaults.cardColors(containerColor = PanelNavyElevated)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(18.dp)
+        ) {
+            // ----------------------------------------------------
+            // 1. ÜST BAR: Tarih Gezgini (< Bugün, 22 Eylül 📅 >) & Rozetler
+            // ----------------------------------------------------
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = PanelNavyHighlight.copy(alpha = 0.75f),
+                    border = BorderStroke(1.dp, BorderSubtle.copy(alpha = 0.6f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ChevronLeft,
+                            contentDescription = "Önceki",
+                            tint = TextMuted,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = formattedDate,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary,
+                                fontSize = 11.5.sp
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            imageVector = Icons.Default.DateRange,
+                            contentDescription = "Takvim",
+                            tint = AccentCyan,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(2.dp))
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = "Sonraki",
+                            tint = TextDarkMuted,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
 
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        Canvas(modifier = Modifier.fillMaxSize().padding(4.dp)) {
-            val strokeWidth = 7.dp.toPx()
-            val spacing = 3.5.dp.toPx()
-            val centerOffset = Offset(size.width / 2f, size.height / 2f)
-            val maxRadius = (minOf(size.width, size.height) - strokeWidth) / 2f
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = AccentAmber.copy(alpha = 0.14f),
+                        border = BorderStroke(1.dp, AccentAmber.copy(alpha = 0.45f))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.LocalFireDepartment,
+                                contentDescription = null,
+                                tint = AccentAmber,
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text(
+                                text = "$streakCount Gün",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = AccentAmber,
+                                    fontSize = 11.5.sp
+                                )
+                            )
+                        }
+                    }
 
-            val r1 = maxRadius
-            val r2 = maxRadius - strokeWidth - spacing
-            val r3 = maxRadius - (strokeWidth + spacing) * 2
+                    ThemeToggleButton(onOpenThemePicker = onOpenThemePicker)
+                }
+            }
 
-            val habitColor = Color(0xFF10B981)   // Emerald
-            val dopamineColor = Color(0xFFF59E0B)// Amber
-            val waterColor = Color(0xFF38BDF8)   // Sky Blue
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Tracks
-            drawCircle(color = habitColor.copy(alpha = 0.16f), radius = r1, center = centerOffset, style = Stroke(width = strokeWidth))
-            drawCircle(color = dopamineColor.copy(alpha = 0.16f), radius = r2, center = centerOffset, style = Stroke(width = strokeWidth))
-            drawCircle(color = waterColor.copy(alpha = 0.16f), radius = r3, center = centerOffset, style = Stroke(width = strokeWidth))
+            // ----------------------------------------------------
+            // 2. ORTA BÖLÜM: BÜYÜK MERKEZİ ÇEMBER & İKİ YAN METRİK
+            // (Nutrio 1190 kcal left, Eaten 1634, Burned 265 Hiyerarşisi)
+            // ----------------------------------------------------
+            val remainingGoals = (totalGoals - completedTotalGoals).coerceAtLeast(0)
+            val isAllCompleted = completedTotalGoals >= totalGoals && totalGoals > 0
 
-            // Arcs
-            if (animHabit > 0f) {
-                drawArc(
-                    color = habitColor,
-                    startAngle = -90f,
-                    sweepAngle = (animHabit * 360f).coerceIn(0f, 360f),
-                    useCenter = false,
-                    topLeft = Offset(centerOffset.x - r1, centerOffset.y - r1),
-                    size = Size(r1 * 2, r1 * 2),
-                    style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Sol Metrik: Tamamlanan Hedefler
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = "🎯", fontSize = 12.sp)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Biten",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                color = TextMuted,
+                                fontSize = 11.5.sp
+                            )
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(3.dp))
+                    Text(
+                        text = "$completedTotalGoals",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Black,
+                            color = TextPrimary,
+                            fontSize = 24.sp
+                        )
+                    )
+                    Text(
+                        text = "/ $totalGoals hedef",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            color = TextDarkMuted,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    )
+                }
+
+                // Merkez: Büyük Ana Çember
+                val heroColor = if (isAllCompleted) StatusCompleted else AccentCyan
+                val heroTrackColor = Color.White.copy(alpha = 0.08f)
+
+                ModernCircularGauge(
+                    progress = overallDailyRatio,
+                    strokeWidth = 10.dp,
+                    trackColor = heroTrackColor,
+                    progressColor = heroColor,
+                    modifier = Modifier.size(122.dp)
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        if (isAllCompleted) {
+                            Text(
+                                text = "100%",
+                                style = MaterialTheme.typography.headlineSmall.copy(
+                                    fontWeight = FontWeight.Black,
+                                    color = StatusCompleted,
+                                    fontSize = 24.sp
+                                )
+                            )
+                            Text(
+                                text = "tamamlandı 🎉",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = StatusCompleted,
+                                    fontSize = 10.sp
+                                )
+                            )
+                        } else {
+                            Text(
+                                text = "$remainingGoals",
+                                style = MaterialTheme.typography.headlineMedium.copy(
+                                    fontWeight = FontWeight.Black,
+                                    color = TextPrimary,
+                                    fontSize = 32.sp
+                                )
+                            )
+                            Text(
+                                text = "hedef kaldı",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Medium,
+                                    color = TextMuted,
+                                    fontSize = 11.sp
+                                )
+                            )
+                        }
+                    }
+                }
+
+                // Sağ Metrik: Günlük Disiplin XP'si
+                val earnedXp = (completedHabitsCount * 30) +
+                        (if (dopamineStatus == "maintained") 30 else 0) +
+                        (if (waterMl >= 2500) 20 else 0) +
+                        (if (slept6HoursPlus) 30 else 0)
+
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = "⚡", fontSize = 12.sp)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Kazanılan",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                color = TextMuted,
+                                fontSize = 11.5.sp
+                            )
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(3.dp))
+                    Text(
+                        text = "$earnedXp",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Black,
+                            color = AccentGold,
+                            fontSize = 24.sp
+                        )
+                    )
+                    Text(
+                        text = "günlük xp",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            color = TextDarkMuted,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // İnce Ayırıcı Çizgi
+            HorizontalDivider(
+                thickness = 0.8.dp,
+                color = BorderSubtle.copy(alpha = 0.4f)
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // ----------------------------------------------------
+            // 3. ALT BÖLÜM: 3'LÜ TATLI ÇEMBERLER (Carbs / Protein / Fat Stili)
+            // ----------------------------------------------------
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 2.dp, vertical = 2.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "DİSİPLİN ODAKLARI",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = AccentCyan,
+                        letterSpacing = 1.1.sp,
+                        fontSize = 10.5.sp
+                    )
+                )
+                Text(
+                    text = "Hızlı aksiyon için dokun",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        color = TextDarkMuted,
+                        fontSize = 9.5.sp
+                    )
                 )
             }
-            if (animDopamine > 0f) {
-                drawArc(
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                // 1. Çember: Rutinler (Emerald Yeşili)
+                TrioNutrioSubGauge(
+                    progress = habitRatio,
+                    primaryValue = "$completedHabitsCount",
+                    secondaryValue = "/ $totalHabitsCount",
+                    label = "Rutinler",
+                    color = Color(0xFF10B981),
+                    onClick = onTapRoutineRing,
+                    modifier = Modifier.weight(1f)
+                )
+
+                // 2. Çember: Su / Hidrasyon (Gök Mavisi)
+                val formattedLiters = String.format(Locale.US, "%.1f", waterMl / 1000f)
+                val targetLiters = String.format(Locale.US, "%.1f", targetWaterMl / 1000f)
+                TrioNutrioSubGauge(
+                    progress = waterRatio,
+                    primaryValue = formattedLiters,
+                    secondaryValue = "/ ${targetLiters}L",
+                    label = "Hidrasyon",
+                    color = Color(0xFF38BDF8),
+                    onClick = onTapWaterRing,
+                    modifier = Modifier.weight(1f)
+                )
+
+                // 3. Çember: Dopamin / Ekran Süresi (Amber / Turuncu)
+                val isInstaPermitted = socialUsage.isPermissionGranted
+                val instaMinutes = socialUsage.instagramMinutes
+                val isDopamineGood = if (isInstaPermitted) instaMinutes <= INSTAGRAM_LIMIT_MINUTES else dopamineStatus == "maintained"
+                val dopamineColor = if (isDopamineGood) Color(0xFFF59E0B) else Color(0xFFEF4444)
+
+                val dopamineProgress = if (isInstaPermitted) {
+                    (instaMinutes.toFloat() / INSTAGRAM_LIMIT_MINUTES.toFloat()).coerceIn(0f, 1f)
+                } else {
+                    if (dopamineStatus == "maintained") 1f else 0.2f
+                }
+
+                val primaryText = if (isInstaPermitted) "$instaMinutes" else if (dopamineStatus == "maintained") "✓" else "—"
+                val secondaryText = if (isInstaPermitted) "/ ${INSTAGRAM_LIMIT_MINUTES}dk" else if (dopamineStatus == "maintained") "Korundu" else "Kalkan"
+
+                TrioNutrioSubGauge(
+                    progress = dopamineProgress,
+                    primaryValue = primaryText,
+                    secondaryValue = secondaryText,
+                    label = "Dopamin",
                     color = dopamineColor,
-                    startAngle = -90f,
-                    sweepAngle = (animDopamine * 360f).coerceIn(0f, 360f),
-                    useCenter = false,
-                    topLeft = Offset(centerOffset.x - r2, centerOffset.y - r2),
-                    size = Size(r2 * 2, r2 * 2),
-                    style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                    onClick = onTapDopamineRing,
+                    modifier = Modifier.weight(1f)
                 )
             }
-            if (animWater > 0f) {
-                drawArc(
-                    color = waterColor,
-                    startAngle = -90f,
-                    sweepAngle = (animWater * 360f).coerceIn(0f, 360f),
-                    useCenter = false,
-                    topLeft = Offset(centerOffset.x - r3, centerOffset.y - r3),
-                    size = Size(r3 * 2, r3 * 2),
-                    style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
-                )
-            }
-        }
-
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = "%$overallPercent",
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Black,
-                    color = TextPrimary,
-                    fontSize = 16.sp
-                )
-            )
-            Text(
-                text = "SKOR",
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = TextDarkMuted,
-                    fontSize = 8.sp,
-                    letterSpacing = 0.5.sp
-                )
-            )
         }
     }
 }
 
 @Composable
-private fun LegendChip(color: Color, label: String, value: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier
-                .size(7.dp)
-                .clip(CircleShape)
-                .background(color)
-        )
-        Spacer(modifier = Modifier.width(6.dp))
+private fun TrioNutrioSubGauge(
+    progress: Float,
+    primaryValue: String,
+    secondaryValue: String,
+    label: String,
+    color: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .clickable { onClick() }
+            .padding(vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        ModernCircularGauge(
+            progress = progress,
+            strokeWidth = 6.dp,
+            trackColor = color.copy(alpha = 0.15f),
+            progressColor = color,
+            modifier = Modifier.size(76.dp)
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = primaryValue,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Black,
+                        color = TextPrimary,
+                        fontSize = 17.sp
+                    )
+                )
+                Text(
+                    text = secondaryValue,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Medium,
+                        color = TextDarkMuted,
+                        fontSize = 9.sp
+                    )
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
         Text(
-            text = "$label: ",
-            style = MaterialTheme.typography.labelSmall.copy(
-                color = TextDarkMuted,
-                fontSize = 11.sp
-            )
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.labelSmall.copy(
+            text = label,
+            style = MaterialTheme.typography.bodySmall.copy(
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary,
-                fontSize = 11.sp
+                color = TextSecondary,
+                fontSize = 12.sp
             )
         )
+    }
+}
+
+@Composable
+private fun ModernCircularGauge(
+    progress: Float,
+    strokeWidth: androidx.compose.ui.unit.Dp = 8.dp,
+    trackColor: Color = Color.White.copy(alpha = 0.08f),
+    progressColor: Color = AccentCyan,
+    modifier: Modifier = Modifier,
+    content: @Composable BoxScope.() -> Unit = {}
+) {
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress.coerceIn(0f, 1f),
+        animationSpec = tween(durationMillis = 800),
+        label = "gaugeProgress"
+    )
+
+    Box(
+        modifier = modifier,
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize().padding(2.dp)) {
+            val strokePx = strokeWidth.toPx()
+            val diameter = minOf(size.width, size.height) - strokePx
+            val topLeft = Offset((size.width - diameter) / 2f, (size.height - diameter) / 2f)
+            val arcSize = Size(diameter, diameter)
+
+            // Arka plan tam halkası (Track)
+            drawArc(
+                color = trackColor,
+                startAngle = 0f,
+                sweepAngle = 360f,
+                useCenter = false,
+                topLeft = topLeft,
+                size = arcSize,
+                style = Stroke(width = strokePx)
+            )
+
+            // İlerleme arkı (animasyonlu, yuvarlak uçlu)
+            if (animatedProgress > 0f) {
+                val sweep = animatedProgress * 360f
+                drawArc(
+                    color = progressColor,
+                    startAngle = -90f,
+                    sweepAngle = sweep,
+                    useCenter = false,
+                    topLeft = topLeft,
+                    size = arcSize,
+                    style = Stroke(width = strokePx, cap = StrokeCap.Round)
+                )
+            }
+        }
+        content()
     }
 }
 
@@ -1123,7 +1378,7 @@ private fun DopamineScreenTimeCard(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Icon(
-                                imageVector = Icons.Default.OpenInNew,
+                                imageVector = Icons.AutoMirrored.Filled.OpenInNew,
                                 contentDescription = "Detay",
                                 tint = TextDarkMuted,
                                 modifier = Modifier.size(12.dp)
@@ -1562,7 +1817,7 @@ private fun StepEditDialog(
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.OpenInNew,
+                            imageVector = Icons.AutoMirrored.Filled.OpenInNew,
                             contentDescription = null,
                             modifier = Modifier.size(14.dp)
                         )
@@ -2282,7 +2537,7 @@ private fun ScreenTimeDetailDialog(
                         ),
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
                     ) {
-                        Icon(imageVector = Icons.Default.OpenInNew, contentDescription = null, modifier = Modifier.size(13.dp))
+                        Icon(imageVector = Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(13.dp))
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = "Dijital Denge ↗",
