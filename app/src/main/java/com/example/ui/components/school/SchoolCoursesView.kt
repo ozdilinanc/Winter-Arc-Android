@@ -33,6 +33,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.repository.SchoolCourseRepository
 import com.example.ui.theme.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import com.example.ui.util.rememberHapticEngine
 import java.util.UUID
 
 @Composable
@@ -1890,56 +1895,126 @@ internal fun AddNewCourseDialog(
     var isOnline by remember { mutableStateOf(false) }
 
     val days = listOf("Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma")
+    val hapticEngine = rememberHapticEngine()
 
-    AlertDialog(
+    Dialog(
         onDismissRequest = onDismiss,
-        containerColor = PanelNavyElevated,
-        title = {
-            Text("Yeni Ders Ekle", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, color = TextPrimary))
-        },
-        text = {
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 24.dp)
+                .clip(RoundedCornerShape(22.dp))
+                .border(1.dp, BorderSubtle, RoundedCornerShape(22.dp)),
+            color = PanelNavyElevated
+        ) {
             Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp)
+                    .verticalScroll(rememberScrollState())
             ) {
+                // Header Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "Yeni Ders Ekle",
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary,
+                                fontSize = 19.sp
+                            )
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "7. Dönem Müfredatına Ders Kaydı",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = TextSecondary,
+                                fontSize = 12.sp
+                            )
+                        )
+                    }
+
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(PanelNavy)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Kapat",
+                            tint = TextMuted,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                // SECTION 1: DERS BİLGİLERİ
+                Text(
+                    text = "DERS BİLGİLERİ",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = AccentCyan,
+                        letterSpacing = 1.sp,
+                        fontSize = 10.5.sp
+                    )
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     OutlinedTextField(
                         value = code,
                         onValueChange = { code = it.uppercase() },
-                        label = { Text("Kod (Örn: BMI4146)", fontSize = 11.sp) },
+                        label = { Text("Ders Kodu", fontSize = 11.5.sp) },
+                        placeholder = { Text("Örn: BMI4146", fontSize = 11.5.sp) },
                         singleLine = true,
-                        modifier = Modifier.weight(0.45f),
+                        modifier = Modifier.weight(1f),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = AccentCyan,
                             unfocusedBorderColor = BorderSubtle,
                             focusedTextColor = TextPrimary,
                             unfocusedTextColor = TextPrimary
-                        )
+                        ),
+                        shape = RoundedCornerShape(12.dp)
                     )
 
                     OutlinedTextField(
                         value = creditsText,
-                        onValueChange = { creditsText = it },
-                        label = { Text("Kredi / AKTS", fontSize = 11.sp) },
+                        onValueChange = { creditsText = it.filter { ch -> ch.isDigit() } },
+                        label = { Text("AKTS / Kredi", fontSize = 11.5.sp) },
+                        placeholder = { Text("5", fontSize = 11.5.sp) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(0.55f),
+                        modifier = Modifier.weight(0.9f),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = AccentCyan,
                             unfocusedBorderColor = BorderSubtle,
                             focusedTextColor = TextPrimary,
                             unfocusedTextColor = TextPrimary
-                        )
+                        ),
+                        shape = RoundedCornerShape(12.dp)
                     )
                 }
+
+                Spacer(modifier = Modifier.height(10.dp))
 
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Ders Adı (Örn: Data Mining)", fontSize = 12.sp) },
+                    label = { Text("Ders Adı", fontSize = 11.5.sp) },
+                    placeholder = { Text("Örn: Data Mining", fontSize = 11.5.sp) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -1947,184 +2022,251 @@ internal fun AddNewCourseDialog(
                         unfocusedBorderColor = BorderSubtle,
                         focusedTextColor = TextPrimary,
                         unfocusedTextColor = TextPrimary
-                    )
+                    ),
+                    shape = RoundedCornerShape(12.dp)
                 )
 
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // SECTION 2: AKADEMİK & DERSLİK
+                Text(
+                    text = "EĞİTMEN & DERSLİK",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = AccentCyan,
+                        letterSpacing = 1.sp,
+                        fontSize = 10.5.sp
+                    )
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = instructor,
+                    onValueChange = { instructor = it },
+                    label = { Text("Öğretim Görevlisi", fontSize = 11.5.sp) },
+                    placeholder = { Text("Örn: Dr. Öğr. Üyesi B. Milani", fontSize = 11.5.sp) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = AccentCyan,
+                        unfocusedBorderColor = BorderSubtle,
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     OutlinedTextField(
-                        value = instructor,
-                        onValueChange = { instructor = it },
-                        label = { Text("Öğr. Görevlisi", fontSize = 11.sp) },
+                        value = if (isOnline) "Online" else classroom,
+                        onValueChange = { if (!isOnline) classroom = it },
+                        enabled = !isOnline,
+                        label = { Text("Derslik", fontSize = 11.5.sp) },
+                        placeholder = { Text("Derslik 9", fontSize = 11.5.sp) },
                         singleLine = true,
                         modifier = Modifier.weight(1f),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = AccentCyan,
                             unfocusedBorderColor = BorderSubtle,
                             focusedTextColor = TextPrimary,
-                            unfocusedTextColor = TextPrimary
-                        )
+                            unfocusedTextColor = TextPrimary,
+                            disabledTextColor = TextSecondary,
+                            disabledBorderColor = BorderSubtle
+                        ),
+                        shape = RoundedCornerShape(12.dp)
                     )
 
-                    OutlinedTextField(
-                        value = classroom,
-                        onValueChange = { classroom = it },
-                        label = { Text("Derslik (Örn: ED-K1-04)", fontSize = 11.sp) },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = AccentCyan,
-                            unfocusedBorderColor = BorderSubtle,
-                            focusedTextColor = TextPrimary,
-                            unfocusedTextColor = TextPrimary
-                        )
-                    )
+                    // Uzaktan Eğitim Pill Switch
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (isOnline) AccentCyan.copy(alpha = 0.15f) else PanelNavy,
+                        border = BorderStroke(1.dp, if (isOnline) AccentCyan else BorderSubtle),
+                        modifier = Modifier
+                            .clickable {
+                                isOnline = !isOnline
+                                if (isOnline) classroom = "Online"
+                            }
+                            .padding(top = 6.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (isOnline) "🌐 Online" else "🏛️ Yüz Yüze",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isOnline) AccentCyan else TextMuted,
+                                    fontSize = 11.5.sp
+                                )
+                            )
+                        }
+                    }
                 }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // SECTION 3: PROGRAM & ZAMANLAMA
+                Text(
+                    text = "DERS GÜNÜ & SAATİ",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = AccentCyan,
+                        letterSpacing = 1.sp,
+                        fontSize = 10.5.sp
+                    )
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Day Selection Pills (iOS Segmented Style)
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = PanelNavy,
+                    border = BorderStroke(1.dp, BorderSubtle),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    OutlinedTextField(
-                        value = timeSlot,
-                        onValueChange = { timeSlot = it },
-                        label = { Text("Saat (Örn: 09:35 - 12:00)", fontSize = 11.sp) },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = AccentCyan,
-                            unfocusedBorderColor = BorderSubtle,
-                            focusedTextColor = TextPrimary,
-                            unfocusedTextColor = TextPrimary
-                        )
-                    )
-                }
-
-                // Day selection chips
-                Column {
-                    Text(
-                        text = "Ders Günü:",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, color = TextMuted)
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(3.dp),
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         days.forEach { day ->
                             val isSel = dayOfWeek == day
-                            Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = if (isSel) AccentCyan else PanelNavy,
-                                border = androidx.compose.foundation.BorderStroke(1.dp, if (isSel) AccentCyan else BorderSubtle),
+                            Box(
                                 modifier = Modifier
                                     .weight(1f)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(if (isSel) AccentCyan else Color.Transparent)
                                     .clickable { dayOfWeek = day }
+                                    .padding(vertical = 8.dp),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Box(modifier = Modifier.padding(vertical = 5.dp), contentAlignment = Alignment.Center) {
-                                    Text(
-                                        text = day.take(3),
-                                        fontSize = 10.sp,
-                                        fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (isSel) Color.White else TextSecondary
-                                    )
-                                }
+                                Text(
+                                    text = day.take(3),
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSel) Color.White else TextSecondary
+                                )
                             }
                         }
                     }
                 }
 
-                // Online Checkbox Row
+                Spacer(modifier = Modifier.height(10.dp))
+
+                OutlinedTextField(
+                    value = timeSlot,
+                    onValueChange = { timeSlot = it },
+                    label = { Text("Ders Saati", fontSize = 11.5.sp) },
+                    placeholder = { Text("Örn: 09:35 - 12:00", fontSize = 11.5.sp) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = AccentCyan,
+                        unfocusedBorderColor = BorderSubtle,
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // SECTION 4: DÖNEM SEÇİMİ
+                Text(
+                    text = "DÖNEM (SEMESTER)",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = AccentCyan,
+                        letterSpacing = 1.sp,
+                        fontSize = 10.5.sp
+                    )
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { isOnline = !isOnline },
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Checkbox(
-                        checked = isOnline,
-                        onCheckedChange = { isOnline = it },
-                        colors = CheckboxDefaults.colors(checkedColor = AccentCyan)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Uzaktan Öğretim (U.Ö. / Online)",
-                        style = MaterialTheme.typography.bodySmall.copy(color = TextSecondary, fontSize = 12.sp)
-                    )
-                }
-
-                Column {
-                    Text(
-                        text = "Dönem Seçimi (Toplam 8 Dönem):",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, color = TextMuted)
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    // 1..4 Dönem Row
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        (1..4).forEach { sem ->
-                            SemesterSelectChip(
-                                semester = sem,
-                                isSelected = selectedSemester == sem,
-                                onSelect = { selectedSemester = sem },
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    // 5..8 Dönem Row
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        (5..8).forEach { sem ->
-                            SemesterSelectChip(
-                                semester = sem,
-                                isSelected = selectedSemester == sem,
-                                onSelect = { selectedSemester = sem },
-                                modifier = Modifier.weight(1f)
+                    (1..8).forEach { sem ->
+                        val isSel = selectedSemester == sem
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (isSel) AccentCyan else PanelNavy)
+                                .border(1.dp, if (isSel) AccentCyan else BorderSubtle, RoundedCornerShape(8.dp))
+                                .clickable { selectedSemester = sem }
+                                .padding(vertical = 7.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "$sem",
+                                fontSize = 11.5.sp,
+                                fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
+                                color = if (isSel) Color.White else TextSecondary
                             )
                         }
                     }
                 }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    if (name.isNotBlank()) {
-                        val c = creditsText.toIntOrNull() ?: 5
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Action Button: Full Width Add Button
+                Button(
+                    onClick = {
+                        val parsedCredits = creditsText.toIntOrNull() ?: 5
+                        val finalClassroom = if (isOnline) "Online" else classroom.ifBlank { "Derslik" }
+                        val finalTimeSlot = timeSlot.ifBlank { "09:00 - 12:00" }
+                        val finalInstructor = instructor.ifBlank { "Öğretim Üyesi" }
+                        val finalCode = code.ifBlank { "DERS${(100..999).random()}" }
+                        val finalName = name.ifBlank { "Yeni Ders" }
+
+                        hapticEngine.vibrateSkillCompleted()
                         onAddCourse(
-                            name.trim(),
-                            code.trim(),
-                            c,
+                            finalName,
+                            finalCode,
+                            parsedCredits,
                             selectedSemester,
-                            instructor.trim(),
-                            classroom.trim(),
+                            finalInstructor,
+                            finalClassroom,
                             dayOfWeek,
-                            timeSlot.trim(),
+                            finalTimeSlot,
                             isOnline
                         )
-                    }
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = AccentCyan)
-            ) {
-                Text("Ekle", color = Color.White, fontWeight = FontWeight.Bold)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("İptal", color = TextMuted)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = AccentCyan)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Dersi Müfredata Ekle",
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            fontSize = 13.5.sp
+                        )
+                    )
+                }
             }
         }
-    )
+    }
 }
 
 @Composable

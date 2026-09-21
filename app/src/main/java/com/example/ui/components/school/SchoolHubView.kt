@@ -11,33 +11,27 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.outlined.AutoStories
-import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.School
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.R
 import com.example.data.repository.SchoolCourseRepository
 import com.example.ui.theme.*
 
 enum class SchoolSubScreen {
     OVERVIEW,
     COURSES,
-    SCHEDULE,
     GRADUATION_PROJECT,
     BOOKS
 }
@@ -81,13 +75,6 @@ fun SchoolHubView(
             )
             return
         }
-        SchoolSubScreen.SCHEDULE -> {
-            SchoolScheduleHubView(
-                onBack = { currentSubScreen = SchoolSubScreen.OVERVIEW },
-                modifier = modifier
-            )
-            return
-        }
         SchoolSubScreen.GRADUATION_PROJECT -> {
             GraduationProjectDetailView(
                 onBack = { currentSubScreen = SchoolSubScreen.OVERVIEW },
@@ -103,7 +90,7 @@ fun SchoolHubView(
             return
         }
         SchoolSubScreen.OVERVIEW -> {
-            // Render Command Dashboard Menu
+            // Render Clean iOS Menu
         }
     }
 
@@ -114,7 +101,6 @@ fun SchoolHubView(
     val cyanColor = AccentCyan
     val emeraldColor = AccentEmerald
     val amberColor = AccentAmber
-    val toolsColor = BranchTools
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -180,7 +166,7 @@ fun SchoolHubView(
                         }
                     }
 
-                    // Semester Credits & Courses Badge
+                    // Semester Summary Pill
                     Surface(
                         shape = RoundedCornerShape(10.dp),
                         color = PanelNavy,
@@ -194,7 +180,7 @@ fun SchoolHubView(
                                 modifier = Modifier
                                     .size(7.dp)
                                     .clip(CircleShape)
-                                    .background(emeraldColor)
+                                    .background(if (isAnyFailed) StatusFailed else if (isAnyWarning) AccentAmber else emeraldColor)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
@@ -210,436 +196,249 @@ fun SchoolHubView(
                 }
             }
 
-            // PRIMARY HERO BENTO CARD: Okul Dersleri & Notlar
+            // Quick Status Pill Strip
             item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(18.dp))
-                        .border(1.dp, cyanColor.copy(alpha = 0.35f), RoundedCornerShape(18.dp))
-                        .drawBehind {
-                            // Subtle radial glow flare in the top right
-                            drawCircle(
-                                brush = Brush.radialGradient(
-                                    colors = listOf(cyanColor.copy(alpha = 0.12f), Color.Transparent),
-                                    center = Offset(size.width * 0.9f, size.height * 0.15f),
-                                    radius = size.width * 0.65f
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = PanelNavyElevated,
+                    border = BorderStroke(1.dp, BorderSubtle),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Outlined.CheckCircle,
+                                contentDescription = null,
+                                tint = if (isAnyFailed) StatusFailed else if (isAnyWarning) AccentAmber else emeraldColor,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = when {
+                                    isAnyFailed -> "Kritik Devamsızlık Limiti Aşıldı"
+                                    isAnyWarning -> "Son Devamsızlık Uyarısı Mevcut"
+                                    else -> "14 Hafta Devamsızlık Durumu Güvenli"
+                                },
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    color = if (isAnyFailed) StatusFailed else if (isAnyWarning) AccentAmber else TextSecondary,
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.SemiBold
                                 )
                             )
                         }
-                        .clickable {
-                            initialCoursesTab = 0
-                            activeAttendanceCourseId = null
-                            currentSubScreen = SchoolSubScreen.COURSES
-                        },
-                    colors = CardDefaults.cardColors(containerColor = PanelNavyElevated)
+
+                        Text(
+                            text = "Vize & Final Muaf",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                color = TextDarkMuted,
+                                fontSize = 10.5.sp
+                            )
+                        )
+                    }
+                }
+            }
+
+            // Clean Menu Section Title
+            item {
+                Text(
+                    text = "AKADEMİK MODÜLLER",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = TextMuted,
+                        letterSpacing = 1.2.sp,
+                        fontSize = 11.sp
+                    ),
+                    modifier = Modifier.padding(top = 4.dp, start = 2.dp)
+                )
+            }
+
+            // MENU ITEM 1: Okul Dersleri
+            item {
+                SchoolHubMenuItemCard(
+                    title = "Okul Dersleri",
+                    subtitle = "Müfredat, Not Girişi & 16 Hafta Yoklama",
+                    iconRes = R.drawable.ic_school_coding,
+                    accentColor = cyanColor,
+                    primaryBadgeText = "${courses.size} Aktif Ders",
+                    secondaryBadgeText = if (isAnyFailed) "Kaldı" else if (isAnyWarning) "Uyarı" else "Güvenli",
+                    secondaryBadgeColor = if (isAnyFailed) StatusFailed else if (isAnyWarning) AccentAmber else emeraldColor,
+                    onClick = {
+                        initialCoursesTab = 0
+                        activeAttendanceCourseId = null
+                        currentSubScreen = SchoolSubScreen.COURSES
+                    }
+                )
+            }
+
+            // MENU ITEM 2: CS Başucu Kitapları
+            item {
+                SchoolHubMenuItemCard(
+                    title = "CS Başucu Kitapları",
+                    subtitle = "OSTEP, CS:APP, DDIA, Ağlar derin okuma takibi",
+                    iconRes = R.drawable.ic_school_cpu,
+                    accentColor = emeraldColor,
+                    primaryBadgeText = "4 Temel Eser",
+                    secondaryBadgeText = "Kitaplık Takibi",
+                    secondaryBadgeColor = emeraldColor,
+                    onClick = {
+                        currentSubScreen = SchoolSubScreen.BOOKS
+                    }
+                )
+            }
+
+            // MENU ITEM 3: Bitirme Projesi
+            item {
+                SchoolHubMenuItemCard(
+                    title = "Bitirme Projesi",
+                    subtitle = "Mühendislik Tezi, Danışman & Kilometre Taşları",
+                    iconRes = R.drawable.ic_school_desktop,
+                    accentColor = amberColor,
+                    primaryBadgeText = "C-E Graph Sistemi",
+                    secondaryBadgeText = "%70 Tamamlandı",
+                    secondaryBadgeColor = amberColor,
+                    onClick = {
+                        currentSubScreen = SchoolSubScreen.GRADUATION_PROJECT
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SchoolHubMenuItemCard(
+    title: String,
+    subtitle: String,
+    iconRes: Int,
+    accentColor: Color,
+    primaryBadgeText: String,
+    secondaryBadgeText: String? = null,
+    secondaryBadgeColor: Color = AccentEmerald,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .border(1.dp, BorderSubtle, RoundedCornerShape(16.dp))
+            .clickable { onClick() },
+        colors = CardDefaults.cardColors(containerColor = PanelNavyElevated)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Left Icon in vibrant themed badge
+            Box(
+                modifier = Modifier
+                    .size(54.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(accentColor.copy(alpha = 0.14f))
+                    .border(1.dp, accentColor.copy(alpha = 0.35f), RoundedCornerShape(14.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = painterResource(id = iconRes),
+                    contentDescription = null,
+                    tint = Color.Unspecified, // Preserves rich vector colors
+                    modifier = Modifier.size(34.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Middle: Title, Subtitle, Badges
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(modifier = Modifier.padding(18.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary,
+                            fontSize = 16.sp
+                        )
+                    )
+
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = "Aç",
+                        tint = TextMuted,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(3.dp))
+
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = TextSecondary,
+                        fontSize = 12.sp
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Badges Row
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = PanelNavy,
+                        border = BorderStroke(1.dp, BorderSubtle)
+                    ) {
+                        Text(
+                            text = primaryBadgeText,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                color = TextPrimary,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 11.sp
+                            ),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
+
+                    if (secondaryBadgeText != null) {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = secondaryBadgeColor.copy(alpha = 0.12f),
+                            border = BorderStroke(1.dp, secondaryBadgeColor.copy(alpha = 0.3f))
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(46.dp)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(AccentCyan.copy(alpha = 0.15f))
-                                        .border(1.dp, AccentCyan.copy(alpha = 0.35f), RoundedCornerShape(12.dp)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Outlined.MenuBook,
-                                        contentDescription = null,
-                                        tint = AccentCyan,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.width(14.dp))
-
-                                Column {
-                                    Text(
-                                        text = "Okul Dersleri",
-                                        style = MaterialTheme.typography.titleMedium.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            color = TextPrimary,
-                                            fontSize = 17.sp
-                                        )
-                                    )
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(
-                                        text = "${courses.size} Ders • Notlar & 14 Hafta Yoklama",
-                                        style = MaterialTheme.typography.bodySmall.copy(
-                                            color = TextSecondary,
-                                            fontSize = 11.5.sp
-                                        )
-                                    )
-                                }
-                            }
-
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = AccentCyan.copy(alpha = 0.15f),
-                                border = BorderStroke(1.dp, AccentCyan.copy(alpha = 0.4f))
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "Yönet",
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            color = AccentCyan,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 11.sp
-                                        )
-                                    )
-                                    Spacer(modifier = Modifier.width(3.dp))
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                                        contentDescription = null,
-                                        tint = AccentCyan,
-                                        modifier = Modifier.size(12.dp)
-                                    )
-                                }
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(14.dp))
-
-                        // Live Course Chips Strip
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            courses.take(5).forEach { c ->
-                                Surface(
-                                    shape = RoundedCornerShape(6.dp),
-                                    color = PanelNavy,
-                                    border = BorderStroke(1.dp, BorderSubtle),
-                                    modifier = Modifier.weight(1f, fill = false)
-                                ) {
-                                    Text(
-                                        text = c.code.ifBlank { c.name.take(4) },
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            color = TextSecondary,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 10.sp
-                                        ),
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // Status Info Strip
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                val statusDotColor = when {
-                                    isAnyFailed -> StatusFailed
-                                    isAnyWarning -> AccentAmber
-                                    else -> AccentEmerald
-                                }
-                                val statusText = when {
-                                    isAnyFailed -> "Kritik Devamsızlık Sınırı Aşıldı"
-                                    isAnyWarning -> "Son Devamsızlık Uyarısı"
-                                    else -> "Yoklama Durumu Güvenli"
-                                }
                                 Box(
                                     modifier = Modifier
                                         .size(6.dp)
                                         .clip(CircleShape)
-                                        .background(statusDotColor)
+                                        .background(secondaryBadgeColor)
                                 )
-                                Spacer(modifier = Modifier.width(6.dp))
+                                Spacer(modifier = Modifier.width(5.dp))
                                 Text(
-                                    text = statusText,
+                                    text = secondaryBadgeText,
                                     style = MaterialTheme.typography.labelSmall.copy(
-                                        color = statusDotColor,
-                                        fontWeight = FontWeight.SemiBold,
+                                        color = secondaryBadgeColor,
+                                        fontWeight = FontWeight.Bold,
                                         fontSize = 11.sp
                                     )
                                 )
-                            }
-
-                            Text(
-                                text = "Vize & Final Muaf",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    color = TextDarkMuted,
-                                    fontSize = 10.5.sp
-                                )
-                            )
-                        }
-                    }
-                }
-            }
-
-            // 2-COLUMN ASYMMETRIC BENTO GRID: Haftalık Program & Bitirme Tezi
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    // Col 1: Haftalık Ders Programı
-                    Card(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(16.dp))
-                            .border(1.dp, emeraldColor.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
-                            .drawBehind {
-                                drawCircle(
-                                    brush = Brush.radialGradient(
-                                        colors = listOf(emeraldColor.copy(alpha = 0.08f), Color.Transparent),
-                                        center = Offset(size.width * 0.8f, size.height * 0.2f),
-                                        radius = size.width * 0.8f
-                                    )
-                                )
-                            }
-                            .clickable { currentSubScreen = SchoolSubScreen.SCHEDULE },
-                        colors = CardDefaults.cardColors(containerColor = PanelNavyElevated)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(emeraldColor.copy(alpha = 0.15f))
-                                    .border(1.dp, emeraldColor.copy(alpha = 0.35f), RoundedCornerShape(10.dp)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.CalendarMonth,
-                                    contentDescription = null,
-                                    tint = emeraldColor,
-                                    modifier = Modifier.size(22.dp)
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            Text(
-                                text = "Ders Programı",
-                                style = MaterialTheme.typography.titleSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextPrimary,
-                                    fontSize = 14.5.sp
-                                )
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = "Günlük & Matris",
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    color = TextSecondary,
-                                    fontSize = 11.sp
-                                )
-                            )
-
-                            Spacer(modifier = Modifier.height(10.dp))
-
-                            Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = emeraldColor.copy(alpha = 0.12f),
-                                border = BorderStroke(1.dp, emeraldColor.copy(alpha = 0.3f))
-                            ) {
-                                Text(
-                                    text = "Pzt – Çar Akışı",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        color = emeraldColor,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 10.5.sp
-                                    ),
-                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
-                                )
-                            }
-                        }
-                    }
-
-                    // Col 2: Bitirme Tezi
-                    Card(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(16.dp))
-                            .border(1.dp, amberColor.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
-                            .drawBehind {
-                                drawCircle(
-                                    brush = Brush.radialGradient(
-                                        colors = listOf(amberColor.copy(alpha = 0.08f), Color.Transparent),
-                                        center = Offset(size.width * 0.8f, size.height * 0.2f),
-                                        radius = size.width * 0.8f
-                                    )
-                                )
-                            }
-                            .clickable { currentSubScreen = SchoolSubScreen.GRADUATION_PROJECT },
-                        colors = CardDefaults.cardColors(containerColor = PanelNavyElevated)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(amberColor.copy(alpha = 0.15f))
-                                    .border(1.dp, amberColor.copy(alpha = 0.35f), RoundedCornerShape(10.dp)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.School,
-                                    contentDescription = null,
-                                    tint = amberColor,
-                                    modifier = Modifier.size(22.dp)
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            Text(
-                                text = "Bitirme Tezi",
-                                style = MaterialTheme.typography.titleSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextPrimary,
-                                    fontSize = 14.5.sp
-                                )
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = "C-E Graph Sistemi",
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    color = TextSecondary,
-                                    fontSize = 11.sp
-                                )
-                            )
-
-                            Spacer(modifier = Modifier.height(10.dp))
-
-                            Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = amberColor.copy(alpha = 0.12f),
-                                border = BorderStroke(1.dp, amberColor.copy(alpha = 0.3f))
-                            ) {
-                                Text(
-                                    text = "%70 Tamamlandı",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        color = amberColor,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 10.5.sp
-                                    ),
-                                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            // BOTTOM BENTO CARD: CS Kitaplığı
-            item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .border(1.dp, toolsColor.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
-                        .drawBehind {
-                            drawCircle(
-                                brush = Brush.radialGradient(
-                                    colors = listOf(toolsColor.copy(alpha = 0.08f), Color.Transparent),
-                                    center = Offset(size.width * 0.9f, size.height * 0.3f),
-                                    radius = size.width * 0.6f
-                                )
-                            )
-                        }
-                        .clickable { currentSubScreen = SchoolSubScreen.BOOKS },
-                    colors = CardDefaults.cardColors(containerColor = PanelNavyElevated)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(42.dp)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(BranchTools.copy(alpha = 0.15f))
-                                        .border(1.dp, BranchTools.copy(alpha = 0.35f), RoundedCornerShape(12.dp)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.AutoStories,
-                                        contentDescription = null,
-                                        tint = BranchTools,
-                                        modifier = Modifier.size(22.dp)
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.width(12.dp))
-
-                                Column {
-                                    Text(
-                                        text = "CS Başucu Kitaplığı",
-                                        style = MaterialTheme.typography.titleMedium.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            color = TextPrimary,
-                                            fontSize = 15.sp
-                                        )
-                                    )
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(
-                                        text = "4 Temel Eser • Sistemler, Mimari & Ağlar",
-                                        style = MaterialTheme.typography.bodySmall.copy(
-                                            color = TextSecondary,
-                                            fontSize = 11.sp
-                                        )
-                                    )
-                                }
-                            }
-
-                            Icon(
-                                imageVector = Icons.Default.ChevronRight,
-                                contentDescription = null,
-                                tint = TextMuted,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // Book Chips
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            listOf("OSTEP", "CS:APP", "DDIA", "Networks").forEach { book ->
-                                Surface(
-                                    shape = RoundedCornerShape(6.dp),
-                                    color = PanelNavy,
-                                    border = BorderStroke(1.dp, BorderSubtle),
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Box(
-                                        contentAlignment = Alignment.Center,
-                                        modifier = Modifier.padding(vertical = 5.dp)
-                                    ) {
-                                        Text(
-                                            text = book,
-                                            style = MaterialTheme.typography.labelSmall.copy(
-                                                color = BranchTools,
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 10.sp
-                                            )
-                                        )
-                                    }
-                                }
                             }
                         }
                     }
