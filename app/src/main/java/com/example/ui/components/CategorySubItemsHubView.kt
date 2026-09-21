@@ -278,137 +278,156 @@ fun CategorySubItemsHubView(
                     colors = CardDefaults.cardColors(containerColor = PanelNavyElevated)
                 ) {
                     Column(modifier = Modifier.fillMaxWidth()) {
-                        Row(
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                                .padding(
+                                    start = 14.dp,
+                                    end = 14.dp,
+                                    top = 14.dp,
+                                    bottom = if (stats.progressFraction > 0f) 12.dp else 14.dp
+                                )
                         ) {
+                            // Top Row: 44dp Icon + (Title & Subtitle) + Circular Action/Percentage Button
                             Row(
+                                modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.weight(1f)
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                // 46x46dp Icon Box
-                                Box(
-                                    modifier = Modifier
-                                        .size(46.dp)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(accentColor.copy(alpha = 0.12f))
-                                        .border(1.dp, accentColor.copy(alpha = 0.25f), RoundedCornerShape(12.dp)),
-                                    contentAlignment = Alignment.Center
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
                                 ) {
-                                    if (item.icon != null) {
-                                        Icon(
-                                            imageVector = item.icon,
-                                            contentDescription = null,
-                                            tint = accentColor,
-                                            modifier = Modifier.size(23.dp)
+                                    // 44x44dp Icon Box
+                                    Box(
+                                        modifier = Modifier
+                                            .size(44.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(accentColor.copy(alpha = 0.12f))
+                                            .border(1.dp, accentColor.copy(alpha = 0.25f), RoundedCornerShape(12.dp)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        if (item.icon != null) {
+                                            Icon(
+                                                imageVector = item.icon,
+                                                contentDescription = null,
+                                                tint = accentColor,
+                                                modifier = Modifier.size(23.dp)
+                                            )
+                                        } else {
+                                            Text(text = item.emoji, fontSize = 21.sp)
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.width(13.dp))
+
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = item.title,
+                                            style = MaterialTheme.typography.titleMedium.copy(
+                                                fontWeight = FontWeight.Bold,
+                                                color = TextPrimary,
+                                                fontSize = 15.sp
+                                            ),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
                                         )
-                                    } else {
-                                        Text(text = item.emoji, fontSize = 21.sp)
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = item.subtitle,
+                                            style = MaterialTheme.typography.bodySmall.copy(
+                                                color = TextSecondary,
+                                                fontSize = 12.sp
+                                            ),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
                                     }
                                 }
 
-                                Spacer(modifier = Modifier.width(13.dp))
+                                Spacer(modifier = Modifier.width(10.dp))
 
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = item.title,
-                                        style = MaterialTheme.typography.titleMedium.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            color = TextPrimary,
-                                            fontSize = 14.5.sp
-                                        ),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(
-                                        text = item.subtitle,
-                                        style = MaterialTheme.typography.bodySmall.copy(
-                                            color = TextSecondary,
-                                            fontSize = 11.5.sp
-                                        ),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                    ) {
-                                        Surface(
-                                            shape = RoundedCornerShape(6.dp),
-                                            color = PanelNavy,
-                                            border = BorderStroke(1.dp, BorderSubtle)
-                                        ) {
-                                            Text(
-                                                text = item.tag,
-                                                style = MaterialTheme.typography.labelSmall.copy(
-                                                    color = accentColor,
-                                                    fontWeight = FontWeight.SemiBold,
-                                                    fontSize = 10.sp
-                                                ),
-                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                // Circular Action / Percentage Button (Image 5 style)
+                                Surface(
+                                    shape = CircleShape,
+                                    color = if (stats.progressPercent > 0) accentColor.copy(alpha = 0.12f) else PanelNavyHighlight,
+                                    border = BorderStroke(1.dp, if (stats.progressPercent > 0) accentColor.copy(alpha = 0.35f) else BorderSubtle),
+                                    modifier = Modifier.size(36.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        if (stats.progressPercent == 100) {
+                                            Icon(
+                                                imageVector = Icons.Outlined.CheckCircle,
+                                                contentDescription = null,
+                                                tint = AccentEmerald,
+                                                modifier = Modifier.size(18.dp)
                                             )
-                                        }
-
-                                        Surface(
-                                            shape = RoundedCornerShape(6.dp),
-                                            color = PanelNavy,
-                                            border = BorderStroke(1.dp, BorderSubtle)
-                                        ) {
+                                        } else if (stats.progressPercent > 0) {
                                             Text(
-                                                text = when (item.id) {
-                                                    "sub_personal_projects", "sub_projects" -> "${stats.completedCount}/${stats.totalCount} Proje"
-                                                    "sub_btk_akademi" -> "${stats.completedCount}/${stats.totalCount} Sertifika"
-                                                    else -> "${stats.completedCount}/${stats.totalCount} Konu"
-                                                },
+                                                text = "%${stats.progressPercent}",
                                                 style = MaterialTheme.typography.labelSmall.copy(
-                                                    color = if (stats.completedCount > 0) AccentEmerald else TextDarkMuted,
-                                                    fontWeight = FontWeight.Medium,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = accentColor,
                                                     fontSize = 10.sp
-                                                ),
-                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                )
+                                            )
+                                        } else {
+                                            Icon(
+                                                imageVector = Icons.Default.ChevronRight,
+                                                contentDescription = null,
+                                                tint = TextMuted,
+                                                modifier = Modifier.size(17.dp)
                                             )
                                         }
                                     }
                                 }
                             }
 
-                            Spacer(modifier = Modifier.width(10.dp))
+                            Spacer(modifier = Modifier.height(10.dp))
 
-                            // Circular Action / Percentage Button (Image 5 style)
-                            Surface(
-                                shape = CircleShape,
-                                color = if (stats.progressPercent > 0) accentColor.copy(alpha = 0.12f) else PanelNavyHighlight,
-                                border = BorderStroke(1.dp, if (stats.progressPercent > 0) accentColor.copy(alpha = 0.35f) else BorderSubtle),
-                                modifier = Modifier.size(36.dp)
+                            // Bottom Row: Spacious Tag Pill & Topic Counter Pill
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    if (stats.progressPercent == 100) {
-                                        Icon(
-                                            imageVector = Icons.Outlined.CheckCircle,
-                                            contentDescription = null,
-                                            tint = AccentEmerald,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    } else if (stats.progressPercent > 0) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = PanelNavy,
+                                        border = BorderStroke(1.dp, BorderSubtle)
+                                    ) {
                                         Text(
-                                            text = "%${stats.progressPercent}",
+                                            text = item.tag,
                                             style = MaterialTheme.typography.labelSmall.copy(
-                                                fontWeight = FontWeight.Bold,
                                                 color = accentColor,
-                                                fontSize = 10.sp
-                                            )
+                                                fontWeight = FontWeight.SemiBold,
+                                                fontSize = 10.5.sp
+                                            ),
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                                         )
-                                    } else {
-                                        Icon(
-                                            imageVector = Icons.Default.ChevronRight,
-                                            contentDescription = null,
-                                            tint = TextMuted,
-                                            modifier = Modifier.size(17.dp)
+                                    }
+
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = PanelNavy,
+                                        border = BorderStroke(1.dp, BorderSubtle)
+                                    ) {
+                                        Text(
+                                            text = when (item.id) {
+                                                "sub_personal_projects", "sub_projects" -> "${stats.completedCount}/${stats.totalCount} Proje"
+                                                "sub_btk_akademi" -> "${stats.completedCount}/${stats.totalCount} Sertifika"
+                                                else -> "${stats.completedCount}/${stats.totalCount} Konu"
+                                            },
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                color = if (stats.completedCount > 0) AccentEmerald else TextDarkMuted,
+                                                fontWeight = FontWeight.Medium,
+                                                fontSize = 10.5.sp
+                                            ),
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                                         )
                                     }
                                 }

@@ -526,7 +526,7 @@ fun DailyTrackerView(
                                     )
                                 )
                                 Text(
-                                    text = if (stepMet) "Hedef aşıldı! (+25 XP)" else "/ 7.000 hedef",
+                                    text = if (stepMet) "Hedef aşıldı!" else "/ 7.000 hedef",
                                     style = MaterialTheme.typography.bodySmall.copy(
                                         color = if (stepMet) StatusCompleted else TextDarkMuted,
                                         fontSize = 10.sp
@@ -800,7 +800,7 @@ fun DailyTrackerView(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "Bozmadım (+50 XP)",
+                                text = "Bozmadım",
                                 style = MaterialTheme.typography.labelMedium.copy(
                                     fontWeight = FontWeight.Bold,
                                     color = if (dopamineStatus == "maintained") Color.Black else TextPrimary,
@@ -1044,7 +1044,7 @@ fun DailyTrackerView(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "6+ Saat Uyudum (+40 XP)",
+                                text = "6+ Saat Uyudum",
                                 style = MaterialTheme.typography.labelMedium.copy(
                                     fontWeight = FontWeight.Bold,
                                     color = if (slept6HoursPlus) Color.Black else TextPrimary,
@@ -1491,14 +1491,23 @@ private fun DailyHabitCard(
                 )
             }
 
-            Text(
-                text = "+${habit.xpValue} XP",
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = if (isCompleted) StatusCompleted else AccentAmber,
-                    fontSize = 11.sp
-                )
-            )
+            if (isCompleted) {
+                Surface(
+                    shape = CircleShape,
+                    color = StatusCompleted.copy(alpha = 0.15f),
+                    border = BorderStroke(1.dp, StatusCompleted.copy(alpha = 0.35f)),
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            tint = StatusCompleted,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                }
+            }
         }
     }
 }
