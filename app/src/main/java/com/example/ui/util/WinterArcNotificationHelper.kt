@@ -99,8 +99,8 @@ object WinterArcNotificationHelper {
         showNotification(
             context = context,
             notificationId = ID_TEST,
-            title = "🌲 Winter Arc • Test Bildirimi",
-            message = "Bildirimler ve dokunsal geri bildirim motoru kusursuz çalışıyor! 🔥 Zihnini odaklı tut ve seriyi bozma."
+            title = "💧 ODAK TAZELENDİ Mİ? • Winter Arc",
+            message = "⚡ Zihinsel berraklık, hücresel enerji ve odak seviyeni korumak için 1 büyük bardak su iç! 🌊"
         )
     }
 
@@ -180,25 +180,10 @@ object WinterArcNotificationHelper {
     fun syncAllReminders(context: Context) {
         val prefs = getPrefs(context)
 
-        // 1. Dopamin & Akşam Rutini
-        val dopamineEnabled = prefs.getBoolean(KEY_DOPAMINE_ENABLED, true)
-        val dopHour = prefs.getInt(KEY_DOPAMINE_HOUR, 21)
-        val dopMin = prefs.getInt(KEY_DOPAMINE_MINUTE, 30)
+        // Akşam hatırlatıcısı iptal edildi (kullanıcı talebi)
+        cancelReminder(context, ID_DOPAMINE)
 
-        if (dopamineEnabled) {
-            scheduleDailyReminder(
-                context = context,
-                requestCode = ID_DOPAMINE,
-                hour = dopHour,
-                minute = dopMin,
-                title = "🔥 Winter Arc • Günlük Kapanış & Detoks",
-                message = "Bugün dopamin detoksunu korudun mu? Zihinsel berraklığını ve rutinlerini kaydetmeyi unutma!"
-            )
-        } else {
-            cancelReminder(context, ID_DOPAMINE)
-        }
-
-        // 2. Su & Hidrasyon
+        // Su & Hidrasyon
         val waterEnabled = prefs.getBoolean(KEY_WATER_ENABLED, true)
         val waterHour = prefs.getInt(KEY_WATER_HOUR, 15)
         val waterMin = prefs.getInt(KEY_WATER_MINUTE, 0)
@@ -209,8 +194,8 @@ object WinterArcNotificationHelper {
                 requestCode = ID_WATER,
                 hour = waterHour,
                 minute = waterMin,
-                title = "💧 Hidrasyon & Zihinsel Odak",
-                message = "Günün ortasındasın. Zihnini ve metabolizmanı tazelemek için büyük bir bardak su iç!"
+                title = "💧 ODAK TAZELENDİ Mİ? • Winter Arc",
+                message = "⚡ Zihinsel berraklık, hücresel enerji ve odak seviyeni korumak için 1 büyük bardak su iç! 🌊"
             )
         } else {
             cancelReminder(context, ID_WATER)

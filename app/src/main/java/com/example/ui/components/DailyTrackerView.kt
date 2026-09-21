@@ -1,6 +1,7 @@
 package com.example.ui.components
 
 import android.content.Context
+import android.content.Intent
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.animation.animateColorAsState
@@ -19,9 +20,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -41,6 +46,7 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.SkillNode
 import com.example.ui.theme.*
 import com.example.ui.util.HealthSyncManager
+import com.example.ui.util.ScreenTimeHelper
 import com.example.ui.util.WinterArcNotificationHelper
 import com.example.ui.util.rememberHapticEngine
 import kotlinx.coroutines.launch
@@ -57,11 +63,8 @@ data class DailyHabitItem(
     val isCompleted: Boolean = false
 )
 
-private enum class HabitFilterTab(val title: String) {
-    ALL("Tümü"),
-    PHYSICAL("Bedensel"),
-    MENTAL("Zihinsel")
-}
+private const val INSTAGRAM_LIMIT_MINUTES = 45L
+private const val CLAWSSARY_PACKAGE = "com.ozdilinanc.clawssary"
 
 @Composable
 fun DailyTrackerView(
@@ -78,13 +81,14 @@ fun DailyTrackerView(
 
     // Tarih formatı (Örn: "Pazartesi, 21 Eylül")
     val formattedDate = remember {
-        val formatter = SimpleDateFormat("EEEE, d MMMM", Locale("tr"))
-        formatter.format(Date()).replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale("tr")) else it.toString() }
+        val formatter = SimpleDateFormat("EEEE, d MMMM", Locale.forLanguageTag("tr"))
+        formatter.format(Date()).replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.forLanguageTag("tr")) else it.toString() }
     }
 
     // ----------------------------------------------------
-    // Dopamin Detoksu State
+    // 1. Ekran Süresi & Dopamin Kalkanı State
     // ----------------------------------------------------
+    var socialUsage by remember { mutableStateOf(ScreenTimeHelper.getTodaySocialUsage(context)) }
     var dopamineStatus by remember(todayKey) {
         mutableStateOf(prefs.getString("dopamine_status_$todayKey", "none") ?: "none")
     }
@@ -92,7 +96,26 @@ fun DailyTrackerView(
         mutableIntStateOf(prefs.getInt("dopamine_streak", 5))
     }
 
-    fun setDopamine(maintained: Boolean) {
+    // Ekran süresini periyodik/ekran açılışında güncelle
+    LaunchedEffect(Unit) {
+        socialUsage = ScreenTimeHelper.getTodaySocialUsage(context)
+        if (socialUsage.isPermissionGranted) {
+            // Instagram süresi limite göre otomatik statü belirleme
+            if (socialUsage.instagramMinutes <= INSTAGRAM_LIMIT_MINUTES) {
+                if (dopamineStatus != "maintained") {
+                    dopamineStatus = "maintained"
+                    prefs.edit().putString("dopamine_status_$todayKey", "maintained").apply()
+                }
+            } else {
+                if (dopamineStatus != "broken") {
+                    dopamineStatus = "broken"
+                    prefs.edit().putString("dopamine_status_$todayKey", "broken").apply()
+                }
+            }
+        }
+    }
+
+    fun setDopamineManual(maintained: Boolean) {
         hapticEngine.vibrateStepCompleted()
         if (maintained) {
             if (dopamineStatus != "maintained") {
@@ -101,18 +124,18 @@ fun DailyTrackerView(
             }
             dopamineStatus = "maintained"
             prefs.edit().putString("dopamine_status_$todayKey", "maintained").apply()
-            Toast.makeText(context, "Dopamin detoksu korundu! Serin: $streakCount Gün 🔥", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Dopamin detoksu korundu! 🔥 Serin: $streakCount Gün", Toast.LENGTH_SHORT).show()
         } else {
             dopamineStatus = "broken"
             prefs.edit().putString("dopamine_status_$todayKey", "broken").apply()
             streakCount = 0
             prefs.edit().putInt("dopamine_streak", 0).apply()
-            Toast.makeText(context, "Detoks bozuldu. Derin nefes al ve yeniden başla!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Detoks bozuldu. Yeniden odaklan!", Toast.LENGTH_SHORT).show()
         }
     }
 
     // ----------------------------------------------------
-    // Su Takibi State
+    // 2. Su Takibi State
     // ----------------------------------------------------
     val targetWaterMl = 3000
     var waterMl by remember(todayKey) {
@@ -127,76 +150,33 @@ fun DailyTrackerView(
     }
 
     // ----------------------------------------------------
-    // Uyku Takibi State (6+ Saat Kontrolü)
+    // 3. Sağlık (Huawei Saat Uyku & Adım) Otomatik State
     // ----------------------------------------------------
+    val coroutineScope = rememberCoroutineScope()
+    var isSyncingHealth by remember { mutableStateOf(false) }
+    var lastHealthSync by remember(todayKey) {
+        mutableStateOf(HealthSyncManager.getLastSync(context, todayKey))
+    }
     var slept6HoursPlus by remember(todayKey) {
         mutableStateOf(prefs.getBoolean("sleep_6h_plus_$todayKey", false))
     }
-    var sleepQuality by remember(todayKey) {
-        mutableStateOf(prefs.getString("sleep_quality_$todayKey", "refreshed") ?: "refreshed")
-    }
 
-    fun setSleep6h(status: Boolean) {
-        if (status) hapticEngine.vibrateSkillCompleted() else hapticEngine.vibrateSelection()
-        slept6HoursPlus = status
-        prefs.edit().putBoolean("sleep_6h_plus_$todayKey", status).apply()
-        if (status) {
-            Toast.makeText(context, "6+ saat kaliteli uyku kaydedildi! ⚡", Toast.LENGTH_SHORT).show()
-        }
+    // Manuel Adım & Uyku Düzeltme State (Huawei / Google Fit gecikmeli senkronizasyon için)
+    var manualStepsOverride by remember(todayKey) {
+        mutableLongStateOf(prefs.getLong("manual_steps_override_$todayKey", 0L))
     }
-
-    fun setQuality(quality: String) {
-        hapticEngine.vibrateSelection()
-        sleepQuality = quality
-        prefs.edit().putString("sleep_quality_$todayKey", quality).apply()
-    }
-
+    var showStepEditDialog by remember { mutableStateOf(false) }
+    var showSleepEditDialog by remember { mutableStateOf(false) }
+    var showScreenTimeDialog by remember { mutableStateOf(false) }
+    val effectiveSteps = maxOf(lastHealthSync?.stepsCount ?: 0L, manualStepsOverride)
     // ----------------------------------------------------
-    // Hatırlatıcı Bildirimler State
-    // ----------------------------------------------------
-    val reminderPrefs = remember { WinterArcNotificationHelper.getPrefs(context) }
-    var dopamineReminderEnabled by remember {
-        mutableStateOf(reminderPrefs.getBoolean(WinterArcNotificationHelper.KEY_DOPAMINE_ENABLED, true))
-    }
-    var waterReminderEnabled by remember {
-        mutableStateOf(reminderPrefs.getBoolean(WinterArcNotificationHelper.KEY_WATER_ENABLED, true))
-    }
-
-    fun toggleDopamineReminder(enabled: Boolean) {
-        hapticEngine.vibrateSelection()
-        dopamineReminderEnabled = enabled
-        reminderPrefs.edit().putBoolean(WinterArcNotificationHelper.KEY_DOPAMINE_ENABLED, enabled).apply()
-        WinterArcNotificationHelper.syncAllReminders(context)
-        val msg = if (enabled) "Akşam kapanış alarmı (21:30) aktif! 🔔" else "Akşam alarmı kapatıldı"
-        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-    }
-
-    fun toggleWaterReminder(enabled: Boolean) {
-        hapticEngine.vibrateSelection()
-        waterReminderEnabled = enabled
-        reminderPrefs.edit().putBoolean(WinterArcNotificationHelper.KEY_WATER_ENABLED, enabled).apply()
-        WinterArcNotificationHelper.syncAllReminders(context)
-        val msg = if (enabled) "Su içme alarmı (15:00) aktif! 💧" else "Su alarmı kapatıldı"
-        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-    }
-
-    // ----------------------------------------------------
-    // Spor & Kişisel Gelişim Rutinleri
+    // 4. Sadeleştirilmiş 3 Temel Rutin (Yürüyüş, Kitap, İngilizce)
     // ----------------------------------------------------
     val routineDefinitions = remember {
         listOf(
-            // Bedensel & Hareket
-            DailyHabitItem("hab_gym", "Ağırlık / Fitness Antrenmanı", "Spor", "🏋️‍♂️", 40),
-            DailyHabitItem("hab_tennis", "Tenis Seansı / Maç Pratiği", "Spor", "🎾", 40),
-            DailyHabitItem("hab_walk", "Günlük Yürüyüş (7.000 - 10.000 Adım)", "Hareket", "🚶‍♂️", 25),
-            DailyHabitItem("hab_clean_food", "Temiz Beslenme & Şeker/Fast-Food Yok", "Beslenme", "🥗", 30),
-            DailyHabitItem("hab_posture", "Masa Başı Postür & Omurga Esnetme", "Sağlık", "🧘", 15),
-
-            // Kişisel Gelişim & Kültür
+            DailyHabitItem("hab_walk", "Günlük Yürüyüş (7.000+ Adım)", "Hareket", "🚶‍♂️", 30),
             DailyHabitItem("hab_reading", "Kitap Okuma (20-30 Sayfa)", "Kültür", "📚", 30),
-            DailyHabitItem("hab_anime_manhwa", "Anime / Manhwa Bölümü Okuma", "Hobi", "⚔️", 20),
-            DailyHabitItem("hab_cards", "Kart Numaraları & Parmak Pratiği", "Hobi", "🃏", 25),
-            DailyHabitItem("hab_english", "İngilizce / Kelime Uygulaması", "Dil", "🇬🇧", 25)
+            DailyHabitItem("hab_english", "İngilizce & Kelime Pratiği", "Dil", "🇬🇧", 30)
         )
     }
 
@@ -214,40 +194,58 @@ fun DailyTrackerView(
         prefs.edit().putBoolean("${id}_$todayKey", updated).apply()
     }
 
-    // ----------------------------------------------------
-    // Sağlık Senkronizasyonu (Health Connect / Huawei Sağlık)
-    // ----------------------------------------------------
-    val coroutineScope = rememberCoroutineScope()
-    var isSyncingHealth by remember { mutableStateOf(false) }
-    var lastHealthSync by remember(todayKey) {
-        mutableStateOf(HealthSyncManager.getLastSync(context, todayKey))
-    }
-
     fun applyHealthSyncResult(result: HealthSyncManager.HealthSyncResult) {
         HealthSyncManager.saveLastSync(context, todayKey, result)
         lastHealthSync = result
 
-        if (result.stepsCount >= HealthSyncManager.WALK_STEP_TARGET) {
+        val currentEffective = maxOf(result.stepsCount, manualStepsOverride)
+        // 1. Adım sayısı 7000+ ise yürüyüş otomatik tamamlanır
+        if (currentEffective >= HealthSyncManager.WALK_STEP_TARGET) {
             routineStatusMap = routineStatusMap.toMutableMap().also { it["hab_walk"] = true }
             prefs.edit().putBoolean("hab_walk_$todayKey", true).apply()
         }
 
-        if (result.isSleep6hPlus) {
+        // 2. Uyku süresi 6+ saat ise otomatik tamamlanır
+        if (result.isSleep6hPlus || (result.sleepMinutesTotal >= 360)) {
             slept6HoursPlus = true
             prefs.edit().putBoolean("sleep_6h_plus_$todayKey", true).apply()
-            sleepQuality = result.sleepQuality
-            prefs.edit().putString("sleep_quality_$todayKey", result.sleepQuality).apply()
         }
+    }
 
-        hapticEngine.vibrateSkillCompleted()
-        val sleepHours = result.sleepMinutesTotal / 60
-        val sleepMins = result.sleepMinutesTotal % 60
-        val msg = if (result.isSuccess) {
-            "Sağlık eşitlendi: 🚶 ${result.stepsCount} Adım | 🛌 ${sleepHours}s ${sleepMins}dk"
+    fun updateManualSteps(newSteps: Long) {
+        manualStepsOverride = newSteps
+        prefs.edit().putLong("manual_steps_override_$todayKey", newSteps).apply()
+        if (newSteps >= HealthSyncManager.WALK_STEP_TARGET) {
+            routineStatusMap = routineStatusMap.toMutableMap().also { it["hab_walk"] = true }
+            prefs.edit().putBoolean("hab_walk_$todayKey", true).apply()
+            hapticEngine.vibrateSkillCompleted()
         } else {
-            result.message.ifEmpty { "Sağlık verileri eşitlendi." }
+            hapticEngine.vibrateSelection()
         }
-        Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+        Toast.makeText(context, "Adım sayısı $newSteps olarak güncellendi! ✅", Toast.LENGTH_SHORT).show()
+    }
+
+    fun updateManualSleep(hours: Double) {
+        val totalMinutes = (hours * 60).toLong()
+        val quality = HealthSyncManager.determineSleepQuality(hours)
+        val is6hPlus = hours >= HealthSyncManager.SLEEP_HOURS_TARGET
+        val updatedResult = HealthSyncManager.HealthSyncResult(
+            stepsCount = effectiveSteps,
+            sleepHours = hours,
+            sleepMinutesTotal = totalMinutes,
+            sleepQuality = quality,
+            isSleep6hPlus = is6hPlus,
+            isWalkGoalMet = effectiveSteps >= HealthSyncManager.WALK_STEP_TARGET,
+            source = "Manuel Uyku 🌙",
+            syncedAtMillis = System.currentTimeMillis(),
+            isSuccess = true
+        )
+        HealthSyncManager.saveLastSync(context, todayKey, updatedResult)
+        lastHealthSync = updatedResult
+        slept6HoursPlus = is6hPlus
+        prefs.edit().putBoolean("sleep_6h_plus_$todayKey", is6hPlus).apply()
+        hapticEngine.vibrateSkillCompleted()
+        Toast.makeText(context, "Uyku süresi ${hours}s olarak güncellendi! 🌙", Toast.LENGTH_SHORT).show()
     }
 
     val healthPermissionLauncher = rememberLauncherForActivityResult(
@@ -260,37 +258,50 @@ fun DailyTrackerView(
                 applyHealthSyncResult(result)
                 isSyncingHealth = false
             }
-        } else {
-            Toast.makeText(context, "Health Connect izinleri verilmedi.", Toast.LENGTH_SHORT).show()
         }
     }
 
     fun syncHealthData() {
-        hapticEngine.vibrateSelection()
         coroutineScope.launch {
             isSyncingHealth = true
             try {
                 val availability = HealthSyncManager.checkHealthConnectAvailability(context)
-                if (availability == HealthSyncManager.HealthConnectAvailability.NOT_INSTALLED) {
-                    Toast.makeText(context, "Health Connect cihazda yüklü değil. Mağaza açılıyor...", Toast.LENGTH_SHORT).show()
-                    HealthSyncManager.launchHealthConnectOrStore(context)
-                    return@launch
+                if (availability == HealthSyncManager.HealthConnectAvailability.AVAILABLE) {
+                    val hasPerms = HealthSyncManager.hasHealthPermissions(context)
+                    if (!hasPerms) {
+                        healthPermissionLauncher.launch(HealthSyncManager.REQUIRED_HEALTH_PERMISSIONS)
+                        return@launch
+                    }
                 }
-
-                val hasPerms = HealthSyncManager.hasHealthPermissions(context)
-                if (!hasPerms && availability == HealthSyncManager.HealthConnectAvailability.AVAILABLE) {
-                    healthPermissionLauncher.launch(HealthSyncManager.REQUIRED_HEALTH_PERMISSIONS)
-                    return@launch
-                }
-
                 val result = HealthSyncManager.fetchTodayHealthData(context)
                 applyHealthSyncResult(result)
-            } catch (e: Exception) {
-                Toast.makeText(context, "Eşitleme hatası: ${e.message}", Toast.LENGTH_SHORT).show()
+            } catch (_: Exception) {
             } finally {
                 isSyncingHealth = false
             }
         }
+    }
+
+    // Ekran açıldığında Huawei Sağlık / Health Connect otomatik eşitlensin!
+    LaunchedEffect(Unit) {
+        syncHealthData()
+    }
+
+    // ----------------------------------------------------
+    // 5. Su Alarmı State
+    // ----------------------------------------------------
+    val reminderPrefs = remember { WinterArcNotificationHelper.getPrefs(context) }
+    var waterReminderEnabled by remember {
+        mutableStateOf(reminderPrefs.getBoolean(WinterArcNotificationHelper.KEY_WATER_ENABLED, true))
+    }
+
+    fun toggleWaterReminder(enabled: Boolean) {
+        hapticEngine.vibrateSelection()
+        waterReminderEnabled = enabled
+        reminderPrefs.edit().putBoolean(WinterArcNotificationHelper.KEY_WATER_ENABLED, enabled).apply()
+        WinterArcNotificationHelper.syncAllReminders(context)
+        val msg = if (enabled) "Su içme alarmı (15:00) devrede! 💧" else "Su alarmı kapatıldı"
+        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
     }
 
     // ----------------------------------------------------
@@ -305,20 +316,9 @@ fun DailyTrackerView(
             (if (dopamineStatus == "maintained") 1 else 0) +
             (if (waterMl >= 2500) 1 else 0) +
             (if (slept6HoursPlus) 1 else 0)
-    val totalGoals = routineDefinitions.size + 3
+    val totalGoals = routineDefinitions.size + 3 // 3 rutin + dopamin + su + uyku = 6 hedef
     val overallDailyRatio = (completedTotalGoals.toFloat() / totalGoals.toFloat()).coerceIn(0f, 1f)
     val overallPercent = (overallDailyRatio * 100).toInt()
-
-    // Habit Kategori Filtresi
-    var selectedFilterTab by remember { mutableStateOf(HabitFilterTab.ALL) }
-
-    val filteredHabits = remember(selectedFilterTab, routineStatusMap) {
-        when (selectedFilterTab) {
-            HabitFilterTab.ALL -> routineDefinitions
-            HabitFilterTab.PHYSICAL -> routineDefinitions.filter { it.category in listOf("Spor", "Hareket", "Beslenme", "Sağlık") }
-            HabitFilterTab.MENTAL -> routineDefinitions.filter { it.category in listOf("Kültür", "Hobi", "Dil") }
-        }
-    }
 
     LazyColumn(
         modifier = modifier
@@ -329,7 +329,7 @@ fun DailyTrackerView(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // ====================================================================
-        // 1. HERO SECTION: iOS Activity Rings & Günlük Özet Dashboard Kartı
+        // 1. HERO SECTION: iOS Activity Rings & Günlük Özet
         // ====================================================================
         item {
             Card(
@@ -355,7 +355,7 @@ fun DailyTrackerView(
                         .fillMaxWidth()
                         .padding(18.dp)
                 ) {
-                    // Header Row: Tarih & Tema Butonu
+                    // Header: Tarih & Tema
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -375,7 +375,6 @@ fun DailyTrackerView(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            // Streak Kapsülü
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
                                 color = AccentAmber.copy(alpha = 0.12f),
@@ -409,7 +408,7 @@ fun DailyTrackerView(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // Orta Ana Blok: Büyük Başlık ve Activity Rings
+                    // Orta Blok: Başlık ve Apple Rings
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -426,7 +425,7 @@ fun DailyTrackerView(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "$completedTotalGoals / $totalGoals Görev Tamamlandı",
+                                text = "$completedTotalGoals / $totalGoals Görev Hazır",
                                 style = MaterialTheme.typography.bodySmall.copy(
                                     color = TextSecondary,
                                     fontSize = 12.5.sp,
@@ -435,7 +434,7 @@ fun DailyTrackerView(
                             )
                         }
 
-                        // iOS Activity Rings (Üçlü Halka)
+                        // iOS Activity Rings
                         TripleActivityRings(
                             habitProgress = habitRatio,
                             dopamineProgress = dopamineRatio,
@@ -447,7 +446,7 @@ fun DailyTrackerView(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Mini İlerleme İpuçları (Legend Pills)
+                    // Mini Legend Çipleri
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -460,7 +459,7 @@ fun DailyTrackerView(
                         LegendChip(
                             color = StatusCompleted,
                             label = "Rutin",
-                            value = "$completedHabitsCount/${routineDefinitions.size}"
+                            value = "$completedHabitsCount/3"
                         )
                         Box(modifier = Modifier.width(1.dp).height(14.dp).background(BorderSubtle))
                         LegendChip(
@@ -480,95 +479,21 @@ fun DailyTrackerView(
         }
 
         // ====================================================================
-        // Odak Becerisi Bannerı (Eğer varsa)
+        // 2. OTOMATİK METRİK 1: HUAWEI SAAT UYKU KAPSÜLÜ (100% Otomatik)
         // ====================================================================
-        if (focusSkill != null) {
-            item {
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = PanelNavyElevated,
-                    border = BorderStroke(1.dp, AccentCyan.copy(alpha = 0.35f)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(text = "🎯", fontSize = 20.sp)
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "GÜNÜN ODAK YETENEĞİ",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    color = AccentCyan,
-                                    fontSize = 10.sp,
-                                    letterSpacing = 0.8.sp
-                                )
-                            )
-                            Text(
-                                text = focusSkill.name,
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextPrimary,
-                                    fontSize = 13.sp
-                                ),
-                                maxLines = 1
-                            )
-                        }
-
-                        if (onCycleFocus != null) {
-                            IconButton(
-                                onClick = {
-                                    hapticEngine.vibrateSelection()
-                                    onCycleFocus()
-                                },
-                                modifier = Modifier.size(32.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Refresh,
-                                    contentDescription = "Değiştir",
-                                    tint = TextSecondary,
-                                    modifier = Modifier.size(17.dp)
-                                )
-                            }
-                        }
-
-                        if (onCompleteSkill != null) {
-                            Button(
-                                onClick = { onCompleteSkill(focusSkill) },
-                                shape = RoundedCornerShape(8.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = StatusCompleted),
-                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                                modifier = Modifier.height(32.dp)
-                            ) {
-                                Text(
-                                    text = "Tamamla",
-                                    color = Color.Black,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 11.sp
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // ====================================================================
-        // 2. BENTO METRICS: 3 Farklı Şekil ve Estetikteki Metrik Kapsülü
-        // ====================================================================
-
-        // Metrik 1: Dopamin Kalkanı
         item {
-            DopamineShieldCard(
-                status = dopamineStatus,
-                onMaintain = { setDopamine(true) },
-                onBreak = { setDopamine(false) }
+            HuaweiSleepAutoCard(
+                lastSync = lastHealthSync,
+                isSyncing = isSyncingHealth,
+                slept6hPlus = slept6HoursPlus,
+                onRefresh = { syncHealthData() },
+                onCardClick = { showSleepEditDialog = true }
             )
         }
 
-        // Metrik 2: Su & Hidrasyon Sıvı Kapsülü
+        // ====================================================================
+        // 3. METRİK 2: SU & HİDRASYON SIVI KAPSÜLÜ
+        // ====================================================================
         item {
             WaterLiquidCard(
                 currentMl = waterMl,
@@ -578,117 +503,160 @@ fun DailyTrackerView(
             )
         }
 
-        // Metrik 3: Sirkadiyen & Uyku Kapsülü (Health Sync)
+        // ====================================================================
+        // 4. METRİK 3: DOPAMİN & INSTAGRAM EKRAN SÜRESİ KALKANI
+        // ====================================================================
         item {
-            SleepCircadianCard(
-                slept6hPlus = slept6HoursPlus,
-                sleepQuality = sleepQuality,
-                lastSync = lastHealthSync,
-                isSyncing = isSyncingHealth,
-                onToggleSleep6h = { setSleep6h(!slept6HoursPlus) },
-                onSelectQuality = { setQuality(it) },
-                onSyncHealth = { syncHealthData() },
-                onOpenHealthApp = {
-                    val launched = HealthSyncManager.launchInstalledHealthApp(context)
-                    if (!launched) {
-                        HealthSyncManager.launchHealthConnectOrStore(context)
-                    }
-                }
+            DopamineScreenTimeCard(
+                socialUsage = socialUsage,
+                dopamineStatus = dopamineStatus,
+                onCardClick = { showScreenTimeDialog = true },
+                onOpenSettings = {
+                    ScreenTimeHelper.openUsageSettings(context)
+                },
+                onManualMaintain = { setDopamineManual(true) },
+                onManualBreak = { setDopamineManual(false) }
             )
         }
 
         // ====================================================================
-        // 3. GÜNLÜK RUTİNLER (Things 3 / Apple Reminders Tarzı Kontrol Listesi)
+        // 5. GÜNLÜK 3 TEMEL RUTİN (Yürüyüş, Kitap, Clawssary İngilizce)
         // ====================================================================
         item {
-            Column(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "GÜNLÜK PROTOKOL",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = AccentCyan,
-                            letterSpacing = 1.sp,
-                            fontSize = 11.sp
-                        )
-                    )
-
-                    // Kategori Segment Seçici
-                    Row(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(PanelNavyElevated)
-                            .padding(2.dp),
-                        horizontalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        HabitFilterTab.values().forEach { tab ->
-                            val isSelected = selectedFilterTab == tab
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(if (isSelected) AccentCyan else Color.Transparent)
-                                    .clickable {
-                                        hapticEngine.vibrateSelection()
-                                        selectedFilterTab = tab
-                                    }
-                                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = tab.title,
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (isSelected) Color.Black else TextMuted,
-                                        fontSize = 10.5.sp
-                                    )
-                                )
-                            }
-                        }
-                    }
-                }
-            }
+            Text(
+                text = "GÜNLÜK RUTİNLER (3 HEDEF)",
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = AccentCyan,
+                    letterSpacing = 1.sp,
+                    fontSize = 11.sp
+                ),
+                modifier = Modifier.padding(top = 4.dp)
+            )
         }
 
-        items(filteredHabits.size, key = { filteredHabits[it].id }) { index ->
-            val habit = filteredHabits[index]
+        items(routineDefinitions.size, key = { routineDefinitions[it].id }) { index ->
+            val habit = routineDefinitions[index]
             val isDone = routineStatusMap[habit.id] ?: false
-            val extraStepNote = if (habit.id == "hab_walk" && (lastHealthSync?.stepsCount ?: 0L) > 0L) {
-                "👟 ${lastHealthSync!!.stepsCount} Adım (Eşitlendi)"
-            } else null
 
             ModernHabitItemRow(
                 habit = habit,
                 isCompleted = isDone,
-                extraNote = extraStepNote,
-                onToggle = { toggleRoutine(habit.id) }
+                stepsCount = if (habit.id == "hab_walk") effectiveSteps else null,
+                onToggle = { toggleRoutine(habit.id) },
+                onLaunchClawssary = {
+                    try {
+                        val launchIntent = context.packageManager.getLaunchIntentForPackage(CLAWSSARY_PACKAGE)
+                        if (launchIntent != null) {
+                            hapticEngine.vibrateSkillCompleted()
+                            context.startActivity(launchIntent)
+                            if (!isDone) {
+                                toggleRoutine(habit.id)
+                            }
+                        } else {
+                            Toast.makeText(context, "Clawssary uygulaması yüklü görünmüyor.", Toast.LENGTH_SHORT).show()
+                        }
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "Uygulama açılamadı: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                onLaunchHuaweiHealth = {
+                    showStepEditDialog = true
+                }
             )
         }
 
         // ====================================================================
-        // 4. SMART REMINDERS & ALARMLAR (Kompakt Alt Kapsül)
+        // 6. SU BİLDİRİMİ KAPSÜLÜ (15:00 Hidrasyon Alarmı)
         // ====================================================================
         item {
-            RemindersCompactCard(
-                dopamineEnabled = dopamineReminderEnabled,
+            WaterReminderCompactCard(
                 waterEnabled = waterReminderEnabled,
-                onToggleDopamine = { toggleDopamineReminder(it) },
                 onToggleWater = { toggleWaterReminder(it) },
                 onSendTestNotification = {
                     hapticEngine.vibrateLevelUp()
                     WinterArcNotificationHelper.sendTestNotification(context)
-                    Toast.makeText(context, "Test bildirimi gönderildi! 🔔", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Test su bildirimi gönderildi! 💧", Toast.LENGTH_SHORT).show()
                 }
             )
         }
     }
+
+    if (showStepEditDialog) {
+        StepEditDialog(
+            currentSteps = effectiveSteps,
+            healthConnectSteps = lastHealthSync?.stepsCount ?: 0L,
+            onDismiss = { showStepEditDialog = false },
+            onSaveSteps = { newSteps ->
+                updateManualSteps(newSteps)
+                showStepEditDialog = false
+            },
+            onLaunchHuaweiHealth = {
+                HealthSyncManager.launchInstalledHealthApp(context)
+            },
+            onRefreshHealthConnect = {
+                syncHealthData()
+            }
+        )
+    }
+
+    if (showSleepEditDialog) {
+        SleepEditDialog(
+            currentMinutes = lastHealthSync?.sleepMinutesTotal ?: 0L,
+            currentSource = lastHealthSync?.source ?: "Health Connect",
+            onDismiss = { showSleepEditDialog = false },
+            onSaveSleep = { hours ->
+                updateManualSleep(hours)
+                showSleepEditDialog = false
+            },
+            onLaunchHuaweiHealth = {
+                HealthSyncManager.launchInstalledHealthApp(context)
+            },
+            onLaunchGoogleFit = {
+                try {
+                    val pm = context.packageManager
+                    val intent = pm.getLaunchIntentForPackage("com.google.android.apps.fitness")
+                    if (intent != null) {
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        context.startActivity(intent)
+                    } else {
+                        Toast.makeText(context, "Google Fit yüklü görünmüyor.", Toast.LENGTH_SHORT).show()
+                    }
+                } catch (e: Exception) {
+                    Toast.makeText(context, "Uygulama açılamadı: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            },
+            onRefreshHealthConnect = {
+                syncHealthData()
+            }
+        )
+    }
+
+    if (showScreenTimeDialog) {
+        ScreenTimeDetailDialog(
+            socialUsage = socialUsage,
+            dopamineStatus = dopamineStatus,
+            onDismiss = { showScreenTimeDialog = false },
+            onOpenDigitalWellbeing = {
+                ScreenTimeHelper.openDigitalWellbeing(context)
+            },
+            onOpenSettings = {
+                ScreenTimeHelper.openUsageSettings(context)
+            },
+            onManualMaintain = {
+                setDopamineManual(true)
+                showScreenTimeDialog = false
+            },
+            onManualBreak = {
+                setDopamineManual(false)
+                showScreenTimeDialog = false
+            }
+        )
+    }
 }
 
 // ====================================================================
-// ALT BİLEŞEN 1: TRIPLE ACTIVITY RINGS (Canvas iOS Çizimi)
+// ALT BİLEŞEN 1: TRIPLE ACTIVITY RINGS (Canvas Çizimi)
 // ====================================================================
 @Composable
 private fun TripleActivityRings(
@@ -717,12 +685,12 @@ private fun TripleActivityRings(
             val dopamineColor = Color(0xFFF59E0B)// Amber
             val waterColor = Color(0xFF38BDF8)   // Sky Blue
 
-            // Tracks (Arka plan silik halkalar)
+            // Tracks
             drawCircle(color = habitColor.copy(alpha = 0.16f), radius = r1, center = centerOffset, style = Stroke(width = strokeWidth))
             drawCircle(color = dopamineColor.copy(alpha = 0.16f), radius = r2, center = centerOffset, style = Stroke(width = strokeWidth))
             drawCircle(color = waterColor.copy(alpha = 0.16f), radius = r3, center = centerOffset, style = Stroke(width = strokeWidth))
 
-            // Ön plan halkaları
+            // Arcs
             if (animHabit > 0f) {
                 drawArc(
                     color = habitColor,
@@ -758,7 +726,6 @@ private fun TripleActivityRings(
             }
         }
 
-        // Merkez Skor
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = "%$overallPercent",
@@ -810,167 +777,120 @@ private fun LegendChip(color: Color, label: String, value: String) {
 }
 
 // ====================================================================
-// ALT BİLEŞEN 2: DOPAMİN KALKANI KARTI (Sade & Motive Edici)
+// ALT BİLEŞEN 2: HUAWEI SAAT UYKU KAPSÜLÜ (100% Otomatik, Butonsuz)
 // ====================================================================
 @Composable
-private fun DopamineShieldCard(
-    status: String,
-    onMaintain: () -> Unit,
-    onBreak: () -> Unit
+private fun HuaweiSleepAutoCard(
+    lastSync: HealthSyncManager.HealthSyncResult?,
+    isSyncing: Boolean,
+    slept6hPlus: Boolean,
+    onRefresh: () -> Unit,
+    onCardClick: () -> Unit
 ) {
-    val borderColor by animateColorAsState(
-        targetValue = when (status) {
-            "maintained" -> StatusCompleted.copy(alpha = 0.6f)
-            "broken" -> Color(0xFFEF4444).copy(alpha = 0.6f)
-            else -> BorderSubtle
-        },
-        label = "dopamineBorder"
-    )
+    val totalMins = lastSync?.sleepMinutesTotal ?: 0L
+    val hours = totalMins / 60
+    val mins = totalMins % 60
+    val isGoalMet = slept6hPlus || totalMins >= 360
+
+    val cardTitle = when {
+        lastSync?.source?.contains("Google Fit") == true && lastSync.source.contains("Huawei") -> "HUAWEI & FIT UYKU"
+        lastSync?.source?.contains("Google Fit") == true -> "GOOGLE FIT UYKU"
+        lastSync?.source?.contains("Huawei") == true -> "HUAWEI SAĞLIK UYKU"
+        lastSync?.source?.contains("Manuel") == true -> "MANUEL UYKU GİRİŞİ"
+        else -> "OTOMATİK UYKU TAKİBİ"
+    }
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .border(1.dp, borderColor, RoundedCornerShape(18.dp)),
+            .border(
+                1.dp,
+                if (isGoalMet) StatusCompleted.copy(alpha = 0.6f) else AccentPurple.copy(alpha = 0.35f),
+                RoundedCornerShape(18.dp)
+            )
+            .clickable { onCardClick() },
         colors = CardDefaults.cardColors(containerColor = PanelNavyElevated)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(AccentAmber.copy(alpha = 0.15f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(text = "🧠", fontSize = 18.sp)
-                    }
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(AccentPurple.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = "🌙", fontSize = 22.sp)
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "DOPAMİN KALKANI",
-                            style = MaterialTheme.typography.titleSmall.copy(
+                            text = cardTitle,
+                            style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold,
-                                color = TextPrimary,
+                                color = AccentPurple,
                                 letterSpacing = 0.8.sp,
-                                fontSize = 13.sp
-                            )
-                        )
-                        Text(
-                            text = "Sonsuz kaydırma & ucuz uyaransız zihin",
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                color = TextMuted,
                                 fontSize = 10.5.sp
                             )
                         )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "• Dokun",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                color = TextDarkMuted,
+                                fontSize = 10.sp
+                            )
+                        )
                     }
-                }
 
-                // Durum Rozeti
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = when (status) {
-                        "maintained" -> StatusCompleted.copy(alpha = 0.18f)
-                        "broken" -> Color(0xFFEF4444).copy(alpha = 0.18f)
-                        else -> PanelNavyHighlight
-                    }
-                ) {
+                    Spacer(modifier = Modifier.height(2.dp))
+
                     Text(
-                        text = when (status) {
-                            "maintained" -> "KORUNDU 🔥"
-                            "broken" -> "BOZULDU ❌"
-                            else -> "DEVAM EDİYOR"
-                        },
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelSmall.copy(
+                        text = if (totalMins > 0) "${hours}s ${mins}dk" else "Kayıt Yok • Dokun",
+                        style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
-                            color = when (status) {
-                                "maintained" -> StatusCompleted
-                                "broken" -> Color(0xFFEF4444)
-                                else -> TextMuted
-                            },
-                            fontSize = 10.sp
+                            color = if (isGoalMet) StatusCompleted else TextPrimary,
+                            fontSize = 17.sp
+                        )
+                    )
+
+                    Text(
+                        text = if (isGoalMet) "6+ saat hedefi aşıldı ✅" else "Hedef: 6+ saat kaliteli uyku",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            color = if (isGoalMet) StatusCompleted else TextMuted,
+                            fontSize = 11.sp
                         )
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Dokunmatik İki Hap Buton
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            // Yenileme / Durum İkonu
+            IconButton(
+                onClick = onRefresh,
+                enabled = !isSyncing,
+                modifier = Modifier.size(36.dp)
             ) {
-                val isMaintained = status == "maintained"
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = if (isMaintained) StatusCompleted else PanelNavyHighlight,
-                    border = BorderStroke(1.dp, if (isMaintained) StatusCompleted else BorderSubtle),
-                    modifier = Modifier
-                        .weight(1.2f)
-                        .height(40.dp)
-                        .clickable { onMaintain() }
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = null,
-                            tint = if (isMaintained) Color.Black else TextPrimary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Koru & Sürdür",
-                            style = MaterialTheme.typography.labelMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = if (isMaintained) Color.Black else TextPrimary,
-                                fontSize = 12.sp
-                            )
-                        )
-                    }
-                }
-
-                val isBroken = status == "broken"
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = if (isBroken) Color(0xFF7F1D1D) else Color.Transparent,
-                    border = BorderStroke(1.dp, if (isBroken) Color(0xFFEF4444) else BorderSubtle),
-                    modifier = Modifier
-                        .weight(0.8f)
-                        .height(40.dp)
-                        .clickable { onBreak() }
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = null,
-                            tint = if (isBroken) Color.White else TextDarkMuted,
-                            modifier = Modifier.size(15.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "Bozdum",
-                            style = MaterialTheme.typography.labelMedium.copy(
-                                fontWeight = FontWeight.SemiBold,
-                                color = if (isBroken) Color.White else TextDarkMuted,
-                                fontSize = 12.sp
-                            )
-                        )
-                    }
+                if (isSyncing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        color = AccentCyan,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Yenile",
+                        tint = AccentCyan,
+                        modifier = Modifier.size(18.dp)
+                    )
                 }
             }
         }
@@ -978,7 +898,7 @@ private fun DopamineShieldCard(
 }
 
 // ====================================================================
-// ALT BİLEŞEN 3: SU & HİDRASYON KAPSÜLÜ (Sıvı Göstergesi)
+// ALT BİLEŞEN 3: SU & HİDRASYON KAPSÜLÜ
 // ====================================================================
 @Composable
 private fun WaterLiquidCard(
@@ -1026,7 +946,7 @@ private fun WaterLiquidCard(
                             )
                         )
                         Text(
-                            text = "Hücresel enerji ve odak berraklığı",
+                            text = "Hücresel enerji & odak",
                             style = MaterialTheme.typography.bodySmall.copy(
                                 color = TextMuted,
                                 fontSize = 10.5.sp
@@ -1035,7 +955,6 @@ private fun WaterLiquidCard(
                     }
                 }
 
-                // Hedef Metrik Sayacı
                 Text(
                     text = "$currentMl / $targetMl ml",
                     style = MaterialTheme.typography.titleMedium.copy(
@@ -1052,7 +971,7 @@ private fun WaterLiquidCard(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(10.dp)
+                    .height(9.dp)
                     .clip(RoundedCornerShape(6.dp))
                     .background(BorderSubtle.copy(alpha = 0.35f))
             ) {
@@ -1074,7 +993,7 @@ private fun WaterLiquidCard(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Hızlı Ekleme Butonları (+250, +500, Sıfırla)
+            // Hızlı Ekleme Butonları
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1123,7 +1042,7 @@ private fun WaterLiquidCard(
                     color = Color.Transparent,
                     border = BorderStroke(1.dp, BorderSubtle),
                     modifier = Modifier
-                        .width(42.dp)
+                        .width(40.dp)
                         .height(38.dp)
                         .clickable { onResetWater() }
                 ) {
@@ -1142,32 +1061,39 @@ private fun WaterLiquidCard(
 }
 
 // ====================================================================
-// ALT BİLEŞEN 4: UYKU & SİRKADİYEN KAPSÜLÜ (Health Connect Entegrasyonu)
+// ALT BİLEŞEN 4: DOPAMİN & INSTAGRAM EKRAN SÜRESİ KALKANI
 // ====================================================================
 @Composable
-private fun SleepCircadianCard(
-    slept6hPlus: Boolean,
-    sleepQuality: String,
-    lastSync: HealthSyncManager.HealthSyncResult?,
-    isSyncing: Boolean,
-    onToggleSleep6h: () -> Unit,
-    onSelectQuality: (String) -> Unit,
-    onSyncHealth: () -> Unit,
-    onOpenHealthApp: () -> Unit
+private fun DopamineScreenTimeCard(
+    socialUsage: ScreenTimeHelper.SocialMediaUsage,
+    dopamineStatus: String,
+    onCardClick: () -> Unit = {},
+    onOpenSettings: () -> Unit,
+    onManualMaintain: () -> Unit,
+    onManualBreak: () -> Unit
 ) {
+    val isPermitted = socialUsage.isPermissionGranted
+    val instaMins = socialUsage.instagramMinutes
+    val isUnderLimit = instaMins <= INSTAGRAM_LIMIT_MINUTES
+
+    val borderColor by animateColorAsState(
+        targetValue = if (isPermitted) {
+            if (isUnderLimit) StatusCompleted.copy(alpha = 0.6f) else Color(0xFFEF4444).copy(alpha = 0.6f)
+        } else {
+            if (dopamineStatus == "maintained") StatusCompleted.copy(alpha = 0.6f) else BorderSubtle
+        },
+        label = "dopamineBorder"
+    )
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .border(
-                1.dp,
-                if (slept6hPlus) StatusCompleted.copy(alpha = 0.5f) else BorderSubtle,
-                RoundedCornerShape(18.dp)
-            ),
+            .clickable { onCardClick() }
+            .border(1.dp, borderColor, RoundedCornerShape(18.dp)),
         colors = CardDefaults.cardColors(containerColor = PanelNavyElevated)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Başlık & Senkronize Rozet
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -1178,44 +1104,64 @@ private fun SleepCircadianCard(
                         modifier = Modifier
                             .size(36.dp)
                             .clip(RoundedCornerShape(10.dp))
-                            .background(AccentPurple.copy(alpha = 0.15f)),
+                            .background(AccentAmber.copy(alpha = 0.15f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(text = "🌙", fontSize = 18.sp)
+                        Text(text = "🧠", fontSize = 18.sp)
                     }
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
-                        Text(
-                            text = "UYKU & SİRKADİYEN",
-                            style = MaterialTheme.typography.titleSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = TextPrimary,
-                                letterSpacing = 0.8.sp,
-                                fontSize = 13.sp
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "DOPAMİN KALKANI",
+                                style = MaterialTheme.typography.titleSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextPrimary,
+                                    letterSpacing = 0.8.sp,
+                                    fontSize = 13.sp
+                                )
                             )
-                        )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                imageVector = Icons.Default.OpenInNew,
+                                contentDescription = "Detay",
+                                tint = TextDarkMuted,
+                                modifier = Modifier.size(12.dp)
+                            )
+                        }
                         Text(
-                            text = if (lastSync != null && lastSync.sleepMinutesTotal > 0)
-                                "${lastSync.sleepMinutesTotal / 60}s ${lastSync.sleepMinutesTotal % 60}dk • ${lastSync.source}"
-                            else "6+ saat hedefi & zihinsel toparlanma",
+                            text = if (isPermitted) "Instagram: $instaMins / $INSTAGRAM_LIMIT_MINUTES dk limit (tıkla)" else "Shorts & dikey kaydırma yok",
                             style = MaterialTheme.typography.bodySmall.copy(
-                                color = if (slept6hPlus) StatusCompleted else TextMuted,
+                                color = if (isPermitted && !isUnderLimit) Color(0xFFEF4444) else TextMuted,
                                 fontSize = 10.5.sp
                             )
                         )
                     }
                 }
 
+                // Rozet
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = if (slept6hPlus) StatusCompleted.copy(alpha = 0.18f) else PanelNavyHighlight
+                    color = if (isPermitted) {
+                        if (isUnderLimit) StatusCompleted.copy(alpha = 0.18f) else Color(0xFFEF4444).copy(alpha = 0.18f)
+                    } else {
+                        if (dopamineStatus == "maintained") StatusCompleted.copy(alpha = 0.18f) else PanelNavyHighlight
+                    }
                 ) {
                     Text(
-                        text = if (slept6hPlus) "6+ SAAT ✅" else "YETERSİZ 💤",
+                        text = if (isPermitted) {
+                            if (isUnderLimit) "KORUNDU 🔥" else "LİMİT AŞILDI ⚠️"
+                        } else {
+                            if (dopamineStatus == "maintained") "KORUNDU 🔥" else "BEKLİYOR"
+                        },
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
-                            color = if (slept6hPlus) StatusCompleted else TextMuted,
+                            color = if (isPermitted) {
+                                if (isUnderLimit) StatusCompleted else Color(0xFFEF4444)
+                            } else {
+                                if (dopamineStatus == "maintained") StatusCompleted else TextMuted
+                            },
                             fontSize = 10.sp
                         )
                     )
@@ -1224,161 +1170,73 @@ private fun SleepCircadianCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Kalite Seçim Hapları
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                val qualities = listOf(
-                    Triple("refreshed", "Dinlenmiş ⚡", StatusCompleted),
-                    Triple("normal", "Normal 💤", AccentCyan),
-                    Triple("tired", "Yorgun 🥱", AccentAmber)
-                )
+            if (!isPermitted) {
+                // İzin isteme çubuğu & manuel kontrol
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedButton(
+                        onClick = onOpenSettings,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(1.dp, AccentCyan.copy(alpha = 0.4f)),
+                        colors = ButtonDefaults.outlinedButtonColors(containerColor = PanelNavyHighlight),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
+                    ) {
+                        Icon(imageVector = Icons.Default.Settings, contentDescription = null, tint = AccentCyan, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Ekran Süresi İzni Ver", fontSize = 11.sp, color = AccentCyan, fontWeight = FontWeight.Bold)
+                    }
 
-                qualities.forEach { (key, label, accent) ->
-                    val isSelected = sleepQuality == key
                     Surface(
                         shape = RoundedCornerShape(10.dp),
-                        color = if (isSelected) accent.copy(alpha = 0.18f) else PanelNavyHighlight,
-                        border = BorderStroke(1.dp, if (isSelected) accent else BorderSubtle),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(34.dp)
-                            .clickable { onSelectQuality(key) }
+                        color = if (dopamineStatus == "maintained") StatusCompleted else PanelNavyHighlight,
+                        border = BorderStroke(1.dp, BorderSubtle),
+                        modifier = Modifier.height(36.dp).clickable { onManualMaintain() }
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
+                        Box(modifier = Modifier.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
                             Text(
-                                text = label,
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSelected) accent else TextMuted,
-                                    fontSize = 11.sp
-                                )
-                            )
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Alt Butonlar: 6+ Saat Uyudum Toggle & Sağlık Eşitle
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = if (slept6hPlus) StatusCompleted else PanelNavyHighlight,
-                    border = BorderStroke(1.dp, if (slept6hPlus) StatusCompleted else BorderSubtle),
-                    modifier = Modifier
-                        .weight(1.2f)
-                        .height(38.dp)
-                        .clickable { onToggleSleep6h() }
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = null,
-                            tint = if (slept6hPlus) Color.Black else TextPrimary,
-                            modifier = Modifier.size(15.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = if (slept6hPlus) "6+ Saat Tamam" else "6+ Saat Uyudum",
-                            style = MaterialTheme.typography.labelMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = if (slept6hPlus) Color.Black else TextPrimary,
-                                fontSize = 11.5.sp
-                            )
-                        )
-                    }
-                }
-
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = PanelNavyHighlight,
-                    border = BorderStroke(1.dp, AccentCyan.copy(alpha = 0.5f)),
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(38.dp)
-                        .clickable(enabled = !isSyncing) { onSyncHealth() }
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        if (isSyncing) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(14.dp),
-                                color = AccentCyan,
-                                strokeWidth = 2.dp
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Eşitleniyor",
-                                color = AccentCyan,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = null,
-                                tint = AccentCyan,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "⌚ Eşitle",
-                                color = AccentCyan,
+                                text = "Koru ✓",
+                                color = if (dopamineStatus == "maintained") Color.Black else TextPrimary,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 11.5.sp
                             )
                         }
                     }
                 }
-
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = Color.Transparent,
-                    border = BorderStroke(1.dp, BorderSubtle),
+            } else {
+                // İzin verilmiş: Otomatik Ekran Süresi Barı
+                val usageRatio = (instaMins.toFloat() / INSTAGRAM_LIMIT_MINUTES.toFloat()).coerceIn(0f, 1f)
+                LinearProgressIndicator(
+                    progress = { usageRatio },
                     modifier = Modifier
-                        .width(40.dp)
-                        .height(38.dp)
-                        .clickable { onOpenHealthApp() }
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Default.OpenInNew,
-                            contentDescription = "Saat Uygulaması",
-                            tint = TextMuted,
-                            modifier = Modifier.size(15.dp)
-                        )
-                    }
-                }
+                        .fillMaxWidth()
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(3.dp)),
+                    color = if (isUnderLimit) StatusCompleted else Color(0xFFEF4444),
+                    trackColor = BorderSubtle.copy(alpha = 0.4f)
+                )
             }
         }
     }
 }
 
 // ====================================================================
-// ALT BİLEŞEN 5: MODERN HABIT ITEM ROW (Things 3 / Apple Reminders Stili)
+// ALT BİLEŞEN 5: MODERN HABIT ITEM ROW (Things 3 / Apple Reminders)
 // ====================================================================
 @Composable
 private fun ModernHabitItemRow(
     habit: DailyHabitItem,
     isCompleted: Boolean,
-    extraNote: String? = null,
-    onToggle: () -> Unit
+    stepsCount: Long? = null,
+    onToggle: () -> Unit,
+    onLaunchClawssary: () -> Unit,
+    onLaunchHuaweiHealth: (() -> Unit)? = null
 ) {
     Surface(
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(16.dp),
         color = if (isCompleted) PanelNavyHighlight.copy(alpha = 0.6f) else PanelNavyElevated,
         border = BorderStroke(1.dp, if (isCompleted) StatusCompleted.copy(alpha = 0.35f) else BorderSubtle),
         modifier = Modifier
@@ -1389,10 +1247,10 @@ private fun ModernHabitItemRow(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Apple Tarzı Yuvarlak Checkbox
+            // Checkbox
             Box(
                 modifier = Modifier
-                    .size(22.dp)
+                    .size(24.dp)
                     .clip(CircleShape)
                     .background(if (isCompleted) StatusCompleted else Color.Transparent)
                     .border(
@@ -1407,37 +1265,34 @@ private fun ModernHabitItemRow(
                         imageVector = Icons.Default.Check,
                         contentDescription = null,
                         tint = Color.Black,
-                        modifier = Modifier.size(13.dp)
+                        modifier = Modifier.size(14.dp)
                     )
                 }
             }
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            // Renkli Squircle İkon Kutusu
+            // İkon Tablası
             val iconBg = when (habit.category) {
-                "Spor" -> AccentAmber.copy(alpha = 0.15f)
                 "Hareket" -> AccentCyan.copy(alpha = 0.15f)
-                "Beslenme" -> StatusCompleted.copy(alpha = 0.15f)
                 "Kültür" -> AccentPurple.copy(alpha = 0.15f)
-                "Hobi" -> AccentViolet.copy(alpha = 0.15f)
                 "Dil" -> BranchTools.copy(alpha = 0.15f)
                 else -> PanelNavyHighlight
             }
 
             Box(
                 modifier = Modifier
-                    .size(34.dp)
-                    .clip(RoundedCornerShape(9.dp))
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(10.dp))
                     .background(iconBg),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = habit.icon, fontSize = 16.sp)
+                Text(text = habit.icon, fontSize = 18.sp)
             }
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            // Başlık & Alt Not
+            // Başlık & Not
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = habit.title,
@@ -1448,12 +1303,12 @@ private fun ModernHabitItemRow(
                     )
                 )
 
-                if (extraNote != null) {
+                if (stepsCount != null && stepsCount > 0L) {
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = extraNote,
+                        text = "👟 Huawei: $stepsCount / 7.000 Adım ${if (stepsCount >= 7000) "✅" else ""}",
                         style = MaterialTheme.typography.labelSmall.copy(
-                            color = StatusCompleted,
+                            color = if (stepsCount >= 7000) StatusCompleted else AccentCyan,
                             fontWeight = FontWeight.Bold,
                             fontSize = 10.5.sp
                         )
@@ -1461,33 +1316,76 @@ private fun ModernHabitItemRow(
                 }
             }
 
-            // XP Rozeti
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = if (isCompleted) StatusCompleted.copy(alpha = 0.15f) else AccentGold.copy(alpha = 0.12f)
-            ) {
-                Text(
-                    text = "+${habit.xpValue} XP",
-                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = if (isCompleted) StatusCompleted else AccentGold,
-                        fontSize = 10.sp
+            // Sağ Butonlar: Yürüyüş için Huawei Eşitle, İngilizce için Clawssary, diğerleri için XP
+            if (habit.id == "hab_walk" && onLaunchHuaweiHealth != null) {
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = AccentCyan.copy(alpha = 0.15f),
+                    border = BorderStroke(1.dp, AccentCyan.copy(alpha = 0.4f)),
+                    modifier = Modifier.clickable { onLaunchHuaweiHealth() }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "⌚ Eşitle",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = AccentCyan,
+                                fontSize = 10.sp
+                            )
+                        )
+                    }
+                }
+            } else if (habit.id == "hab_english") {
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = BranchTools.copy(alpha = 0.15f),
+                    border = BorderStroke(1.dp, BranchTools.copy(alpha = 0.4f)),
+                    modifier = Modifier.clickable { onLaunchClawssary() }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Clawssary 🚀",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = BranchTools,
+                                fontSize = 10.sp
+                            )
+                        )
+                    }
+                }
+            } else {
+                // XP Rozeti
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (isCompleted) StatusCompleted.copy(alpha = 0.15f) else AccentGold.copy(alpha = 0.12f)
+                ) {
+                    Text(
+                        text = "+${habit.xpValue} XP",
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = if (isCompleted) StatusCompleted else AccentGold,
+                            fontSize = 10.sp
+                        )
                     )
-                )
+                }
             }
         }
     }
 }
 
 // ====================================================================
-// ALT BİLEŞEN 6: HATIRLATICILAR KOMPAKT KAPSÜLÜ
+// ALT BİLEŞEN 6: SU BİLDİRİMİ KAPSÜLÜ (15:00 Hidrasyon Alarmı)
 // ====================================================================
 @Composable
-private fun RemindersCompactCard(
-    dopamineEnabled: Boolean,
+private fun WaterReminderCompactCard(
     waterEnabled: Boolean,
-    onToggleDopamine: (Boolean) -> Unit,
     onToggleWater: (Boolean) -> Unit,
     onSendTestNotification: () -> Unit
 ) {
@@ -1498,95 +1396,54 @@ private fun RemindersCompactCard(
             .border(1.dp, BorderSubtle, RoundedCornerShape(18.dp)),
         colors = CardDefaults.cardColors(containerColor = PanelNavyElevated)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "🔔", fontSize = 18.sp)
-                    Spacer(modifier = Modifier.width(8.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(text = "💧", fontSize = 18.sp)
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
                     Text(
-                        text = "WINTER ARC ALARMLARI",
+                        text = "GÜN ORTASI SU ALARMI (15:00)",
                         style = MaterialTheme.typography.titleSmall.copy(
                             fontWeight = FontWeight.Bold,
                             color = TextPrimary,
-                            letterSpacing = 0.8.sp,
-                            fontSize = 12.5.sp
+                            letterSpacing = 0.6.sp,
+                            fontSize = 11.5.sp
+                        )
+                    )
+                    Text(
+                        text = "Odak tazelemek için zengin hidrasyon bildirimi",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            color = TextMuted,
+                            fontSize = 10.sp
                         )
                     )
                 }
+            }
 
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(
-                    onClick = { onSendTestNotification() },
-                    modifier = Modifier.size(30.dp)
+                    onClick = onSendTestNotification,
+                    modifier = Modifier.size(28.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Notifications,
-                        contentDescription = "Test Bildirimi",
+                        contentDescription = "Test",
                         tint = AccentCyan,
                         modifier = Modifier.size(16.dp)
                     )
                 }
-            }
 
-            Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.width(4.dp))
 
-            // Toggle 1: Akşam Kapanış
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(PanelNavyHighlight)
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "🔥 Akşam Detoks & Kapanış (21:30)",
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        fontWeight = FontWeight.Medium,
-                        color = TextPrimary,
-                        fontSize = 12.sp
-                    )
-                )
-                Switch(
-                    checked = dopamineEnabled,
-                    onCheckedChange = { onToggleDopamine(it) },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = StatusCompleted,
-                        checkedTrackColor = StatusCompleted.copy(alpha = 0.35f),
-                        uncheckedThumbColor = TextDarkMuted,
-                        uncheckedTrackColor = BorderSubtle
-                    ),
-                    modifier = Modifier.scale(0.8f)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            // Toggle 2: Su Hatırlatıcı
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(PanelNavyHighlight)
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "💧 Gün Ortası Hidrasyonu (15:00)",
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        fontWeight = FontWeight.Medium,
-                        color = TextPrimary,
-                        fontSize = 12.sp
-                    )
-                )
                 Switch(
                     checked = waterEnabled,
-                    onCheckedChange = { onToggleWater(it) },
+                    onCheckedChange = onToggleWater,
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = BranchTools,
                         checkedTrackColor = BranchTools.copy(alpha = 0.35f),
@@ -1599,3 +1456,899 @@ private fun RemindersCompactCard(
         }
     }
 }
+
+// ====================================================================
+// ALT BİLEŞEN 7: ADIM EŞİTLEME & DÜZELTME DİYALOĞU
+// ====================================================================
+@Composable
+private fun StepEditDialog(
+    currentSteps: Long,
+    healthConnectSteps: Long,
+    onDismiss: () -> Unit,
+    onSaveSteps: (Long) -> Unit,
+    onLaunchHuaweiHealth: () -> Unit,
+    onRefreshHealthConnect: () -> Unit
+) {
+    var textInput by remember { mutableStateOf(if (currentSteps > 0) currentSteps.toString() else "") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(24.dp),
+        containerColor = PanelNavyElevated,
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = "⌚", fontSize = 22.sp)
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "Adım Eşitleme",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
+                        )
+                    )
+                }
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.size(28.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Kapat",
+                        tint = TextDarkMuted,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+        },
+        text = {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                // Bilgilendirme ve Health Connect Durumu
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = PanelNavyHighlight),
+                    border = BorderStroke(1.dp, BorderSubtle)
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Health Connect Kaydı:",
+                                style = MaterialTheme.typography.labelSmall.copy(color = TextMuted)
+                            )
+                            Text(
+                                text = "$healthConnectSteps adım",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = AccentCyan
+                                )
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Huawei Sağlık, saatindeki adımları sisteme belirli aralıklarla aktarır. Saatinle eşitlemek için Huawei Sağlık'ı açıp aşağı kaydırarak senkronize edebilirsin.",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = TextDarkMuted,
+                                fontSize = 11.sp,
+                                lineHeight = 15.sp
+                            )
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Hızlı Butonlar: Huawei Sağlık'ı Aç & Yeniden Oku
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = onLaunchHuaweiHealth,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = AccentCyan.copy(alpha = 0.15f),
+                            contentColor = AccentCyan
+                        ),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.OpenInNew,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Huawei Sağlık",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp
+                            )
+                        )
+                    }
+
+                    Button(
+                        onClick = onRefreshHealthConnect,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = BranchTools.copy(alpha = 0.15f),
+                            contentColor = BranchTools
+                        ),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Tekrar Oku",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp
+                            )
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Elle Adım Girişi
+                Text(
+                    text = "Veya saatindeki güncel adımı yaz:",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextPrimary
+                    )
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+
+                OutlinedTextField(
+                    value = textInput,
+                    onValueChange = { newValue ->
+                        if (newValue.all { it.isDigit() } && newValue.length <= 6) {
+                            textInput = newValue
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text("Örn: 7518", color = TextDarkMuted) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = AccentCyan,
+                        unfocusedBorderColor = BorderSubtle,
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary,
+                        cursorColor = AccentCyan
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Hızlı Seçim Rozetleri (+500, +1.000, 7000 Hedef, Sıfırla)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    listOf(
+                        "+500" to 500L,
+                        "+1.000" to 1000L,
+                        "7.000 Hedef" to 7000L
+                    ).forEach { (label, delta) ->
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = PanelNavyHighlight,
+                            border = BorderStroke(0.5.dp, BorderSubtle),
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable {
+                                    val cur = textInput.toLongOrNull() ?: currentSteps
+                                    val newVal = if (delta == 7000L) 7000L else cur + delta
+                                    textInput = newVal.toString()
+                                }
+                        ) {
+                            Text(
+                                text = label,
+                                modifier = Modifier.padding(vertical = 5.dp),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Medium,
+                                    color = TextPrimary,
+                                    fontSize = 10.sp
+                                ),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                        }
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = PanelNavyHighlight,
+                        border = BorderStroke(0.5.dp, BorderSubtle),
+                        modifier = Modifier
+                            .weight(0.8f)
+                            .clickable {
+                                textInput = "0"
+                            }
+                    ) {
+                        Text(
+                            text = "Sıfırla",
+                            modifier = Modifier.padding(vertical = 5.dp),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Medium,
+                                color = StatusFailed,
+                                fontSize = 10.sp
+                            ),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val parsed = textInput.toLongOrNull() ?: 0L
+                    onSaveSteps(parsed)
+                },
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = AccentCyan,
+                    contentColor = CanvasDark
+                )
+            ) {
+                Text(
+                    text = "Kaydet",
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(
+                    text = "Vazgeç",
+                    style = MaterialTheme.typography.labelMedium.copy(color = TextMuted)
+                )
+            }
+        }
+    )
+}
+
+// ====================================================================
+// ALT BİLEŞEN 8: UYKU EŞİTLEME & DÜZELTME DİYALOĞU
+// ====================================================================
+@Composable
+private fun SleepEditDialog(
+    currentMinutes: Long,
+    currentSource: String,
+    onDismiss: () -> Unit,
+    onSaveSleep: (Double) -> Unit,
+    onLaunchHuaweiHealth: () -> Unit,
+    onLaunchGoogleFit: () -> Unit,
+    onRefreshHealthConnect: () -> Unit
+) {
+    val currentHours = if (currentMinutes > 0) String.format(Locale.US, "%.1f", currentMinutes / 60.0) else ""
+    var textInput by remember { mutableStateOf(currentHours) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(24.dp),
+        containerColor = PanelNavyElevated,
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = "🌙", fontSize = 22.sp)
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "Uyku Takibi & Eşitleme",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
+                        )
+                    )
+                }
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.size(28.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Kapat",
+                        tint = TextDarkMuted,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+        },
+        text = {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                // Bilgilendirme ve Health Connect Durumu
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = PanelNavyHighlight),
+                    border = BorderStroke(1.dp, BorderSubtle)
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Mevcut Kayıt:",
+                                style = MaterialTheme.typography.labelSmall.copy(color = TextMuted)
+                            )
+                            Text(
+                                text = if (currentMinutes > 0) "${currentMinutes / 60}s ${currentMinutes % 60}dk" else "Kayıt Yok",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (currentMinutes >= 360) StatusCompleted else AccentPurple
+                                )
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Kaynak: $currentSource\nHuawei ve Google Fit uyku seansını bitirdikten sonra Health Connect'e aktarır.",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = TextDarkMuted,
+                                fontSize = 11.sp,
+                                lineHeight = 15.sp
+                            )
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Hızlı Uygulama Açma Butonları
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Button(
+                        onClick = onLaunchHuaweiHealth,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = AccentCyan.copy(alpha = 0.15f),
+                            contentColor = AccentCyan
+                        ),
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = "Huawei ⌚",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp
+                            )
+                        )
+                    }
+
+                    Button(
+                        onClick = onLaunchGoogleFit,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = BranchEnglish.copy(alpha = 0.15f),
+                            contentColor = BranchEnglish
+                        ),
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = "Google Fit 🏃",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp
+                            )
+                        )
+                    }
+
+                    Button(
+                        onClick = onRefreshHealthConnect,
+                        modifier = Modifier.weight(0.9f),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = BranchTools.copy(alpha = 0.15f),
+                            contentColor = BranchTools
+                        ),
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = null,
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text(
+                            text = "Yenile",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp
+                            )
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Elle Uyku Saati Girişi
+                Text(
+                    text = "Veya dün geceki uykunu saat olarak gir:",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextPrimary
+                    )
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+
+                OutlinedTextField(
+                    value = textInput,
+                    onValueChange = { newValue ->
+                        if (newValue.length <= 4 && newValue.all { it.isDigit() || it == '.' }) {
+                            textInput = newValue
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text("Örn: 7.5", color = TextDarkMuted) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = AccentPurple,
+                        unfocusedBorderColor = BorderSubtle,
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary,
+                        cursorColor = AccentPurple
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Hızlı Seçim Rozetleri (6.0s, 7.0s, 7.5s Hedef, 8.0s, Sıfırla)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                ) {
+                    listOf(
+                        "6.0s" to 6.0,
+                        "7.0s" to 7.0,
+                        "7.5s" to 7.5,
+                        "8.0s" to 8.0
+                    ).forEach { (label, hours) ->
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = PanelNavyHighlight,
+                            border = BorderStroke(0.5.dp, BorderSubtle),
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable {
+                                    textInput = hours.toString()
+                                }
+                        ) {
+                            Text(
+                                text = label,
+                                modifier = Modifier.padding(vertical = 5.dp),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Medium,
+                                    color = TextPrimary,
+                                    fontSize = 10.sp
+                                ),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                        }
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = PanelNavyHighlight,
+                        border = BorderStroke(0.5.dp, BorderSubtle),
+                        modifier = Modifier
+                            .weight(0.8f)
+                            .clickable {
+                                textInput = "0"
+                            }
+                    ) {
+                        Text(
+                            text = "Sıfırla",
+                            modifier = Modifier.padding(vertical = 5.dp),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Medium,
+                                color = StatusFailed,
+                                fontSize = 10.sp
+                            ),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val parsed = textInput.toDoubleOrNull() ?: 0.0
+                    onSaveSleep(parsed)
+                },
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = AccentPurple,
+                    contentColor = CanvasDark
+                )
+            ) {
+                Text(
+                    text = "Kaydet",
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(
+                    text = "Vazgeç",
+                    style = MaterialTheme.typography.labelMedium.copy(color = TextMuted)
+                )
+            }
+        }
+    )
+}
+
+// ====================================================================
+// ALT BİLEŞEN 8: EKRAN SÜRESİ VE DOPAMİN DETAY DİYALOĞU
+// ====================================================================
+@Composable
+private fun ScreenTimeDetailDialog(
+    socialUsage: ScreenTimeHelper.SocialMediaUsage,
+    dopamineStatus: String,
+    onDismiss: () -> Unit,
+    onOpenDigitalWellbeing: () -> Unit,
+    onOpenSettings: () -> Unit,
+    onManualMaintain: () -> Unit,
+    onManualBreak: () -> Unit
+) {
+    val isPermitted = socialUsage.isPermissionGranted
+    val instaMins = socialUsage.instagramMinutes
+    val isUnderLimit = instaMins <= INSTAGRAM_LIMIT_MINUTES
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = PanelNavyElevated,
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(AccentAmber.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("🧠", fontSize = 16.sp)
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            text = "Dopamin & Ekran Süresi",
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary,
+                                fontSize = 15.sp
+                            )
+                        )
+                        Text(
+                            text = if (isPermitted) socialUsage.calculationMethod else "İzin Bekleniyor",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = TextDarkMuted,
+                                fontSize = 10.5.sp
+                            )
+                        )
+                    }
+                }
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.size(28.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Kapat",
+                        tint = TextDarkMuted,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+        },
+        text = {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                // 1. Öne Çıkan Instagram Kartı
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = PanelNavyHighlight),
+                    border = BorderStroke(1.dp, if (isPermitted && !isUnderLimit) Color(0xFFEF4444).copy(alpha = 0.5f) else BorderSubtle)
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("📸", fontSize = 20.sp)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column {
+                                    Text(
+                                        text = "Instagram Süresi",
+                                        style = MaterialTheme.typography.labelMedium.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            color = TextPrimary,
+                                            fontSize = 13.sp
+                                        )
+                                    )
+                                    Text(
+                                        text = "Günlük Limit: $INSTAGRAM_LIMIT_MINUTES dk",
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            color = TextMuted,
+                                            fontSize = 11.sp
+                                        )
+                                    )
+                                }
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isPermitted) {
+                                    if (isUnderLimit) StatusCompleted.copy(alpha = 0.18f) else Color(0xFFEF4444).copy(alpha = 0.18f)
+                                } else {
+                                    PanelNavyElevated
+                                }
+                            ) {
+                                Text(
+                                    text = if (isPermitted) {
+                                        if (isUnderLimit) "KORUNDU 🔥" else "AŞILDI ⚠️"
+                                    } else {
+                                        "İZİN YOK"
+                                    },
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isPermitted) {
+                                            if (isUnderLimit) StatusCompleted else Color(0xFFEF4444)
+                                        } else TextMuted,
+                                        fontSize = 10.sp
+                                    )
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Bottom
+                        ) {
+                            Text(
+                                text = if (isPermitted) "$instaMins dakika" else "İzin Gerekiyor",
+                                style = MaterialTheme.typography.headlineSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isPermitted && !isUnderLimit) Color(0xFFEF4444) else TextPrimary,
+                                    fontSize = 22.sp
+                                )
+                            )
+                            if (isPermitted) {
+                                Text(
+                                    text = "%${((instaMins.toFloat() / INSTAGRAM_LIMIT_MINUTES.toFloat()) * 100).toInt()}",
+                                    style = MaterialTheme.typography.labelMedium.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isUnderLimit) StatusCompleted else Color(0xFFEF4444)
+                                    )
+                                )
+                            }
+                        }
+
+                        if (isPermitted) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            val ratio = (instaMins.toFloat() / INSTAGRAM_LIMIT_MINUTES.toFloat()).coerceIn(0f, 1f)
+                            LinearProgressIndicator(
+                                progress = { ratio },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(6.dp)
+                                    .clip(RoundedCornerShape(3.dp)),
+                                color = if (isUnderLimit) StatusCompleted else Color(0xFFEF4444),
+                                trackColor = BorderSubtle.copy(alpha = 0.4f)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // 2. Tespit Edilen Diğer Sosyal Medyalar (TikTok, YouTube, Twitter vb.)
+                if (socialUsage.appDetails.isNotEmpty()) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = PanelNavyHighlight.copy(alpha = 0.6f)),
+                        border = BorderStroke(1.dp, BorderSubtle)
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text(
+                                text = "DİĞER SOSYAL MEDYA KULLANIMLARI",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextMuted,
+                                    fontSize = 10.sp,
+                                    letterSpacing = 0.5.sp
+                                )
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            for (app in socialUsage.appDetails) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(text = app.iconEmoji, fontSize = 14.sp)
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = app.appName,
+                                            style = MaterialTheme.typography.bodySmall.copy(
+                                                color = TextPrimary,
+                                                fontSize = 12.sp
+                                            )
+                                        )
+                                    }
+                                    Text(
+                                        text = "${app.minutes} dk",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            color = TextMuted,
+                                            fontSize = 12.sp
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
+
+                // 3. Teknik Açıklama Kartı (Neye göre ölçüyor?)
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = PanelNavyHighlight.copy(alpha = 0.4f)),
+                    border = BorderStroke(1.dp, BorderSubtle)
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("⚙️", fontSize = 14.sp)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Nasıl Hesaplanıyor?",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = AccentCyan,
+                                    fontSize = 11.5.sp
+                                )
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Android sistem servisinin (UsageEvents) kaydettiği ACTIVITY_RESUMED ve ACTIVITY_PAUSED olayları toplanır. Uygulamanın ekranda aktif olarak açık kaldığı net süredir; arka plan veya kilitli ekran sayılmaz.",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = TextDarkMuted,
+                                fontSize = 10.5.sp,
+                                lineHeight = 15.sp
+                            )
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // 4. Doğrulama ve İzin Butonları
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = onOpenDigitalWellbeing,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = AccentCyan.copy(alpha = 0.15f),
+                            contentColor = AccentCyan
+                        ),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
+                    ) {
+                        Icon(imageVector = Icons.Default.OpenInNew, contentDescription = null, modifier = Modifier.size(13.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Dijital Denge ↗",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp
+                            )
+                        )
+                    }
+
+                    if (!isPermitted) {
+                        Button(
+                            onClick = onOpenSettings,
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = AccentAmber.copy(alpha = 0.15f),
+                                contentColor = AccentAmber
+                            ),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = "İzin Ver ⚙️",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp
+                                )
+                            )
+                        }
+                    } else {
+                        Button(
+                            onClick = {
+                                if (dopamineStatus == "maintained") onManualBreak() else onManualMaintain()
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (dopamineStatus == "maintained") StatusFailed.copy(alpha = 0.15f) else StatusCompleted.copy(alpha = 0.15f),
+                                contentColor = if (dopamineStatus == "maintained") StatusFailed else StatusCompleted
+                            ),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = if (dopamineStatus == "maintained") "Boz ✗" else "Koru ✓",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onDismiss,
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PanelNavyHighlight,
+                    contentColor = TextPrimary
+                )
+            ) {
+                Text("Kapat", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
+            }
+        }
+    )
+}
+

@@ -19,8 +19,10 @@ import androidx.health.connect.client.PermissionController
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.StepsRecord
+import androidx.health.connect.client.request.AggregateRequest
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.Duration
@@ -139,45 +141,111 @@ object HealthSyncManager {
             val zoneId = ZoneId.systemDefault()
             val todayDate = LocalDate.now(zoneId)
 
-            // 1. ADIM VERİLERİ (Bugün 00:00 - Şu An)
+            // 1. ADIM VERİLERİ (Bugün 00:00 - Şu An + Tampon)
             var totalSteps = 0L
             var stepsReadSuccess = false
+            val detectedStepSources = mutableSetOf<String>()
             if (hasStepsPerm) {
                 try {
                     val startOfDay = todayDate.atStartOfDay(zoneId).toInstant()
+                    val endOfWindow = now.plus(Duration.ofHours(2))
+
+                    // 1. Resmi Aggregate API'si (Health Connect deduplication & öncelik)
+                    var aggCount = 0L
+                    try {
+                        val aggregateRequest = AggregateRequest(
+                            metrics = setOf(StepsRecord.COUNT_TOTAL),
+                            timeRangeFilter = TimeRangeFilter.between(startOfDay, endOfWindow)
+                        )
+                        val aggregateResponse = client.aggregate(aggregateRequest)
+                        aggCount = aggregateResponse[StepsRecord.COUNT_TOTAL] ?: 0L
+                    } catch (e: Exception) {
+                        Log.w("HealthSyncManager", "Aggregate failed: ${e.message}")
+                    }
+
+                    // 2. Ham Kayıtlar ve Kaynak Dağılımı (Huawei vs Google Fit vb.)
                     val stepsRequest = ReadRecordsRequest(
                         recordType = StepsRecord::class,
-                        timeRangeFilter = TimeRangeFilter.between(startOfDay, now)
+                        timeRangeFilter = TimeRangeFilter.between(startOfDay, endOfWindow)
                     )
                     val stepsResponse = client.readRecords(stepsRequest)
-                    totalSteps = stepsResponse.records.sumOf { it.count }
-                    stepsReadSuccess = true
+
+                    val stepsByPackage = mutableMapOf<String, Long>()
+                    for (record in stepsResponse.records) {
+                        val pkg = record.metadata.dataOrigin.packageName
+                        detectedStepSources.add(pkg)
+                        val cur = stepsByPackage.getOrDefault(pkg, 0L)
+                        stepsByPackage[pkg] = cur + record.count
+                    }
+
+                    Log.d("HealthSyncManager", "=== HEALTH CONNECT ADIM KAYITLARI ===")
+                    Log.d("HealthSyncManager", "Aggregate COUNT_TOTAL: $aggCount adım")
+                    Log.d("HealthSyncManager", "Toplam kayıt sayısı: ${stepsResponse.records.size}")
+                    for ((pkg, count) in stepsByPackage) {
+                        Log.d("HealthSyncManager", "Kaynak [$pkg] -> $count adım")
+                    }
+
+                    // Çift saymayı (double counting) önleme:
+                    // Kullanıcı hem Huawei hem Google Fit bağladığında her iki uygulama da aynı yürüyüşü yazabilir.
+                    // En yüksek adımı sunan tekil kaynak (örn. Huawei saatin gerçek 7518 adımı)
+                    val maxSingleSourceSteps = stepsByPackage.values.maxOrNull() ?: 0L
+
+                    // aggCount ile tekil en yüksek kaynak arasındaki güvenilir adım:
+                    totalSteps = maxOf(aggCount, maxSingleSourceSteps)
+                    stepsReadSuccess = totalSteps > 0L || stepsResponse.records.isNotEmpty()
+
+                    Log.d("HealthSyncManager", "Nihai Seçilen Adım: $totalSteps (agg: $aggCount, maxSingle: $maxSingleSourceSteps)")
                 } catch (e: Exception) {
+                    Log.e("HealthSyncManager", "Steps read failed", e)
                     totalSteps = 0L
                 }
             }
 
-            // 2. UYKU VERİLERİ (Dün 18:00 - Bugün 15:00 arasındaki son uyku seansı)
+            // 2. UYKU VERİLERİ (Genişletilmiş 72 Saatlik Pencere)
             var totalSleepMinutes = 0L
             var sleepReadSuccess = false
+            val detectedSleepSources = mutableSetOf<String>()
             if (hasSleepPerm) {
                 try {
-                    val sleepWindowStart = todayDate.minusDays(1).atTime(18, 0).atZone(zoneId).toInstant()
-                    val sleepWindowEnd = todayDate.atTime(15, 0).atZone(zoneId).toInstant()
+                    val sleepQueryStart = now.minus(Duration.ofHours(72))
+                    val sleepQueryEnd = now.plus(Duration.ofHours(2))
 
                     val sleepRequest = ReadRecordsRequest(
                         recordType = SleepSessionRecord::class,
-                        timeRangeFilter = TimeRangeFilter.between(sleepWindowStart, sleepWindowEnd)
+                        timeRangeFilter = TimeRangeFilter.between(sleepQueryStart, sleepQueryEnd)
                     )
                     val sleepResponse = client.readRecords(sleepRequest)
 
+                    Log.d("HealthSyncManager", "=== HEALTH CONNECT UYKU KAYITLARI ===")
+                    Log.d("HealthSyncManager", "Bulunan uyku oturumu sayısı: ${sleepResponse.records.size}")
+
+                    for (rec in sleepResponse.records) {
+                        val duration = Duration.between(rec.startTime, rec.endTime).toMinutes()
+                        val origin = rec.metadata.dataOrigin.packageName
+                        detectedSleepSources.add(origin)
+                        Log.d("HealthSyncManager", "Uyku Seansı: $duration dk | Başlangıç: ${rec.startTime} | Bitiş: ${rec.endTime} | Kaynak: $origin | Not: ${rec.title ?: "Yok"}")
+                    }
+
                     if (sleepResponse.records.isNotEmpty()) {
-                        totalSleepMinutes = sleepResponse.records.sumOf { record ->
+                        // Öncelik 1: Son 24 saat içinde tamamlanmış uyku seansları (Dün gecenin uykusu)
+                        val last24h = now.minus(Duration.ofHours(24))
+                        val recentSessions = sleepResponse.records.filter { it.endTime.isAfter(last24h) }
+
+                        val candidateSessions = if (recentSessions.isNotEmpty()) recentSessions else {
+                            // Son 24 saatte yoksa, en son kaydedilmiş oturumu al
+                            val latestRecord = sleepResponse.records.maxByOrNull { it.endTime }
+                            if (latestRecord != null) listOf(latestRecord) else emptyList()
+                        }
+
+                        // Aynı geceye ait birden fazla uyku segmenti varsa topla (örn. gece uyanıp tekrar uyuma)
+                        totalSleepMinutes = candidateSessions.sumOf { record ->
                             Duration.between(record.startTime, record.endTime).toMinutes()
                         }
-                        sleepReadSuccess = true
+                        sleepReadSuccess = totalSleepMinutes > 0L
+                        Log.d("HealthSyncManager", "Seçilen Uyku Süresi: $totalSleepMinutes dk (${totalSleepMinutes / 60.0} saat)")
                     }
                 } catch (e: Exception) {
+                    Log.e("HealthSyncManager", "Sleep read failed", e)
                     totalSleepMinutes = 0L
                 }
             }
@@ -195,11 +263,16 @@ object HealthSyncManager {
             val isSleepMet = isSleepTargetAchieved(sleepHours)
             val isWalkMet = isWalkTargetAchieved(totalSteps)
 
-            val detectedHealthApp = getInstalledHealthAppName(context)
-            val sourceName = if (detectedHealthApp != null) {
-                "Health Connect ($detectedHealthApp)"
-            } else {
-                "Health Connect"
+            // Kaynak adını tespit et (Huawei, Google Fit vb.)
+            val allSources = detectedStepSources + detectedSleepSources
+            val sourceName = when {
+                allSources.any { it.contains("huawei") } && allSources.any { it.contains("fitness") } ->
+                    "Huawei & Google Fit ⌚🏃"
+                allSources.any { it.contains("huawei") } -> "Huawei Sağlık ⌚"
+                allSources.any { it.contains("fitness") } -> "Google Fit 🏃"
+                allSources.any { it.contains("shealth") } -> "Samsung Health ⌚"
+                allSources.isNotEmpty() -> "Health Connect (${allSources.first().substringAfterLast('.')})"
+                else -> getInstalledHealthAppName(context) ?: "Health Connect"
             }
 
             HealthSyncResult(
