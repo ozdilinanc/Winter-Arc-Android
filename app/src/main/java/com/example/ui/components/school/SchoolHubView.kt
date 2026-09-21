@@ -11,21 +11,23 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.outlined.AutoStories
 import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.R
 import com.example.data.repository.SchoolCourseRepository
 import com.example.ui.theme.*
 
@@ -90,7 +92,7 @@ fun SchoolHubView(
             return
         }
         SchoolSubScreen.OVERVIEW -> {
-            // Render Clean iOS Menu
+            // Render Clean Harmonious iOS Menu
         }
     }
 
@@ -263,7 +265,7 @@ fun SchoolHubView(
                 SchoolHubMenuItemCard(
                     title = "Okul Dersleri",
                     subtitle = "Müfredat, Not Girişi & 16 Hafta Yoklama",
-                    iconRes = R.drawable.ic_school_coding,
+                    icon = Icons.AutoMirrored.Outlined.MenuBook,
                     accentColor = cyanColor,
                     primaryBadgeText = "${courses.size} Aktif Ders",
                     secondaryBadgeText = if (isAnyFailed) "Kaldı" else if (isAnyWarning) "Uyarı" else "Güvenli",
@@ -281,7 +283,7 @@ fun SchoolHubView(
                 SchoolHubMenuItemCard(
                     title = "CS Başucu Kitapları",
                     subtitle = "OSTEP, CS:APP, DDIA, Ağlar derin okuma takibi",
-                    iconRes = R.drawable.ic_school_cpu,
+                    icon = Icons.Outlined.AutoStories,
                     accentColor = emeraldColor,
                     primaryBadgeText = "4 Temel Eser",
                     secondaryBadgeText = "Kitaplık Takibi",
@@ -297,7 +299,7 @@ fun SchoolHubView(
                 SchoolHubMenuItemCard(
                     title = "Bitirme Projesi",
                     subtitle = "Mühendislik Tezi, Danışman & Kilometre Taşları",
-                    iconRes = R.drawable.ic_school_desktop,
+                    icon = Icons.Outlined.Code,
                     accentColor = amberColor,
                     primaryBadgeText = "C-E Graph Sistemi",
                     secondaryBadgeText = "%70 Tamamlandı",
@@ -315,7 +317,7 @@ fun SchoolHubView(
 private fun SchoolHubMenuItemCard(
     title: String,
     subtitle: String,
-    iconRes: Int,
+    icon: ImageVector,
     accentColor: Color,
     primaryBadgeText: String,
     secondaryBadgeText: String? = null,
@@ -336,20 +338,20 @@ private fun SchoolHubMenuItemCard(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left Icon in vibrant themed badge
+            // Left Themed Icon Badge in Harmonious System Styling
             Box(
                 modifier = Modifier
-                    .size(54.dp)
-                    .clip(RoundedCornerShape(14.dp))
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(13.dp))
                     .background(accentColor.copy(alpha = 0.14f))
-                    .border(1.dp, accentColor.copy(alpha = 0.35f), RoundedCornerShape(14.dp)),
+                    .border(1.dp, accentColor.copy(alpha = 0.35f), RoundedCornerShape(13.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    painter = painterResource(id = iconRes),
+                    imageVector = icon,
                     contentDescription = null,
-                    tint = Color.Unspecified, // Preserves rich vector colors
-                    modifier = Modifier.size(34.dp)
+                    tint = accentColor,
+                    modifier = Modifier.size(24.dp)
                 )
             }
 
