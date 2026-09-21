@@ -1,5 +1,6 @@
 package com.example.ui.components.school
 
+import android.content.Context
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
@@ -20,7 +21,6 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.outlined.AutoStories
 import androidx.compose.material.icons.outlined.BookmarkBorder
@@ -37,25 +37,42 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.repository.SchoolBooksRepository
 import com.example.ui.theme.*
 import com.example.ui.util.rememberHapticEngine
+
+enum class BookListFilter(val label: String) {
+    ALL("Tümü"),
+    TO_READ("Okunacak"),
+    READING("Okunuyor"),
+    FINISHED("Bitti")
+}
 
 @Composable
 fun SchoolBooksView(
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var books by remember { mutableStateOf(defaultTrackedBooks()) }
+    val context = LocalContext.current
+    var books by remember { mutableStateOf(SchoolBooksRepository.getBooks(context)) }
     var selectedBookId by remember { mutableStateOf<String?>(null) }
+    var currentFilter by remember { mutableStateOf(BookListFilter.ALL) }
     var editingBookId by remember { mutableStateOf<String?>(null) }
     var pageInputText by remember { mutableStateOf("") }
 
     val hapticEngine = rememberHapticEngine()
+
+    fun persistBooks(updated: List<TrackedBook>) {
+        books = updated
+        SchoolBooksRepository.saveBooks(context, updated)
+    }
 
     // Handle back button: if inside deep study detail, return to book list; else return to SchoolHub
     BackHandler {
@@ -74,7 +91,7 @@ fun SchoolBooksView(
             onBack = { selectedBookId = null },
             onToggleChapter = { sectionId, chapterId ->
                 hapticEngine.vibrateSkillCompleted()
-                books = books.map { b ->
+                val updated = books.map { b ->
                     if (b.id == activeBook.id) {
                         val updatedSections = b.sections.map { sec ->
                             if (sec.id == sectionId) {
@@ -85,49 +102,60 @@ fun SchoolBooksView(
                                 sec.copy(chapters = updatedChapters)
                             } else sec
                         }
-                        // If all chapters completed, auto update status to COMPLETED
                         val allCompleted = updatedSections.all { sec -> sec.chapters.all { it.isCompleted } }
                         val newStatus = if (allCompleted && b.status != BookReadingStatus.COMPLETED) {
                             BookReadingStatus.COMPLETED
+                        } else if (!allCompleted && b.status == BookReadingStatus.NOT_STARTED) {
+                            BookReadingStatus.READING
                         } else b.status
                         b.copy(sections = updatedSections, status = newStatus)
                     } else b
                 }
+                persistBooks(updated)
             },
             onUpdateStatus = { newStatus ->
-                books = books.map { b ->
+                hapticEngine.vibrateSkillCompleted()
+                val updated = books.map { b ->
                     if (b.id == activeBook.id) b.copy(status = newStatus) else b
                 }
+                persistBooks(updated)
             },
             onUpdateNotes = { newNotes ->
-                books = books.map { b ->
+                val updated = books.map { b ->
                     if (b.id == activeBook.id) b.copy(personalNotes = newNotes) else b
                 }
+                persistBooks(updated)
             },
             onOpenPageDialog = {
                 editingBookId = activeBook.id
                 pageInputText = activeBook.currentPage.toString()
             },
             onQuickPageChange = { delta ->
-                books = books.map { b ->
+                val updated = books.map { b ->
                     if (b.id == activeBook.id) {
                         val updatedPage = (b.currentPage + delta).coerceIn(0, b.totalPages)
-                        b.copy(currentPage = updatedPage)
+                        val newStatus = if (updatedPage > 0 && b.status == BookReadingStatus.NOT_STARTED) {
+                            BookReadingStatus.READING
+                        } else if (updatedPage >= b.totalPages) {
+                            BookReadingStatus.COMPLETED
+                        } else b.status
+                        b.copy(currentPage = updatedPage, status = newStatus)
                     } else b
                 }
+                persistBooks(updated)
             },
             modifier = modifier
         )
     } else {
-        // Main Books Catalog View
-
-        // Global statistics
-        val totalBooksCount = books.size
-        val totalPagesAll = books.sumOf { it.totalPages }
-        val totalReadPagesAll = books.sumOf { it.currentPage }
-        val totalChaptersAll = books.sumOf { it.totalChaptersCount }
-        val totalCompletedChaptersAll = books.sumOf { it.completedChaptersCount }
-        val overallProgress = if (totalChaptersAll > 0) totalCompletedChaptersAll.toFloat() / totalChaptersAll.toFloat() else 0f
+        // Main Books Catalog View (Clean iOS Style)
+        val filteredBooks = remember(books, currentFilter) {
+            when (currentFilter) {
+                BookListFilter.ALL -> books
+                BookListFilter.TO_READ -> books.filter { it.status == BookReadingStatus.NOT_STARTED }
+                BookListFilter.READING -> books.filter { it.status == BookReadingStatus.READING }
+                BookListFilter.FINISHED -> books.filter { it.status == BookReadingStatus.COMPLETED }
+            }
+        }
 
         LazyColumn(
             modifier = modifier
@@ -137,56 +165,69 @@ fun SchoolBooksView(
             contentPadding = PaddingValues(top = 14.dp, bottom = 36.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // Back Button Row
+            // Top Navigation Bar (Back + Title)
             item {
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onBack() }
-                        .padding(vertical = 4.dp)
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Geri",
-                        tint = AccentCyan,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "OKUL HUB'A DÖN",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = AccentCyan,
-                            letterSpacing = 1.2.sp
-                        )
-                    )
-                }
-            }
-
-            // Header Title
-            item {
-                Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .clickable { onBack() }
+                            .padding(vertical = 4.dp)
+                    ) {
                         Icon(
-                            imageVector = Icons.Outlined.AutoStories,
-                            contentDescription = null,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Geri",
                             tint = AccentCyan,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(18.dp)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "CS BAŞUCU KİTAPLARI",
-                            style = MaterialTheme.typography.titleMedium.copy(
+                            text = "OKUL",
+                            style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold,
-                                color = TextPrimary,
+                                color = AccentCyan,
                                 letterSpacing = 1.sp
                             )
                         )
                     }
-                    Spacer(modifier = Modifier.height(3.dp))
+
+                    // Total Count Pill
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = PanelNavyElevated,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, BorderSubtle)
+                    ) {
+                        Text(
+                            text = "${books.size} Eser",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                color = TextMuted,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 11.sp
+                            ),
+                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            }
+
+            // Minimal Title Header
+            item {
+                Column {
                     Text(
-                        text = "4 temel mühendislik kitabında sayfa, bölüm ve konu bazlı derin okuma takibi.",
+                        text = "CS Kitaplığı",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary,
+                            fontSize = 22.sp
+                        )
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Temel bilgisayar mühendisliği başucu kitapları ve okuma takibi",
                         style = MaterialTheme.typography.bodySmall.copy(
                             color = TextSecondary,
                             fontSize = 12.sp
@@ -195,109 +236,29 @@ fun SchoolBooksView(
                 }
             }
 
-            // Summary Progress Card
+            // Top Segmented Pill Filter Bar (All | To Read | Reading | Finished)
             item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .border(1.dp, BorderSubtle, RoundedCornerShape(16.dp)),
-                    colors = CardDefaults.cardColors(containerColor = PanelNavyElevated)
-                ) {
-                    Column(modifier = Modifier.padding(18.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "KÜTÜPHANE GENEL İLERLEMESİ",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextMuted,
-                                    letterSpacing = 1.sp
-                                )
-                            )
-                            Text(
-                                text = "%${(overallProgress * 100).toInt()}",
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    color = AccentEmerald,
-                                    fontSize = 16.sp
-                                )
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // Stats Grid Row
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            StatItem(
-                                title = "Kitaplar",
-                                value = "$totalBooksCount Eser",
-                                icon = Icons.Outlined.AutoStories,
-                                iconTint = AccentCyan
-                            )
-                            StatItem(
-                                title = "Okunan Sayfa",
-                                value = "$totalReadPagesAll / $totalPagesAll",
-                                icon = Icons.Outlined.Description,
-                                iconTint = AccentAmber
-                            )
-                            StatItem(
-                                title = "Biten Bölüm",
-                                value = "$totalCompletedChaptersAll / $totalChaptersAll",
-                                icon = Icons.Outlined.CheckCircle,
-                                iconTint = AccentEmerald
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(14.dp))
-
-                        // Global Progress Bar
-                        LinearProgressIndicator(
-                            progress = { overallProgress },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(7.dp)
-                                .clip(CircleShape),
-                            color = AccentEmerald,
-                            trackColor = PanelNavy
-                        )
-                    }
-                }
-            }
-
-            // Book Cards
-            items(books, key = { it.id }) { book ->
-                BookCatalogCard(
-                    book = book,
-                    onOpenDetail = { selectedBookId = book.id },
-                    onStatusClick = {
-                        // Cycle status: NOT_STARTED -> READING -> COMPLETED -> NOT_STARTED
-                        val nextStatus = when (book.status) {
-                            BookReadingStatus.NOT_STARTED -> BookReadingStatus.READING
-                            BookReadingStatus.READING -> BookReadingStatus.COMPLETED
-                            BookReadingStatus.COMPLETED -> BookReadingStatus.NOT_STARTED
-                        }
-                        books = books.map { if (it.id == book.id) it.copy(status = nextStatus) else it }
-                    },
-                    onOpenPageDialog = {
-                        editingBookId = book.id
-                        pageInputText = book.currentPage.toString()
-                    },
-                    onQuickPageChange = { delta ->
-                        books = books.map { b ->
-                            if (b.id == book.id) {
-                                val updated = (b.currentPage + delta).coerceIn(0, b.totalPages)
-                                b.copy(currentPage = updated)
-                            } else b
-                        }
+                BookFilterSegmentedControl(
+                    selectedFilter = currentFilter,
+                    onFilterSelected = {
+                        hapticEngine.vibrateSkillCompleted()
+                        currentFilter = it
                     }
                 )
+            }
+
+            // Book Catalog List or Empty State
+            if (filteredBooks.isEmpty()) {
+                item {
+                    EmptyBooksFilterState(filter = currentFilter)
+                }
+            } else {
+                items(filteredBooks, key = { it.id }) { book ->
+                    CleanBookListItem(
+                        book = book,
+                        onClick = { selectedBookId = book.id }
+                    )
+                }
             }
         }
     }
@@ -342,10 +303,18 @@ fun SchoolBooksView(
                     Button(
                         onClick = {
                             val newPage = pageInputText.toIntOrNull() ?: book.currentPage
-                            books = books.map {
-                                if (it.id == targetId) it.copy(currentPage = newPage.coerceIn(0, it.totalPages))
+                            val updatedPage = newPage.coerceIn(0, book.totalPages)
+                            val newStatus = if (updatedPage >= book.totalPages) {
+                                BookReadingStatus.COMPLETED
+                            } else if (updatedPage > 0 && book.status == BookReadingStatus.NOT_STARTED) {
+                                BookReadingStatus.READING
+                            } else book.status
+
+                            val updated = books.map {
+                                if (it.id == targetId) it.copy(currentPage = updatedPage, status = newStatus)
                                 else it
                             }
+                            persistBooks(updated)
                             editingBookId = null
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = AccentCyan)
@@ -364,361 +333,385 @@ fun SchoolBooksView(
 }
 
 @Composable
-private fun StatItem(
-    title: String,
-    value: String,
-    icon: ImageVector? = null,
-    iconTint: Color = AccentCyan,
-    emoji: String = ""
+private fun BookFilterSegmentedControl(
+    selectedFilter: BookListFilter,
+    onFilterSelected: (BookListFilter) -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Column {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelSmall.copy(
-                color = TextMuted,
-                fontSize = 11.sp
-            )
-        )
-        Spacer(modifier = Modifier.height(2.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            if (icon != null) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = iconTint,
-                    modifier = Modifier.size(13.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-            } else if (emoji.isNotBlank()) {
-                Text(text = emoji, fontSize = 13.sp)
-                Spacer(modifier = Modifier.width(4.dp))
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(10.dp),
+        color = PanelNavyElevated,
+        border = androidx.compose.foundation.BorderStroke(1.dp, BorderSubtle)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(3.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            BookListFilter.values().forEach { filter ->
+                val isSelected = filter == selectedFilter
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (isSelected) PanelNavyHighlight else Color.Transparent)
+                        .then(
+                            if (isSelected) Modifier.border(1.dp, BorderActive.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
+                            else Modifier
+                        )
+                        .clickable { onFilterSelected(filter) }
+                        .padding(vertical = 7.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = filter.label,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            color = if (isSelected) TextPrimary else TextMuted,
+                            fontSize = 12.sp
+                        )
+                    )
+                }
             }
-            Text(
-                text = value,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary,
-                    fontSize = 13.5.sp
-                )
-            )
         }
     }
 }
 
-
 @Composable
-private fun BookCatalogCard(
+private fun CleanBookListItem(
     book: TrackedBook,
-    onOpenDetail: () -> Unit,
-    onStatusClick: () -> Unit,
-    onOpenPageDialog: () -> Unit,
-    onQuickPageChange: (Int) -> Unit
+    onClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .border(1.dp, BorderSubtle, RoundedCornerShape(14.dp)),
+            .border(1.dp, BorderSubtle, RoundedCornerShape(14.dp))
+            .clickable { onClick() },
         colors = CardDefaults.cardColors(containerColor = PanelNavyElevated)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            // Header Row: Emoji, Title, Authors, Status Chip
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.Top
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(46.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(AccentCyan.copy(alpha = 0.15f))
-                        .border(1.dp, AccentCyan.copy(alpha = 0.35f), RoundedCornerShape(12.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = getBookCoverIcon(book.id),
-                        contentDescription = null,
-                        tint = AccentCyan,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Column(modifier = Modifier.weight(1f)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = book.shortTitle,
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = TextPrimary
-                            )
-                        )
-
-                        // Status Chip
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = when (book.status) {
-                                BookReadingStatus.COMPLETED -> StatusCompleted.copy(alpha = 0.15f)
-                                BookReadingStatus.READING -> AccentCyan.copy(alpha = 0.15f)
-                                BookReadingStatus.NOT_STARTED -> PanelNavy
-                            },
-                            border = androidx.compose.foundation.BorderStroke(
-                                1.dp,
-                                when (book.status) {
-                                    BookReadingStatus.COMPLETED -> StatusCompleted
-                                    BookReadingStatus.READING -> AccentCyan
-                                    BookReadingStatus.NOT_STARTED -> BorderSubtle
-                                }
-                            ),
-                            modifier = Modifier.clickable { onStatusClick() }
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = getStatusIcon(book.status),
-                                    contentDescription = null,
-                                    tint = when (book.status) {
-                                        BookReadingStatus.COMPLETED -> StatusCompleted
-                                        BookReadingStatus.READING -> AccentCyan
-                                        BookReadingStatus.NOT_STARTED -> TextMuted
-                                    },
-                                    modifier = Modifier.size(11.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = book.status.label,
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        color = when (book.status) {
-                                            BookReadingStatus.COMPLETED -> StatusCompleted
-                                            BookReadingStatus.READING -> AccentCyan
-                                            BookReadingStatus.NOT_STARTED -> TextMuted
-                                        },
-                                        fontSize = 10.5.sp
-                                    )
-                                )
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(2.dp))
-
-                    Text(
-                        text = book.authors,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            color = TextMuted,
-                            fontSize = 11.sp
-                        )
-                    )
-
-                    Spacer(modifier = Modifier.height(2.dp))
-
-                    Text(
-                        text = book.authorOrDomain,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            color = AccentCyan,
-                            fontSize = 10.5.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Why it matters box
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = PanelNavy,
-                border = androidx.compose.foundation.BorderStroke(1.dp, BorderSubtle.copy(alpha = 0.7f))
-            ) {
-                Text(
-                    text = book.whyItMatters,
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        color = TextSecondary,
-                        fontSize = 11.5.sp,
-                        lineHeight = 16.sp
-                    ),
-                    modifier = Modifier.padding(10.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Progress Metrics & Bar
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Bölüm İlerlemesi: ${book.completedChaptersCount}/${book.totalChaptersCount}",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        color = TextPrimary,
-                        fontSize = 11.5.sp
-                    )
-                )
-
-                Text(
-                    text = "%${(book.chapterProgressPercent * 100).toInt()}",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = if (book.chapterProgressPercent >= 1f) StatusCompleted else AccentCyan,
-                        fontSize = 12.sp
-                    )
-                )
-            }
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            LinearProgressIndicator(
-                progress = { book.chapterProgressPercent },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(6.dp)
-                    .clip(CircleShape),
-                color = if (book.chapterProgressPercent >= 1f) StatusCompleted else AccentCyan,
-                trackColor = PanelNavy
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Realistic Physical Book Cover Thumbnail
+            BookCoverThumbnail(
+                bookId = book.id,
+                shortTitle = book.shortTitle,
+                authors = book.authors
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.width(14.dp))
 
-            // Page Counter Row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            // Right Info Column
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.Center
             ) {
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = PanelNavyHighlight,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, AccentCyan.copy(alpha = 0.3f)),
-                    modifier = Modifier.clickable { onOpenPageDialog() }
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Sayfa: ${book.currentPage} / ${book.totalPages}",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = TextPrimary,
-                                fontSize = 11.5.sp
-                            )
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Düzenle",
-                            tint = TextMuted,
-                            modifier = Modifier.size(13.dp)
-                        )
-                    }
-                }
-
-                // Quick Stepper Buttons
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    FilledTonalIconButton(
-                        onClick = { onQuickPageChange(-10) },
-                        modifier = Modifier.size(32.dp),
-                        colors = IconButtonDefaults.filledTonalIconButtonColors(
-                            containerColor = PanelNavy,
-                            contentColor = TextSecondary
-                        )
-                    ) {
-                        Text(text = "-10", fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                    }
-
-                    FilledTonalIconButton(
-                        onClick = { onQuickPageChange(10) },
-                        modifier = Modifier.size(32.dp),
-                        colors = IconButtonDefaults.filledTonalIconButtonColors(
-                            containerColor = PanelNavy,
-                            contentColor = AccentCyan
-                        )
-                    ) {
-                        Text(text = "+10", fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                    }
-
-                    FilledIconButton(
-                        onClick = { onQuickPageChange(1) },
-                        modifier = Modifier.size(32.dp),
-                        colors = IconButtonDefaults.filledIconButtonColors(
-                            containerColor = AccentCyan,
-                            contentColor = Color.White
-                        )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "+1 Sayfa",
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Primary Button: Open Chapter Checklist
-            Button(
-                onClick = onOpenDetail,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = PanelNavyHighlight),
-                border = androidx.compose.foundation.BorderStroke(1.dp, AccentCyan.copy(alpha = 0.4f)),
-                contentPadding = PaddingValues(vertical = 10.dp, horizontal = 14.dp)
-            ) {
+                // Header Row: Title + Chevron
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.MenuBook,
-                            contentDescription = "Bölümler",
-                            tint = AccentCyan,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Bölüm & Konu Listesini Aç",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = TextPrimary,
-                                fontSize = 12.sp
+                    Text(
+                        text = book.shortTitle,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary,
+                            fontSize = 15.5.sp
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = "Detay",
+                        tint = TextMuted,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                // Authors
+                Text(
+                    text = book.authors,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = TextSecondary,
+                        fontSize = 12.sp
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Metadata Row: Category Tag, Status Tag, and Progress Percentage
+                val category = getBookCategory(book.id)
+                val percent = (book.progressPercent * 100).toInt()
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Category Chip
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(text = "🏷️", fontSize = 10.sp)
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text(
+                                text = category,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    color = TextSecondary,
+                                    fontSize = 11.sp
+                                )
                             )
-                        )
+                        }
+
+                        // Status Chip
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = when (book.status) {
+                                    BookReadingStatus.COMPLETED -> "✓"
+                                    BookReadingStatus.READING -> "📖"
+                                    BookReadingStatus.NOT_STARTED -> "⏳"
+                                },
+                                fontSize = 10.sp
+                            )
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text(
+                                text = when (book.status) {
+                                    BookReadingStatus.COMPLETED -> "Bitti"
+                                    BookReadingStatus.READING -> "Okunuyor"
+                                    BookReadingStatus.NOT_STARTED -> "Okunacak"
+                                },
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Medium,
+                                    color = when (book.status) {
+                                        BookReadingStatus.COMPLETED -> StatusCompleted
+                                        BookReadingStatus.READING -> AccentCyan
+                                        BookReadingStatus.NOT_STARTED -> TextMuted
+                                    },
+                                    fontSize = 11.sp
+                                )
+                            )
+                        }
                     }
 
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = "${book.completedChaptersCount}/${book.totalChaptersCount}",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = AccentCyan,
-                                fontSize = 11.5.sp
-                            )
+                    // Percentage on far right
+                    Text(
+                        text = "%$percent",
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            color = TextMuted,
+                            fontSize = 12.sp
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Icon(
-                            imageVector = Icons.Default.ChevronRight,
-                            contentDescription = null,
-                            tint = AccentCyan,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
+                    )
                 }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                // Thin Elegant Progress Bar
+                LinearProgressIndicator(
+                    progress = { book.progressPercent },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(3.5.dp)
+                        .clip(CircleShape),
+                    color = when (book.status) {
+                        BookReadingStatus.COMPLETED -> StatusCompleted
+                        BookReadingStatus.READING -> AccentCyan
+                        BookReadingStatus.NOT_STARTED -> BorderSubtle
+                    },
+                    trackColor = PanelNavy
+                )
             }
+        }
+    }
+}
+
+@Composable
+fun BookCoverThumbnail(
+    bookId: String,
+    shortTitle: String,
+    authors: String,
+    modifier: Modifier = Modifier
+) {
+    val (gradientColors, accentColor, titleOnCover, subTitleOnCover, authorOnCover, coverIcon) = when (bookId) {
+        "book_ostep" -> CoverConfig(
+            gradient = listOf(Color(0xFF0F172A), Color(0xFF1E293B)),
+            accent = Color(0xFF38BDF8),
+            title = "OSTEP",
+            subTitle = "THREE EASY PIECES",
+            author = "Arpaci-Dusseau",
+            icon = Icons.Outlined.Terminal
+        )
+        "book_csapp" -> CoverConfig(
+            gradient = listOf(Color(0xFF1E1B4B), Color(0xFF2E1065)),
+            accent = Color(0xFFFBBF24),
+            title = "CS:APP",
+            subTitle = "SYSTEMS & ARCH",
+            author = "Bryant & O'Hallaron",
+            icon = Icons.Outlined.Code
+        )
+        "book_ddia" -> CoverConfig(
+            gradient = listOf(Color(0xFF064E3B), Color(0xFF022C22)),
+            accent = Color(0xFF34D399),
+            title = "DDIA",
+            subTitle = "DATA-INTENSIVE",
+            author = "Martin Kleppmann",
+            icon = Icons.Outlined.Storage
+        )
+        "book_networks" -> CoverConfig(
+            gradient = listOf(Color(0xFF0C2444), Color(0xFF1E3A8A)),
+            accent = Color(0xFF60A5FA),
+            title = "NETWORKS",
+            subTitle = "TOP-DOWN APPROACH",
+            author = "Kurose & Ross",
+            icon = Icons.Outlined.Hub
+        )
+        else -> CoverConfig(
+            gradient = listOf(Color(0xFF1E293B), Color(0xFF0F172A)),
+            accent = Color(0xFF38BDF8),
+            title = shortTitle,
+            subTitle = "CS CLASSIC",
+            author = authors.take(15),
+            icon = Icons.Outlined.AutoStories
+        )
+    }
+
+    Box(
+        modifier = modifier
+            .width(66.dp)
+            .height(96.dp)
+            .clip(RoundedCornerShape(topStart = 3.dp, bottomStart = 3.dp, topEnd = 7.dp, bottomEnd = 7.dp))
+            .background(Brush.verticalGradient(gradientColors))
+            .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(topStart = 3.dp, bottomStart = 3.dp, topEnd = 7.dp, bottomEnd = 7.dp))
+    ) {
+        // Spine Shadow effect on left edge (creating realistic physical 3D book curve)
+        Box(
+            modifier = Modifier
+                .width(5.dp)
+                .fillMaxHeight()
+                .background(
+                    Brush.horizontalGradient(
+                        listOf(
+                            Color.Black.copy(alpha = 0.45f),
+                            Color.White.copy(alpha = 0.08f),
+                            Color.Black.copy(alpha = 0.25f)
+                        )
+                    )
+                )
+        )
+
+        // Cover Typography and Graphics
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(start = 8.dp, end = 5.dp, top = 6.dp, bottom = 6.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(2.dp)
+                        .background(accentColor)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = titleOnCover,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Black,
+                        color = Color.White,
+                        fontSize = 11.sp,
+                        letterSpacing = 0.8.sp
+                    ),
+                    maxLines = 1
+                )
+                Text(
+                    text = subTitleOnCover,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = accentColor.copy(alpha = 0.9f),
+                        fontSize = 6.5.sp,
+                        letterSpacing = 0.3.sp
+                    ),
+                    maxLines = 1
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 2.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = coverIcon,
+                    contentDescription = null,
+                    tint = accentColor.copy(alpha = 0.4f),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+
+            Text(
+                text = authorOnCover,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.Normal,
+                    color = Color.White.copy(alpha = 0.6f),
+                    fontSize = 6.5.sp
+                ),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+private data class CoverConfig(
+    val gradient: List<Color>,
+    val accent: Color,
+    val title: String,
+    val subTitle: String,
+    val author: String,
+    val icon: ImageVector
+)
+
+@Composable
+private fun EmptyBooksFilterState(filter: BookListFilter) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 48.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(
+                imageVector = Icons.Outlined.AutoStories,
+                contentDescription = null,
+                tint = TextMuted,
+                modifier = Modifier.size(36.dp)
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                text = "\"${filter.label}\" durumunda kitap bulunmuyor",
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    color = TextMuted,
+                    fontSize = 13.sp
+                )
+            )
         }
     }
 }
@@ -761,60 +754,39 @@ private fun BookStudyDetailView(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Geri",
                     tint = AccentCyan,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "KİTAPLAR LİSTESİNE DÖN",
+                    text = "KİTAPLAR LİSTESİ",
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontWeight = FontWeight.Bold,
                         color = AccentCyan,
-                        letterSpacing = 1.2.sp
+                        letterSpacing = 1.sp
                     )
                 )
             }
         }
 
-        // Book Detail Hero Banner
+        // Book Detail Hero Banner with Cover
         item {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .border(1.dp, AccentCyan.copy(alpha = 0.35f), RoundedCornerShape(16.dp)),
+                    .border(1.dp, BorderSubtle, RoundedCornerShape(16.dp)),
                 colors = CardDefaults.cardColors(containerColor = PanelNavyElevated)
             ) {
-                Column(
-                    modifier = Modifier
-                        .background(
-                            Brush.linearGradient(
-                                listOf(
-                                    PanelNavyElevated,
-                                    PanelNavy.copy(alpha = 0.95f)
-                                )
-                            )
-                        )
-                        .padding(16.dp)
-                ) {
+                Column(modifier = Modifier.padding(16.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.Top
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(52.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(AccentCyan.copy(alpha = 0.15f))
-                                .border(1.dp, AccentCyan.copy(alpha = 0.4f), RoundedCornerShape(12.dp)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = getBookCoverIcon(book.id),
-                                contentDescription = null,
-                                tint = AccentCyan,
-                                modifier = Modifier.size(28.dp)
-                            )
-                        }
+                        BookCoverThumbnail(
+                            bookId = book.id,
+                            shortTitle = book.shortTitle,
+                            authors = book.authors
+                        )
 
                         Spacer(modifier = Modifier.width(14.dp))
 
@@ -824,17 +796,18 @@ private fun BookStudyDetailView(
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.Bold,
                                     color = TextPrimary,
-                                    lineHeight = 22.sp
+                                    fontSize = 15.sp,
+                                    lineHeight = 20.sp
                                 )
                             )
 
-                            Spacer(modifier = Modifier.height(3.dp))
+                            Spacer(modifier = Modifier.height(4.dp))
 
                             Text(
                                 text = book.authors,
                                 style = MaterialTheme.typography.bodySmall.copy(
-                                    color = TextMuted,
-                                    fontSize = 11.5.sp
+                                    color = TextSecondary,
+                                    fontSize = 12.sp
                                 )
                             )
 
@@ -890,7 +863,11 @@ private fun BookStudyDetailView(
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = st.label,
+                                        text = when (st) {
+                                            BookReadingStatus.COMPLETED -> "Bitti"
+                                            BookReadingStatus.READING -> "Okunuyor"
+                                            BookReadingStatus.NOT_STARTED -> "Okunacak"
+                                        },
                                         style = MaterialTheme.typography.labelSmall.copy(
                                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                             color = if (isSelected) Color.White else TextSecondary,
@@ -905,24 +882,25 @@ private fun BookStudyDetailView(
                     Spacer(modifier = Modifier.height(14.dp))
 
                     // Progress Overview
+                    val percent = (book.progressPercent * 100).toInt()
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Konu Tamamlama: ${book.completedChaptersCount}/${book.totalChaptersCount} Bölüm",
+                            text = "Bölüm Tamamlama: ${book.completedChaptersCount}/${book.totalChaptersCount}",
                             style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
+                                fontWeight = FontWeight.SemiBold,
                                 color = TextPrimary
                             )
                         )
 
                         Text(
-                            text = "%${(book.chapterProgressPercent * 100).toInt()}",
+                            text = "%$percent",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold,
-                                color = if (book.chapterProgressPercent >= 1f) StatusCompleted else AccentCyan,
+                                color = if (book.progressPercent >= 1f) StatusCompleted else AccentCyan,
                                 fontSize = 13.sp
                             )
                         )
@@ -931,12 +909,12 @@ private fun BookStudyDetailView(
                     Spacer(modifier = Modifier.height(6.dp))
 
                     LinearProgressIndicator(
-                        progress = { book.chapterProgressPercent },
+                        progress = { book.progressPercent },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(7.dp)
+                            .height(5.dp)
                             .clip(CircleShape),
-                        color = if (book.chapterProgressPercent >= 1f) StatusCompleted else AccentCyan,
+                        color = if (book.progressPercent >= 1f) StatusCompleted else AccentCyan,
                         trackColor = PanelNavy
                     )
 
@@ -1026,9 +1004,9 @@ private fun BookStudyDetailView(
                 style = MaterialTheme.typography.labelSmall.copy(
                     fontWeight = FontWeight.Bold,
                     color = TextMuted,
-                    letterSpacing = 1.2.sp
+                    letterSpacing = 1.sp
                 ),
-                modifier = Modifier.padding(top = 6.dp)
+                modifier = Modifier.padding(top = 4.dp)
             )
         }
 
@@ -1141,7 +1119,7 @@ private fun BookStudyDetailView(
             }
         }
 
-        // Personal Notes & Takeaways Card
+        // Personal Notes Card
         item {
             Card(
                 modifier = Modifier
@@ -1203,7 +1181,7 @@ private fun BookStudyDetailView(
                         },
                         placeholder = {
                             Text(
-                                text = "Bu kitaptan öğrendiğin en can alıcı noktaları, mimari prensipleri veya hatırlanacak sayfaları buraya not al...",
+                                text = "Bu kitaptan öğrendiğin en can alıcı noktaları ve mimari prensipleri buraya not al...",
                                 color = TextMuted,
                                 fontSize = 12.sp
                             )
@@ -1298,15 +1276,13 @@ private fun ChapterItemRow(
     }
 }
 
-private fun getBookCoverIcon(bookId: String): ImageVector {
+private fun getBookCategory(bookId: String): String {
     return when (bookId) {
-        "book_ostep" -> Icons.Outlined.Terminal
-        "book_ddia" -> Icons.Outlined.Storage
-        "book_crafting_interpreters" -> Icons.Outlined.Code
-        "book_grokking_sim" -> Icons.Outlined.Hub
-        "book_clean_code" -> Icons.Outlined.AutoStories
-        "book_pragmatic_programmer" -> Icons.Outlined.Psychology
-        else -> Icons.Outlined.AutoStories
+        "book_ostep" -> "İşletim Sistemleri"
+        "book_csapp" -> "Sistem Mimarisi"
+        "book_ddia" -> "Dağıtık Sistemler"
+        "book_networks" -> "Ağ Protokolleri"
+        else -> "Mühendislik"
     }
 }
 
@@ -1317,4 +1293,3 @@ private fun getStatusIcon(status: BookReadingStatus): ImageVector {
         BookReadingStatus.NOT_STARTED -> Icons.Filled.RadioButtonUnchecked
     }
 }
-
