@@ -629,6 +629,7 @@ private fun MediaListItemCard(
 ) {
     val context = LocalContext.current
     val palette = LocalAppPalette.current
+    val itemAccent = if (anime.category == MediaTypeCategory.MANGA) palette.accentPurple else accentColor
 
     val animatedProgress by animateFloatAsState(
         targetValue = anime.progressFraction,
@@ -829,7 +830,7 @@ private fun MediaListItemCard(
                             Text(
                                 text = "${(anime.progressFraction * 100).toInt()}%",
                                 style = MaterialTheme.typography.labelSmall.copy(
-                                    color = if (anime.isCompleted) palette.accentGold else accentColor,
+                                    color = if (anime.isCompleted) palette.accentGold else itemAccent,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 11.5.sp
                                 )
@@ -844,76 +845,127 @@ private fun MediaListItemCard(
                                 .fillMaxWidth()
                                 .height(6.dp)
                                 .clip(RoundedCornerShape(3.dp)),
-                            color = if (anime.isCompleted) palette.accentGold else accentColor,
+                            color = if (anime.isCompleted) palette.accentGold else itemAccent,
                             trackColor = palette.panelNavyElevated
                         )
                     }
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // Action Buttons Row
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                    // iOS Minimalist Stepper Capsule & Action Control
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(34.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        color = palette.panelNavyElevated.copy(alpha = 0.65f),
+                        border = BorderStroke(0.75.dp, Color.White.copy(alpha = 0.08f))
                     ) {
-                        IconButton(
-                            onClick = onDecrementUnit,
-                            enabled = anime.watchedEpisodes > 0,
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(CircleShape)
-                                .background(palette.panelNavyElevated)
+                        Row(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = "-1",
-                                color = if (anime.watchedEpisodes > 0) palette.textSecondary else palette.textDarkMuted,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+                            // 1. Decrement Step (-)
+                            val canDecrement = anime.watchedEpisodes > 0
+                            Box(
+                                modifier = Modifier
+                                    .width(42.dp)
+                                    .fillMaxHeight()
+                                    .clickable(
+                                        enabled = canDecrement,
+                                        onClick = onDecrementUnit
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Remove,
+                                    contentDescription = "-1 Bölüm",
+                                    tint = if (canDecrement) palette.textSecondary else palette.textDarkMuted.copy(alpha = 0.3f),
+                                    modifier = Modifier.size(15.dp)
+                                )
+                            }
 
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        Button(
-                            onClick = onIncrementUnit,
-                            shape = RoundedCornerShape(10.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (anime.isCompleted) palette.accentGold.copy(alpha = 0.2f) else accentColor.copy(alpha = 0.2f),
-                                contentColor = if (anime.isCompleted) palette.accentGold else accentColor
-                            ),
-                            border = BorderStroke(1.dp, if (anime.isCompleted) palette.accentGold.copy(alpha = 0.5f) else accentColor.copy(alpha = 0.5f)),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                            modifier = Modifier.height(32.dp)
-                        ) {
-                            Icon(
-                                Icons.Filled.Add,
-                                contentDescription = null,
-                                modifier = Modifier.size(15.dp)
+                            // Hairline Divider
+                            Box(
+                                modifier = Modifier
+                                    .width(0.75.dp)
+                                    .height(16.dp)
+                                    .background(Color.White.copy(alpha = 0.08f))
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = if (anime.isCompleted) "Tekrar" else "+1 Bölüm",
-                                fontSize = 11.5.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
 
-                        Spacer(modifier = Modifier.width(8.dp))
+                            // 2. Increment Step (+1 Bölüm / Tekrar)
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .background(
+                                        if (anime.isCompleted) palette.accentGold.copy(alpha = 0.12f)
+                                        else itemAccent.copy(alpha = 0.12f)
+                                    )
+                                    .clickable(onClick = onIncrementUnit),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    if (anime.isCompleted) {
+                                        Icon(
+                                            imageVector = Icons.Default.Refresh,
+                                            contentDescription = null,
+                                            tint = palette.accentGold,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(5.dp))
+                                        Text(
+                                            text = if (anime.category == MediaTypeCategory.MANGA) "Tekrar Oku" else "Tekrar İzle",
+                                            color = palette.accentGold,
+                                            fontSize = 11.5.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            letterSpacing = 0.1.sp
+                                        )
+                                    } else {
+                                        Icon(
+                                            imageVector = Icons.Default.Add,
+                                            contentDescription = null,
+                                            tint = itemAccent,
+                                            modifier = Modifier.size(13.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "1 Bölüm",
+                                            color = itemAccent,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            letterSpacing = 0.1.sp
+                                        )
+                                    }
+                                }
+                            }
 
-                        IconButton(
-                            onClick = onClickEdit,
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(CircleShape)
-                                .background(palette.panelNavyElevated)
-                        ) {
-                            Icon(
-                                Icons.Filled.Edit,
-                                contentDescription = "Detay & Düzenle",
-                                tint = palette.textSecondary,
-                                modifier = Modifier.size(15.dp)
+                            // Hairline Divider
+                            Box(
+                                modifier = Modifier
+                                    .width(0.75.dp)
+                                    .height(16.dp)
+                                    .background(Color.White.copy(alpha = 0.08f))
                             )
+
+                            // 3. Edit / Details (✎)
+                            Box(
+                                modifier = Modifier
+                                    .width(42.dp)
+                                    .fillMaxHeight()
+                                    .clickable(onClick = onClickEdit),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Edit,
+                                    contentDescription = "Detay & Düzenle",
+                                    tint = palette.textSecondary,
+                                    modifier = Modifier.size(13.5.dp)
+                                )
+                            }
                         }
                     }
                 }

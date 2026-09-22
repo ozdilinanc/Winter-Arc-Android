@@ -251,10 +251,12 @@ object HealthSyncManager {
             }
 
             // Eğer Health Connect adımları 0 ise ve cihazda donanım sensörü varsa dene
+            var isHardwareSensorUsed = false
             if (totalSteps == 0L) {
                 val sensorSteps = readHardwareSensorSteps(context)
                 if (sensorSteps > 0L) {
                     totalSteps = sensorSteps
+                    isHardwareSensorUsed = true
                 }
             }
 
@@ -271,6 +273,8 @@ object HealthSyncManager {
                 allSources.any { it.contains("huawei") } -> "Huawei Sağlık ⌚"
                 allSources.any { it.contains("fitness") } -> "Google Fit 🏃"
                 allSources.any { it.contains("shealth") } -> "Samsung Health ⌚"
+                isHardwareSensorUsed && allSources.isNotEmpty() -> "Health Connect + Adım Sensörü 👟"
+                isHardwareSensorUsed -> "Cihaz Adım Sensörü 👟"
                 allSources.isNotEmpty() -> "Health Connect (${allSources.first().substringAfterLast('.')})"
                 else -> getInstalledHealthAppName(context) ?: "Health Connect"
             }
@@ -313,39 +317,43 @@ object HealthSyncManager {
     /**
      * Cihazın donanım adım sayar sensöründen anlık veri okumayı dener (fallback).
      */
-    private fun readHardwareSensorSteps(context: Context): Long {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val hasActivityPerm = ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.ACTIVITY_RECOGNITION
-            ) == PackageManager.PERMISSION_GRANTED
-            if (!hasActivityPerm) return 0L
-        }
-
-        val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as? SensorManager ?: return 0L
-        val stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER) ?: return 0L
-
-        // TYPE_STEP_COUNTER son önyüklemeden (boot) bu yana olan adımları tutar
-        // Eğer daha önce kaydedilmiş bir taban değer varsa farkı alınabilir
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val lastKnownSteps = prefs.getLong("last_hardware_sensor_steps", 0L)
-        return lastKnownSteps
+    private suspend fun readHardwareSensorSteps(context: Context): Long {
+        val liveSteps = StepSensorManager.readLiveHardwareSteps(context)
+        return if (liveSteps > 0L) liveSteps else StepSensorManager.getTodaySteps(context)
     }
 
-    private fun fetchFromHardwareOrFallback(context: Context, errorReason: String): HealthSyncResult {
+    private suspend fun fetchFromHardwareOrFallback(context: Context, errorReason: String): HealthSyncResult {
         val sensorSteps = readHardwareSensorSteps(context)
         val isWalkMet = isWalkTargetAchieved(sensorSteps)
+
+        // Eğer bugün için daha önceden kaydedilmiş uyku verisi varsa koru
+        val todayKey = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.getDefault()).format(java.util.Date())
+        val previousSync = getLastSync(context, todayKey)
+        val sleepHours = previousSync?.sleepHours ?: 0.0
+        val sleepMinutes = previousSync?.sleepMinutesTotal ?: 0L
+        val sleepQuality = previousSync?.sleepQuality ?: "refreshed"
+
+        val hasSteps = sensorSteps > 0L
+        val hasSleep = sleepMinutes > 0L
+
+        val source = when {
+            hasSteps && previousSync != null && previousSync.source.contains("Health") -> "${previousSync.source} + Sensör"
+            hasSteps -> "Cihaz Adım Sensörü 👟"
+            previousSync != null -> previousSync.source
+            else -> "Manuel / Bekleniyor"
+        }
+
         return HealthSyncResult(
-            stepsCount = sensorSteps,
-            sleepHours = 0.0,
-            sleepMinutesTotal = 0L,
-            sleepQuality = "refreshed",
-            isSleep6hPlus = false,
-            isWalkGoalMet = isWalkMet,
-            source = if (sensorSteps > 0L) "Cihaz Donanım Sensörü" else "Manuel / Bekleniyor",
+            stepsCount = if (hasSteps) sensorSteps else (previousSync?.stepsCount ?: 0L),
+            sleepHours = sleepHours,
+            sleepMinutesTotal = sleepMinutes,
+            sleepQuality = sleepQuality,
+            isSleep6hPlus = isSleepTargetAchieved(sleepHours),
+            isWalkGoalMet = isWalkMet || (previousSync?.isWalkGoalMet == true),
+            source = source,
             syncedAtMillis = System.currentTimeMillis(),
-            isSuccess = sensorSteps > 0L,
-            message = errorReason
+            isSuccess = hasSteps || hasSleep,
+            message = if (hasSteps) "Donanım adım sayarından $sensorSteps adım okundu." else errorReason
         )
     }
 

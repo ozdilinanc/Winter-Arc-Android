@@ -44,6 +44,7 @@ import androidx.compose.material.icons.filled.TrackChanges
 import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.ui.res.painterResource
 import com.example.R
+import com.example.ui.util.StepSensorManager
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material3.*
@@ -560,21 +561,36 @@ fun DailyTrackerView(
                 habit = habit,
                 isCompleted = isDone,
                 stepsCount = if (habit.id == "hab_walk") effectiveSteps else null,
+                stepSource = if (habit.id == "hab_walk") (lastHealthSync?.source ?: "Huawei") else null,
                 onToggle = { toggleRoutine(habit.id) },
                 onLaunchClawssary = {
-                    try {
-                        val launchIntent = context.packageManager.getLaunchIntentForPackage(CLAWSSARY_PACKAGE)
-                        if (launchIntent != null) {
+                    val launchIntent = try {
+                        context.packageManager.getLaunchIntentForPackage(CLAWSSARY_PACKAGE)
+                    } catch (e: Exception) {
+                        null
+                    }
+                    if (launchIntent != null) {
+                        try {
                             hapticEngine.vibrateSkillCompleted()
                             context.startActivity(launchIntent)
                             if (!isDone) {
                                 toggleRoutine(habit.id)
                             }
-                        } else {
-                            Toast.makeText(context, "Clawssary uygulaması yüklü görünmüyor.", Toast.LENGTH_SHORT).show()
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "Uygulama açılamadı: ${e.message}", Toast.LENGTH_SHORT).show()
                         }
-                    } catch (e: Exception) {
-                        Toast.makeText(context, "Uygulama açılamadı: ${e.message}", Toast.LENGTH_SHORT).show()
+                    } else {
+                        // Uygulama yüklü değilse doğrudan mağazaya veya bilgilendirmeye yönlendir
+                        hapticEngine.vibrateSelection()
+                        try {
+                            val marketIntent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("market://details?id=$CLAWSSARY_PACKAGE"))
+                            marketIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            context.startActivity(marketIntent)
+                        } catch (_: Exception) {
+                            val webIntent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://play.google.com/store/apps/details?id=$CLAWSSARY_PACKAGE"))
+                            webIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            context.startActivity(webIntent)
+                        }
                     }
                 },
                 onLaunchHuaweiHealth = {
@@ -1539,6 +1555,7 @@ private fun ModernHabitItemRow(
     habit: DailyHabitItem,
     isCompleted: Boolean,
     stepsCount: Long? = null,
+    stepSource: String? = null,
     onToggle: () -> Unit,
     onLaunchClawssary: () -> Unit,
     onLaunchHuaweiHealth: (() -> Unit)? = null
@@ -1654,8 +1671,15 @@ private fun ModernHabitItemRow(
                             modifier = Modifier.size(13.dp)
                         )
                         Spacer(modifier = Modifier.width(3.dp))
+                        val sourceLabel = when {
+                            stepSource != null && stepSource.contains("Sensör") -> "Sensör"
+                            stepSource != null && stepSource.contains("Huawei") -> "Huawei"
+                            stepSource != null && stepSource.contains("Fit") -> "Google Fit"
+                            stepSource != null && stepSource.contains("Samsung") -> "Samsung"
+                            else -> "Adım"
+                        }
                         Text(
-                            text = "Huawei: $stepsCount / 7.000 Adım",
+                            text = "$sourceLabel: $stepsCount / 7.000 Adım",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 color = if (stepsCount >= 7000) StatusCompleted else AccentCyan,
                                 fontWeight = FontWeight.Bold,
@@ -1675,7 +1699,7 @@ private fun ModernHabitItemRow(
                 }
             }
 
-            // Sağ Butonlar: Yürüyüş için Huawei Eşitle, İngilizce için Clawssary, diğerleri için XP
+            // Sağ Butonlar: Yürüyüş için Huawei Eşitle, İngilizce için Clawssary / Kartlar, diğerleri için XP
             if (habit.id == "hab_walk" && onLaunchHuaweiHealth != null) {
                 Surface(
                     shape = RoundedCornerShape(8.dp),
@@ -1841,6 +1865,8 @@ private fun StepEditDialog(
     onLaunchHuaweiHealth: () -> Unit,
     onRefreshHealthConnect: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val hardwareSteps = remember { StepSensorManager.getTodaySteps(context) }
     var textInput by remember { mutableStateOf(if (currentSteps > 0) currentSteps.toString() else "") }
 
     AlertDialog(
@@ -1904,9 +1930,29 @@ private fun StepEditDialog(
                                 )
                             )
                         }
+                        if (hardwareSteps > 0L) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Cihaz Adım Sensörü:",
+                                    style = MaterialTheme.typography.labelSmall.copy(color = TextMuted)
+                                )
+                                Text(
+                                    text = "$hardwareSteps adım",
+                                    style = MaterialTheme.typography.labelMedium.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = StatusCompleted
+                                    )
+                                )
+                            }
+                        }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Huawei Sağlık, saatindeki adımları sisteme belirli aralıklarla aktarır. Saatinle eşitlemek için Huawei Sağlık'ı açıp aşağı kaydırarak senkronize edebilirsin.",
+                            text = "Huawei Sağlık saat adımlarını Health Connect'e aktarır. Health Connect yoksa cihazın donanım sensörü otomatik kullanılır.",
                             style = MaterialTheme.typography.bodySmall.copy(
                                 color = TextDarkMuted,
                                 fontSize = 11.sp,
@@ -1966,6 +2012,36 @@ private fun StepEditDialog(
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = "Tekrar Oku",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp
+                            )
+                        )
+                    }
+                }
+
+                if (hardwareSteps > 0L) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = {
+                            textInput = hardwareSteps.toString()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = StatusCompleted.copy(alpha = 0.15f),
+                            contentColor = StatusCompleted
+                        ),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.DirectionsWalk,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Cihaz Sensöründen Doldur ($hardwareSteps adım)",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 11.sp
