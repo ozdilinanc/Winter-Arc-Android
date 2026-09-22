@@ -1,6 +1,7 @@
 package com.example.data.model
 
 import android.content.SharedPreferences
+import com.example.data.repository.CustomTopicRepository
 
 data class SubItemProgressStats(
     val totalCount: Int,

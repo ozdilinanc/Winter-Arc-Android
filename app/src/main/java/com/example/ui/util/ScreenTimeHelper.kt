@@ -38,6 +38,7 @@ object ScreenTimeHelper {
 
     private val SOCIAL_PACKAGES = TRACKED_APPS.map { it.packageName }.toSet()
 
+    @Suppress("DEPRECATION")
     fun hasUsagePermission(context: Context): Boolean {
         return try {
             val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as? AppOpsManager ?: return false

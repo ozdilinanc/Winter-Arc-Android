@@ -2,9 +2,9 @@ package com.example.data.repository
 
 import android.content.Context
 import android.content.SharedPreferences
-import com.example.ui.components.school.BookReadingStatus
-import com.example.ui.components.school.TrackedBook
-import com.example.ui.components.school.defaultTrackedBooks
+import com.example.data.model.school.BookReadingStatus
+import com.example.data.model.school.TrackedBook
+import com.example.data.seed.defaultTrackedBooks
 import org.json.JSONArray
 import org.json.JSONObject
 

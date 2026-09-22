@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.test.core.app.ApplicationProvider
 import com.example.data.model.CustomTopicItem
-import com.example.data.model.CustomTopicRepository
+import com.example.data.repository.CustomTopicRepository
 import com.example.data.model.RoadmapDataStore
 import com.example.data.model.RoadmapProgressHelper
 import com.example.data.model.TopicProgressState

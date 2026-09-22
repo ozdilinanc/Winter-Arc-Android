@@ -1,4 +1,9 @@
-package com.example.ui.components.school
+package com.example.data.seed
+
+import com.example.data.model.school.BookChapterItem
+import com.example.data.model.school.BookReadingStatus
+import com.example.data.model.school.BookSection
+import com.example.data.model.school.TrackedBook
 
 fun defaultTrackedBooks(): List<TrackedBook> {
     return listOf(

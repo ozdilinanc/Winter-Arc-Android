@@ -3,7 +3,7 @@ package com.example
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.example.data.repository.SchoolBooksRepository
-import com.example.ui.components.school.BookReadingStatus
+import com.example.data.model.school.BookReadingStatus
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test

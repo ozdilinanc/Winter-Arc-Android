@@ -1,4 +1,4 @@
-package com.example.ui.components.school
+package com.example.data.model.school
 
 import org.json.JSONArray
 import org.json.JSONObject

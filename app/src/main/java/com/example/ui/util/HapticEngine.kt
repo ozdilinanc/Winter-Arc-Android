@@ -17,6 +17,7 @@ import androidx.compose.ui.platform.LocalContext
  */
 class HapticEngine(private val context: Context) {
 
+    @Suppress("DEPRECATION")
     private val vibrator: Vibrator? by lazy {
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {

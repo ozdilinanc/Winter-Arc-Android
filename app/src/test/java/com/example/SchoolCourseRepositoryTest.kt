@@ -4,9 +4,9 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.test.core.app.ApplicationProvider
 import com.example.data.repository.SchoolCourseRepository
-import com.example.ui.components.school.AttendanceStatus
-import com.example.ui.components.school.GradeWeights
-import com.example.ui.components.school.SchoolCourse
+import com.example.data.model.school.AttendanceStatus
+import com.example.data.model.school.GradeWeights
+import com.example.data.model.school.SchoolCourse
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test

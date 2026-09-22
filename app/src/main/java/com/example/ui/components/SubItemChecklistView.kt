@@ -59,7 +59,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.util.Locale
 import com.example.data.model.CustomTopicItem
-import com.example.data.model.CustomTopicRepository
+import com.example.data.repository.CustomTopicRepository
 import com.example.data.model.MediumRoadmapSeed
 import com.example.data.model.RoadmapDataStore
 import com.example.data.model.SubItemRoadmap
@@ -1198,7 +1198,7 @@ private fun TopicTimelineItem(
                             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.MenuBook,
+                                imageVector = Icons.AutoMirrored.Outlined.MenuBook,
                                 contentDescription = null,
                                 tint = Color(0xFF38BDF8),
                                 modifier = Modifier.size(13.dp)

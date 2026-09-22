@@ -17,8 +17,9 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Language
-import androidx.compose.material.icons.outlined.MenuBook
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Room
+import com.example.data.model.school.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -145,7 +146,7 @@ fun SchoolCoursesView(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = Icons.Outlined.MenuBook,
+                            imageVector = Icons.AutoMirrored.Outlined.MenuBook,
                             contentDescription = null,
                             tint = AccentCyan,
                             modifier = Modifier.size(20.dp)
@@ -208,7 +209,7 @@ fun SchoolCoursesView(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = Icons.Outlined.MenuBook,
+                            imageVector = Icons.AutoMirrored.Outlined.MenuBook,
                             contentDescription = null,
                             tint = if (selectedViewTab == 0) Color.White else TextSecondary,
                             modifier = Modifier.size(15.dp)
@@ -353,7 +354,7 @@ fun SchoolCoursesView(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Outlined.MenuBook,
+                                imageVector = Icons.AutoMirrored.Outlined.MenuBook,
                                 contentDescription = null,
                                 tint = AccentCyan,
                                 modifier = Modifier.size(28.dp)

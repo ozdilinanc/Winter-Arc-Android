@@ -2,10 +2,10 @@ package com.example.data.repository
 
 import android.content.Context
 import android.content.SharedPreferences
-import com.example.ui.components.school.AttendanceStatus
-import com.example.ui.components.school.CourseAttendanceWeek
-import com.example.ui.components.school.SchoolCourse
-import com.example.ui.components.school.defaultSemesterCourses
+import com.example.data.model.school.AttendanceStatus
+import com.example.data.model.school.CourseAttendanceWeek
+import com.example.data.model.school.SchoolCourse
+import com.example.data.model.school.defaultSemesterCourses
 import org.json.JSONArray
 import org.json.JSONObject
 

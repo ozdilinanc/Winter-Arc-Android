@@ -24,7 +24,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.data.model.CustomTopicItem
-import com.example.data.model.CustomTopicRepository
+import com.example.data.repository.CustomTopicRepository
 import com.example.data.model.TopicGenre
 import com.example.ui.theme.*
 import com.example.ui.util.rememberHapticEngine

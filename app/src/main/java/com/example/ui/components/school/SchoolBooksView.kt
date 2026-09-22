@@ -45,6 +45,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.repository.SchoolBooksRepository
+import com.example.data.model.school.*
 import com.example.ui.theme.*
 import com.example.ui.util.rememberHapticEngine
 
