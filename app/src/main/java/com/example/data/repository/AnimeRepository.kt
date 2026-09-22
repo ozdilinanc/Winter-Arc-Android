@@ -6,6 +6,9 @@ import com.example.data.api.anime.AnimeApiService
 import com.example.data.model.anime.AnimeItem
 import com.example.data.model.anime.AnimeUserStats
 import com.example.data.model.anime.AnimeWatchStatus
+import com.example.data.model.anime.MediaTypeCategory
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,112 +20,27 @@ object AnimeRepository {
     private const val PREFS_NAME = "winter_arc_anime_storage"
     private const val KEY_ANIME_LIST = "anime_list_json"
     private const val KEY_LAST_MAL_USERNAME = "last_mal_username"
-    private const val KEY_IS_INITIALIZED = "anime_initialized_v1"
+    private const val KEY_IS_INITIALIZED = "anime_initialized_v2"
 
     private val _animeFlow = MutableStateFlow<List<AnimeItem>>(emptyList())
     val animeFlow: StateFlow<List<AnimeItem>> = _animeFlow.asStateFlow()
 
     private var isLoaded = false
 
+    fun resetForTesting() {
+        isLoaded = false
+        _animeFlow.value = emptyList()
+    }
+
     private fun getPrefs(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     }
 
-    fun defaultSeedAnimes(): List<AnimeItem> {
-        val now = System.currentTimeMillis()
-        return listOf(
-            AnimeItem(
-                id = "mal_52299",
-                malId = 52299,
-                title = "Ore dake Level Up na Ken",
-                titleEnglish = "Solo Leveling",
-                imageUrl = "https://cdn.myanimelist.net/images/anime/1839/140815l.jpg",
-                watchedEpisodes = 12,
-                totalEpisodes = 12,
-                score = 8.5f,
-                status = AnimeWatchStatus.COMPLETED,
-                mediaType = "TV",
-                genres = listOf("Action", "Fantasy"),
-                notes = "Gölge Hükümdarı Sung Jin-woo'nun uyanışı",
-                updatedAt = now
-            ),
-            AnimeItem(
-                id = "mal_16498",
-                malId = 16498,
-                title = "Shingeki no Kyojin",
-                titleEnglish = "Attack on Titan",
-                imageUrl = "https://cdn.myanimelist.net/images/anime/10/47347l.jpg",
-                watchedEpisodes = 25,
-                totalEpisodes = 25,
-                score = 9.0f,
-                status = AnimeWatchStatus.COMPLETED,
-                mediaType = "TV",
-                genres = listOf("Action", "Drama", "Suspense"),
-                notes = "Özgürlük felsefesi ve duvarların ardı",
-                updatedAt = now - 1000
-            ),
-            AnimeItem(
-                id = "mal_52991",
-                malId = 52991,
-                title = "Sousou no Frieren",
-                titleEnglish = "Frieren: Beyond Journey's End",
-                imageUrl = "https://cdn.myanimelist.net/images/anime/1015/138075l.jpg",
-                watchedEpisodes = 28,
-                totalEpisodes = 28,
-                score = 9.4f,
-                status = AnimeWatchStatus.COMPLETED,
-                mediaType = "TV",
-                genres = listOf("Adventure", "Drama", "Fantasy"),
-                notes = "Zamanın ve anıların derinliği",
-                updatedAt = now - 2000
-            ),
-            AnimeItem(
-                id = "mal_51009",
-                malId = 51009,
-                title = "Jujutsu Kaisen 2nd Season",
-                titleEnglish = "Jujutsu Kaisen Season 2",
-                imageUrl = "https://cdn.myanimelist.net/images/anime/1792/138022l.jpg",
-                watchedEpisodes = 18,
-                totalEpisodes = 23,
-                score = 8.8f,
-                status = AnimeWatchStatus.WATCHING,
-                mediaType = "TV",
-                genres = listOf("Action", "Supernatural"),
-                notes = "Shibuya Olayı yayını devam ediyor",
-                updatedAt = now - 3000
-            ),
-            AnimeItem(
-                id = "mal_41467",
-                malId = 41467,
-                title = "Bleach: Sennen Kessen-hen",
-                titleEnglish = "Bleach: Thousand-Year Blood War",
-                imageUrl = "https://cdn.myanimelist.net/images/anime/1764/126627l.jpg",
-                watchedEpisodes = 5,
-                totalEpisodes = 13,
-                score = 9.0f,
-                status = AnimeWatchStatus.WATCHING,
-                mediaType = "TV",
-                genres = listOf("Action", "Adventure", "Fantasy"),
-                notes = "Quincy savaşı ve Bankai güçleri",
-                updatedAt = now - 4000
-            ),
-            AnimeItem(
-                id = "mal_57555",
-                malId = 57555,
-                title = "Chainsaw Man Movie: Reze-hen",
-                titleEnglish = "Chainsaw Man the Movie: Reze Arc",
-                imageUrl = "https://cdn.myanimelist.net/images/anime/1805/140643l.jpg",
-                watchedEpisodes = 0,
-                totalEpisodes = 1,
-                score = 0f,
-                status = AnimeWatchStatus.PLAN_TO_WATCH,
-                mediaType = "Movie",
-                genres = listOf("Action", "Supernatural"),
-                notes = "Vizyona girdiğinde izlenecek",
-                updatedAt = now - 5000
-            )
-        )
-    }
+    /**
+     * Mockup data has been removed per user request.
+     * New installations start clean; data comes from MAL sync or user additions.
+     */
+    fun defaultSeedAnimes(): List<AnimeItem> = emptyList()
 
     @Synchronized
     fun getAnimeList(context: Context): List<AnimeItem> {
@@ -130,17 +48,29 @@ object AnimeRepository {
         if (!isLoaded) {
             val jsonStr = prefs.getString(KEY_ANIME_LIST, null)
             val list = if (jsonStr != null) {
-                deserializeList(jsonStr)
+                val deserialized = deserializeList(jsonStr)
+                // Filter out any leftover initial mock items
+                cleanMockupData(deserialized)
             } else {
-                val defaults = defaultSeedAnimes()
-                saveAnimeListInternal(prefs, defaults)
-                prefs.edit().putBoolean(KEY_IS_INITIALIZED, true).apply()
-                defaults
+                emptyList()
             }
+            saveAnimeListInternal(prefs, list)
             _animeFlow.value = list
             isLoaded = true
         }
         return _animeFlow.value
+    }
+
+    private fun cleanMockupData(items: List<AnimeItem>): List<AnimeItem> {
+        val mockNotes = setOf(
+            "Gölge Hükümdarı Sung Jin-woo'nun uyanışı",
+            "Özgürlük felsefesi ve duvarların ardı",
+            "Zamanın ve anıların derinliği",
+            "Shibuya Olayı yayını devam ediyor",
+            "Quincy savaşı ve Bankai güçleri",
+            "Vizyona girdiğinde izlenecek"
+        )
+        return items.filterNot { it.notes in mockNotes }
     }
 
     @Synchronized
@@ -239,20 +169,6 @@ object AnimeRepository {
     }
 
     @Synchronized
-    fun updateScore(context: Context, id: String, score: Float) {
-        val currentList = getAnimeList(context).toMutableList()
-        val index = currentList.indexOfFirst { it.id == id }
-        if (index != -1) {
-            val old = currentList[index]
-            currentList[index] = old.copy(
-                score = score.coerceIn(0f, 10f),
-                updatedAt = System.currentTimeMillis()
-            )
-            saveAndEmit(context, currentList)
-        }
-    }
-
-    @Synchronized
     fun updateNotes(context: Context, id: String, notes: String) {
         val currentList = getAnimeList(context).toMutableList()
         val index = currentList.indexOfFirst { it.id == id }
@@ -269,7 +185,7 @@ object AnimeRepository {
     @Synchronized
     fun addOrUpdateAnime(context: Context, item: AnimeItem) {
         val currentList = getAnimeList(context).toMutableList()
-        val existingIndex = currentList.indexOfFirst { it.id == item.id || (item.malId != null && it.malId == item.malId) }
+        val existingIndex = currentList.indexOfFirst { it.id == item.id || (item.malId != null && it.malId == item.malId && it.category == item.category) }
         if (existingIndex != -1) {
             val old = currentList[existingIndex]
             currentList[existingIndex] = item.copy(
@@ -289,61 +205,94 @@ object AnimeRepository {
         saveAndEmit(context, currentList)
     }
 
-    suspend fun syncWithMyAnimeList(context: Context, username: String): Result<Int> {
-        val result = AnimeApiService.fetchUserAnimeList(username)
-        if (result.isFailure) {
-            return Result.failure(result.exceptionOrNull() ?: Exception("MAL Senkronizasyon hatası"))
+    suspend fun syncWithMyAnimeList(context: Context, username: String): Result<Pair<Int, Int>> = coroutineScope {
+        val animeDeferred = async { AnimeApiService.fetchUserAnimeList(username) }
+        val mangaDeferred = async { AnimeApiService.fetchUserMangaList(username) }
+
+        val animeResult = animeDeferred.await()
+        val mangaResult = mangaDeferred.await()
+
+        if (animeResult.isFailure && mangaResult.isFailure) {
+            val errorMsg = animeResult.exceptionOrNull()?.message ?: mangaResult.exceptionOrNull()?.message ?: "MAL Senkronizasyon hatası"
+            return@coroutineScope Result.failure(Exception(errorMsg))
         }
 
-        val remoteList = result.getOrNull() ?: emptyList()
+        val remoteAnimeList = animeResult.getOrDefault(emptyList())
+        val remoteMangaList = mangaResult.getOrDefault(emptyList())
+        val allRemote = remoteAnimeList + remoteMangaList
+
         setLastMalUsername(context, username)
 
-        synchronized(this) {
+        synchronized(this@AnimeRepository) {
             val currentList = getAnimeList(context).toMutableList()
-            var addedOrUpdatedCount = 0
+            var addedOrUpdatedAnime = 0
+            var addedOrUpdatedManga = 0
 
-            for (remote in remoteList) {
-                val index = currentList.indexOfFirst { it.malId != null && it.malId == remote.malId }
+            for (remote in allRemote) {
+                val index = currentList.indexOfFirst {
+                    it.malId != null && it.malId == remote.malId && it.category == remote.category
+                }
+
                 if (index != -1) {
                     val existing = currentList[index]
+                    // If user watched more locally, preserve user's local advance, but record MAL's official count
+                    val localWatched = if (existing.watchedEpisodes > remote.watchedEpisodes) {
+                        existing.watchedEpisodes
+                    } else {
+                        remote.watchedEpisodes
+                    }
+
                     currentList[index] = remote.copy(
                         id = existing.id,
+                        watchedEpisodes = localWatched,
+                        malWatchedEpisodes = remote.watchedEpisodes,
                         notes = existing.notes.ifBlank { remote.notes }
                     )
                 } else {
                     currentList.add(remote)
                 }
-                addedOrUpdatedCount++
+
+                if (remote.category == MediaTypeCategory.ANIME) {
+                    addedOrUpdatedAnime++
+                } else {
+                    addedOrUpdatedManga++
+                }
             }
 
             saveAndEmit(context, currentList)
-            return Result.success(addedOrUpdatedCount)
+            return@coroutineScope Result.success(Pair(addedOrUpdatedAnime, addedOrUpdatedManga))
         }
     }
 
-    fun computeStats(items: List<AnimeItem>): AnimeUserStats {
-        val total = items.size
-        var watching = 0
+    fun computeStats(items: List<AnimeItem>, category: MediaTypeCategory? = null): AnimeUserStats {
+        val filtered = if (category != null) items.filter { it.category == category } else items
+        val total = filtered.size
+        var inProgress = 0
         var completed = 0
-        var planToWatch = 0
-        var totalEpisodes = 0
+        var plan = 0
+        var totalUnits = 0
+        var outOfSync = 0
 
-        for (item in items) {
+        for (item in filtered) {
             when (item.status) {
-                AnimeWatchStatus.WATCHING -> watching++
+                AnimeWatchStatus.WATCHING -> inProgress++
                 AnimeWatchStatus.COMPLETED -> completed++
-                AnimeWatchStatus.PLAN_TO_WATCH -> planToWatch++
+                AnimeWatchStatus.PLAN_TO_WATCH -> plan++
                 else -> {}
             }
-            totalEpisodes += item.watchedEpisodes
+            totalUnits += item.watchedEpisodes
+            if (item.isOutOfSync) {
+                outOfSync++
+            }
         }
 
         return AnimeUserStats(
-            totalAnime = total,
-            watchingCount = watching,
+            totalCount = total,
+            inProgressCount = inProgress,
             completedCount = completed,
-            planToWatchCount = planToWatch,
-            totalWatchedEpisodes = totalEpisodes
+            planCount = plan,
+            totalWatchedUnits = totalUnits,
+            outOfSyncCount = outOfSync
         )
     }
 
@@ -364,9 +313,11 @@ object AnimeRepository {
             obj.put("imageUrl", item.imageUrl)
             obj.put("watchedEpisodes", item.watchedEpisodes)
             obj.put("totalEpisodes", item.totalEpisodes)
+            obj.put("malWatchedEpisodes", item.malWatchedEpisodes)
             obj.put("score", item.score.toDouble())
             obj.put("status", item.status.name)
             obj.put("mediaType", item.mediaType)
+            obj.put("category", item.category.name)
             val genresArr = JSONArray()
             item.genres.forEach { genresArr.put(it) }
             obj.put("genres", genresArr)
@@ -390,10 +341,14 @@ object AnimeRepository {
                 val imageUrl = obj.optString("imageUrl", "")
                 val watchedEpisodes = obj.optInt("watchedEpisodes", 0)
                 val totalEpisodes = obj.optInt("totalEpisodes", 0)
+                val malWatched = obj.optInt("malWatchedEpisodes", watchedEpisodes)
                 val score = obj.optDouble("score", 0.0).toFloat()
                 val statusStr = obj.optString("status", AnimeWatchStatus.WATCHING.name)
                 val status = AnimeWatchStatus.fromName(statusStr)
                 val mediaType = obj.optString("mediaType", "TV")
+                val categoryStr = obj.optString("category", MediaTypeCategory.ANIME.name)
+                val category = MediaTypeCategory.fromName(categoryStr)
+
                 val genresList = mutableListOf<String>()
                 val genresArr = obj.optJSONArray("genres")
                 if (genresArr != null) {
@@ -413,9 +368,11 @@ object AnimeRepository {
                         imageUrl = imageUrl,
                         watchedEpisodes = watchedEpisodes,
                         totalEpisodes = totalEpisodes,
+                        malWatchedEpisodes = malWatched,
                         score = score,
                         status = status,
                         mediaType = mediaType,
+                        category = category,
                         genres = genresList,
                         notes = notes,
                         updatedAt = updatedAt
@@ -423,7 +380,7 @@ object AnimeRepository {
                 )
             }
         } catch (_: Exception) {
-            return defaultSeedAnimes()
+            return emptyList()
         }
         return list
     }

@@ -1,9 +1,7 @@
 package com.example.ui.components.anime
 
-import android.content.Context
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -20,6 +18,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.*
@@ -27,7 +26,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -45,7 +43,9 @@ import coil.request.ImageRequest
 import com.example.data.api.anime.AnimeApiService
 import com.example.data.model.anime.AnimeItem
 import com.example.data.model.anime.AnimeSearchItem
+import com.example.data.model.anime.AnimeUserStats
 import com.example.data.model.anime.AnimeWatchStatus
+import com.example.data.model.anime.MediaTypeCategory
 import com.example.data.repository.AnimeRepository
 import com.example.ui.theme.LocalAppPalette
 import com.example.ui.util.rememberHapticEngine
@@ -53,8 +53,8 @@ import kotlinx.coroutines.launch
 
 private enum class AnimeFilter(val label: String) {
     ALL("Tümü"),
-    WATCHING("İzleniyor"),
-    PLAN_TO_WATCH("İzlenecek"),
+    IN_PROGRESS("Devam Eden"),
+    PLAN("Listemde"),
     COMPLETED("Tamamlandı"),
     OTHER("Diğer")
 }
@@ -72,25 +72,35 @@ fun AnimeTrackingHubView(
     val coroutineScope = rememberCoroutineScope()
 
     // State from repository
-    val animeList by AnimeRepository.animeFlow.collectAsState()
+    val allMediaList by AnimeRepository.animeFlow.collectAsState()
     LaunchedEffect(Unit) {
         AnimeRepository.getAnimeList(context)
     }
 
+    var activeCategory by remember { mutableStateOf(MediaTypeCategory.ANIME) }
     var currentFilter by remember { mutableStateOf(AnimeFilter.ALL) }
     var showMalSyncDialog by remember { mutableStateOf(false) }
     var showSearchDialog by remember { mutableStateOf(false) }
     var selectedAnimeForEdit by remember { mutableStateOf<AnimeItem?>(null) }
     var searchQuery by remember { mutableStateOf("") }
 
-    val stats = remember(animeList) { AnimeRepository.computeStats(animeList) }
+    val lastMalUser = remember(allMediaList) { AnimeRepository.getLastMalUsername(context) }
 
-    val filteredList = remember(animeList, currentFilter, searchQuery) {
-        animeList.filter { anime ->
+    // Media list filtered by active category (Anime vs Manga)
+    val categoryList = remember(allMediaList, activeCategory) {
+        allMediaList.filter { it.category == activeCategory }
+    }
+
+    val stats = remember(categoryList) {
+        AnimeRepository.computeStats(categoryList, activeCategory)
+    }
+
+    val filteredList = remember(categoryList, currentFilter, searchQuery) {
+        categoryList.filter { anime ->
             val matchesFilter = when (currentFilter) {
                 AnimeFilter.ALL -> true
-                AnimeFilter.WATCHING -> anime.status == AnimeWatchStatus.WATCHING
-                AnimeFilter.PLAN_TO_WATCH -> anime.status == AnimeWatchStatus.PLAN_TO_WATCH
+                AnimeFilter.IN_PROGRESS -> anime.status == AnimeWatchStatus.WATCHING
+                AnimeFilter.PLAN -> anime.status == AnimeWatchStatus.PLAN_TO_WATCH
                 AnimeFilter.COMPLETED -> anime.status == AnimeWatchStatus.COMPLETED
                 AnimeFilter.OTHER -> anime.status == AnimeWatchStatus.ON_HOLD || anime.status == AnimeWatchStatus.DROPPED
             }
@@ -117,8 +127,9 @@ fun AnimeTrackingHubView(
         modifier = modifier.fillMaxSize(),
         containerColor = palette.canvasDark,
         topBar = {
-            AnimeTopBar(
+            SleekTopBar(
                 onBack = onBack,
+                lastMalUsername = lastMalUser,
                 onOpenMalSync = { showMalSyncDialog = true },
                 onOpenSearch = { showSearchDialog = true },
                 accentColor = effectiveAccent
@@ -130,12 +141,30 @@ fun AnimeTrackingHubView(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp),
-            contentPadding = PaddingValues(top = 12.dp, bottom = 32.dp),
+            contentPadding = PaddingValues(top = 10.dp, bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // Stats Row
+            // Category Switcher: Anime vs Manga/Manhwa
             item {
-                AnimeStatsHeader(stats = stats, accentColor = effectiveAccent)
+                CategorySegmentedControl(
+                    activeCategory = activeCategory,
+                    animeCount = allMediaList.count { it.category == MediaTypeCategory.ANIME },
+                    mangaCount = allMediaList.count { it.category == MediaTypeCategory.MANGA },
+                    onSelect = {
+                        hapticEngine.vibrateSelection()
+                        activeCategory = it
+                    },
+                    accentColor = effectiveAccent
+                )
+            }
+
+            // Stats Header
+            item {
+                MediaStatsHeader(
+                    stats = stats,
+                    category = activeCategory,
+                    accentColor = effectiveAccent
+                )
             }
 
             // Filter Tabs & Search Bar Row
@@ -188,16 +217,24 @@ fun AnimeTrackingHubView(
                     // Filter Chips
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        contentPadding = PaddingValues(vertical = 4.dp)
+                        contentPadding = PaddingValues(vertical = 2.dp)
                     ) {
                         items(AnimeFilter.entries) { filter ->
                             val isSelected = currentFilter == filter
                             val count = when (filter) {
-                                AnimeFilter.ALL -> animeList.size
-                                AnimeFilter.WATCHING -> stats.watchingCount
-                                AnimeFilter.PLAN_TO_WATCH -> stats.planToWatchCount
+                                AnimeFilter.ALL -> categoryList.size
+                                AnimeFilter.IN_PROGRESS -> stats.inProgressCount
+                                AnimeFilter.PLAN -> stats.planCount
                                 AnimeFilter.COMPLETED -> stats.completedCount
-                                AnimeFilter.OTHER -> animeList.count { it.status == AnimeWatchStatus.ON_HOLD || it.status == AnimeWatchStatus.DROPPED }
+                                AnimeFilter.OTHER -> categoryList.count { it.status == AnimeWatchStatus.ON_HOLD || it.status == AnimeWatchStatus.DROPPED }
+                            }
+
+                            val labelText = when (filter) {
+                                AnimeFilter.ALL -> "Tümü"
+                                AnimeFilter.IN_PROGRESS -> if (activeCategory == MediaTypeCategory.MANGA) "Okunuyor" else "İzleniyor"
+                                AnimeFilter.PLAN -> if (activeCategory == MediaTypeCategory.MANGA) "Okunacak" else "İzlenecek"
+                                AnimeFilter.COMPLETED -> "Tamamlandı"
+                                AnimeFilter.OTHER -> "Diğer"
                             }
 
                             FilterChip(
@@ -208,7 +245,7 @@ fun AnimeTrackingHubView(
                                 },
                                 label = {
                                     Text(
-                                        text = "${filter.label} ($count)",
+                                        text = "$labelText ($count)",
                                         fontSize = 12.sp,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                     )
@@ -232,26 +269,27 @@ fun AnimeTrackingHubView(
                 }
             }
 
-            // Anime Cards
+            // Media Cards List
             if (filteredList.isEmpty()) {
                 item {
-                    EmptyAnimeState(
+                    EmptyMediaState(
+                        category = activeCategory,
                         filter = currentFilter,
-                        onAddAnime = { showSearchDialog = true },
+                        onAdd = { showSearchDialog = true },
                         onSyncMal = { showMalSyncDialog = true },
                         accentColor = effectiveAccent
                     )
                 }
             } else {
                 items(filteredList, key = { it.id }) { anime ->
-                    AnimeListItemCard(
+                    MediaListItemCard(
                         anime = anime,
-                        onIncrementEpisode = {
-                            hapticEngine.triggerSuccessHaptic()
+                        onIncrementUnit = {
+                            hapticEngine.vibrateSkillCompleted()
                             AnimeRepository.incrementEpisode(context, anime.id)
                         },
-                        onDecrementEpisode = {
-                            hapticEngine.triggerVirtualTick()
+                        onDecrementUnit = {
+                            hapticEngine.vibrateSelection()
                             AnimeRepository.decrementEpisode(context, anime.id)
                         },
                         onClickEdit = {
@@ -268,31 +306,32 @@ fun AnimeTrackingHubView(
     if (showMalSyncDialog) {
         MalSyncDialog(
             onDismiss = { showMalSyncDialog = false },
-            onSyncSuccess = { count ->
+            onSyncSuccess = { animeCount, mangaCount ->
                 coroutineScope.launch {
                     showMalSyncDialog = false
-                    hapticEngine.triggerSuccessHaptic()
+                    hapticEngine.vibrateSkillCompleted()
                 }
             },
             accentColor = effectiveAccent
         )
     }
 
-    // Jikan Anime Search & Add Dialog
+    // Live Search & Add Dialog
     if (showSearchDialog) {
-        AnimeSearchDialog(
+        MediaSearchDialog(
+            initialCategory = activeCategory,
             onDismiss = { showSearchDialog = false },
-            onAnimeAdded = { item ->
-                hapticEngine.triggerSuccessHaptic()
+            onItemAdded = { item ->
+                hapticEngine.vibrateSkillCompleted()
                 AnimeRepository.addOrUpdateAnime(context, item)
             },
             accentColor = effectiveAccent
         )
     }
 
-    // Anime Detail / Edit Dialog
+    // Edit Dialog (Score editing removed; MAL sync info added)
     selectedAnimeForEdit?.let { anime ->
-        AnimeEditDialog(
+        MediaDetailDialog(
             anime = anime,
             onDismiss = { selectedAnimeForEdit = null },
             onSave = { updated ->
@@ -309,8 +348,9 @@ fun AnimeTrackingHubView(
 }
 
 @Composable
-private fun AnimeTopBar(
+private fun SleekTopBar(
     onBack: () -> Unit,
+    lastMalUsername: String?,
     onOpenMalSync: () -> Unit,
     onOpenSearch: () -> Unit,
     accentColor: Color
@@ -329,98 +369,193 @@ private fun AnimeTopBar(
                 .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onBack) {
+            IconButton(onClick = onBack, modifier = Modifier.size(38.dp)) {
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Geri",
-                    tint = palette.textPrimary
-                )
-            }
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Anime & Manhwa Hub",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = palette.textPrimary,
-                        fontSize = 17.sp
-                    )
-                )
-                Text(
-                    text = "MyAnimeList Entegrasyonu & Bölüm Takibi",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        color = palette.textSecondary,
-                        fontSize = 11.5.sp
-                    )
-                )
-            }
-
-            // MAL Sync Icon Button
-            IconButton(
-                onClick = onOpenMalSync,
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .background(palette.accentIndigo.copy(alpha = 0.15f))
-            ) {
-                Icon(
-                    Icons.Outlined.Sync,
-                    contentDescription = "MAL Eşitle",
-                    tint = palette.accentIndigo,
+                    tint = palette.textPrimary,
                     modifier = Modifier.size(20.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(4.dp))
 
-            // Add Anime Button
-            IconButton(
-                onClick = onOpenSearch,
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .background(accentColor.copy(alpha = 0.15f))
-            ) {
-                Icon(
-                    Icons.Filled.Add,
-                    contentDescription = "Anime Ekle",
-                    tint = accentColor,
-                    modifier = Modifier.size(22.dp)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Anime & Manga Hub",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = palette.textPrimary,
+                        fontSize = 16.sp
+                    )
                 )
+
+                // Sleek MAL Account Status Chip
+                Row(
+                    modifier = Modifier
+                        .padding(top = 2.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(palette.panelNavyElevated)
+                        .clickable { onOpenMalSync() }
+                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Outlined.Sync,
+                        contentDescription = null,
+                        tint = palette.accentIndigo,
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = if (!lastMalUsername.isNullOrBlank()) "@$lastMalUsername • Eşitle" else "MAL Hesabı Bağla",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            color = palette.accentIndigo,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 11.sp
+                        )
+                    )
+                }
+            }
+
+            // Compact, Sleek Search / Add Action Button
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = accentColor.copy(alpha = 0.15f),
+                border = BorderStroke(1.dp, accentColor.copy(alpha = 0.4f)),
+                modifier = Modifier.clickable { onOpenSearch() }
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Filled.Add,
+                        contentDescription = "Ekle",
+                        tint = accentColor,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Ara / Ekle",
+                        color = accentColor,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun AnimeStatsHeader(
-    stats: com.example.data.model.anime.AnimeUserStats,
+private fun CategorySegmentedControl(
+    activeCategory: MediaTypeCategory,
+    animeCount: Int,
+    mangaCount: Int,
+    onSelect: (MediaTypeCategory) -> Unit,
     accentColor: Color
 ) {
     val palette = LocalAppPalette.current
+
+    Surface(
+        color = palette.panelNavy,
+        shape = RoundedCornerShape(14.dp),
+        border = BorderStroke(1.dp, palette.borderSubtle),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(4.dp)
+        ) {
+            // Anime Tab
+            val isAnime = activeCategory == MediaTypeCategory.ANIME
+            Surface(
+                color = if (isAnime) accentColor.copy(alpha = 0.2f) else Color.Transparent,
+                shape = RoundedCornerShape(10.dp),
+                border = if (isAnime) BorderStroke(1.dp, accentColor.copy(alpha = 0.6f)) else null,
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { onSelect(MediaTypeCategory.ANIME) }
+            ) {
+                Row(
+                    modifier = Modifier.padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "🎬 Animeler ($animeCount)",
+                        fontSize = 13.sp,
+                        fontWeight = if (isAnime) FontWeight.Bold else FontWeight.Medium,
+                        color = if (isAnime) accentColor else palette.textSecondary
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(4.dp))
+
+            // Manga & Manhwa Tab
+            val isManga = activeCategory == MediaTypeCategory.MANGA
+            Surface(
+                color = if (isManga) palette.accentPurple.copy(alpha = 0.2f) else Color.Transparent,
+                shape = RoundedCornerShape(10.dp),
+                border = if (isManga) BorderStroke(1.dp, palette.accentPurple.copy(alpha = 0.6f)) else null,
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { onSelect(MediaTypeCategory.MANGA) }
+            ) {
+                Row(
+                    modifier = Modifier.padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "📖 Manga & Manhwa ($mangaCount)",
+                        fontSize = 13.sp,
+                        fontWeight = if (isManga) FontWeight.Bold else FontWeight.Medium,
+                        color = if (isManga) palette.accentPurple else palette.textSecondary
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MediaStatsHeader(
+    stats: AnimeUserStats,
+    category: MediaTypeCategory,
+    accentColor: Color
+) {
+    val palette = LocalAppPalette.current
+    val unitName = if (category == MediaTypeCategory.MANGA) "Bölüm" else "Bölüm"
+    val inProgressLabel = if (category == MediaTypeCategory.MANGA) "Okunuyor" else "İzleniyor"
 
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        // Total Anime
-        AnimeStatCard(
+        // Total
+        MediaStatCard(
             title = "Toplam Seri",
-            value = "${stats.totalAnime}",
-            subLabel = "${stats.watchingCount} İzleniyor",
+            value = "${stats.totalCount}",
+            subLabel = "${stats.inProgressCount} $inProgressLabel",
             accentColor = accentColor,
             modifier = Modifier.weight(1f)
         )
 
-        // Watched Episodes
-        AnimeStatCard(
-            title = "İzlenen Bölüm",
-            value = "${stats.totalWatchedEpisodes}",
-            subLabel = "Kayıtlı Bölüm",
+        // Watched / Read Units
+        MediaStatCard(
+            title = if (category == MediaTypeCategory.MANGA) "Okunan" else "İzlenen",
+            value = "${stats.totalWatchedUnits}",
+            subLabel = "Kayıtlı $unitName",
             accentColor = palette.accentEmerald,
             modifier = Modifier.weight(1f)
         )
 
         // Completed
-        AnimeStatCard(
+        MediaStatCard(
             title = "Tamamlanan",
             value = "${stats.completedCount}",
             subLabel = "Bitirilen Seri",
@@ -431,7 +566,7 @@ private fun AnimeStatsHeader(
 }
 
 @Composable
-private fun AnimeStatCard(
+private fun MediaStatCard(
     title: String,
     value: String,
     subLabel: String,
@@ -449,7 +584,7 @@ private fun AnimeStatCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 10.dp),
+                .padding(horizontal = 8.dp, vertical = 10.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
@@ -485,10 +620,10 @@ private fun AnimeStatCard(
 }
 
 @Composable
-private fun AnimeListItemCard(
+private fun MediaListItemCard(
     anime: AnimeItem,
-    onIncrementEpisode: () -> Unit,
-    onDecrementEpisode: () -> Unit,
+    onIncrementUnit: () -> Unit,
+    onDecrementUnit: () -> Unit,
     onClickEdit: () -> Unit,
     accentColor: Color
 ) {
@@ -497,7 +632,7 @@ private fun AnimeListItemCard(
 
     val animatedProgress by animateFloatAsState(
         targetValue = anime.progressFraction,
-        label = "anime_progress"
+        label = "media_progress"
     )
 
     Card(
@@ -506,274 +641,311 @@ private fun AnimeListItemCard(
             .clickable { onClickEdit() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = palette.panelNavy),
-        border = BorderStroke(1.dp, if (anime.isCompleted) palette.accentGold.copy(alpha = 0.4f) else palette.borderSubtle)
+        border = BorderStroke(
+            1.dp,
+            if (anime.isOutOfSync) palette.accentAmber.copy(alpha = 0.5f)
+            else if (anime.isCompleted) palette.accentGold.copy(alpha = 0.35f)
+            else palette.borderSubtle
+        )
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.Top
-        ) {
-            // Anime Poster Image
-            Box(
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
                 modifier = Modifier
-                    .width(84.dp)
-                    .height(118.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(palette.panelNavyElevated)
-                    .border(1.dp, palette.borderSubtle, RoundedCornerShape(12.dp))
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                verticalAlignment = Alignment.Top
             ) {
-                if (anime.imageUrl.isNotBlank()) {
-                    AsyncImage(
-                        model = ImageRequest.Builder(context)
-                            .data(anime.imageUrl)
-                            .crossfade(true)
-                            .build(),
-                        contentDescription = anime.displayTitle,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            Icons.Filled.PlayArrow,
-                            contentDescription = null,
-                            tint = palette.textDarkMuted,
-                            modifier = Modifier.size(32.dp)
+                // Poster Image
+                Box(
+                    modifier = Modifier
+                        .width(84.dp)
+                        .height(118.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(palette.panelNavyElevated)
+                        .border(1.dp, palette.borderSubtle, RoundedCornerShape(12.dp))
+                ) {
+                    if (anime.imageUrl.isNotBlank()) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(context)
+                                .data(anime.imageUrl)
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = anime.displayTitle,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
                         )
+                    } else {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Filled.PlayArrow,
+                                contentDescription = null,
+                                tint = palette.textDarkMuted,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                    }
+
+                    // Score Badge (Directly from MAL)
+                    if (anime.score > 0) {
+                        Surface(
+                            color = Color.Black.copy(alpha = 0.8f),
+                            shape = RoundedCornerShape(bottomEnd = 8.dp),
+                            modifier = Modifier.align(Alignment.TopStart)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Filled.Star,
+                                    contentDescription = null,
+                                    tint = palette.accentGold,
+                                    modifier = Modifier.size(11.dp)
+                                )
+                                Spacer(modifier = Modifier.width(2.dp))
+                                Text(
+                                    text = String.format("%.1f", anime.score),
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        color = Color.White,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                )
+                            }
+                        }
                     }
                 }
 
-                // Score Badge
-                if (anime.score > 0) {
-                    Surface(
-                        color = Color.Black.copy(alpha = 0.75f),
-                        shape = RoundedCornerShape(bottomEnd = 8.dp),
-                        modifier = Modifier.align(Alignment.TopStart)
-                    ) {
+                Spacer(modifier = Modifier.width(12.dp))
+
+                // Details Column
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                    verticalArrangement = Arrangement.SpaceBetween
+                ) {
+                    // Title and Status
+                    Column {
                         Row(
-                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            Text(
+                                text = anime.displayTitle,
+                                style = MaterialTheme.typography.titleSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = palette.textPrimary,
+                                    fontSize = 14.5.sp
+                                ),
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            // Status Badge
+                            val statusBg = when (anime.status) {
+                                AnimeWatchStatus.WATCHING -> palette.accentEmerald.copy(alpha = 0.15f)
+                                AnimeWatchStatus.COMPLETED -> palette.accentGold.copy(alpha = 0.15f)
+                                AnimeWatchStatus.PLAN_TO_WATCH -> palette.accentIndigo.copy(alpha = 0.15f)
+                                else -> palette.panelNavyElevated
+                            }
+                            val statusColor = when (anime.status) {
+                                AnimeWatchStatus.WATCHING -> palette.accentEmerald
+                                AnimeWatchStatus.COMPLETED -> palette.accentGold
+                                AnimeWatchStatus.PLAN_TO_WATCH -> palette.accentIndigo
+                                else -> palette.textSecondary
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = statusBg,
+                                border = BorderStroke(0.5.dp, statusColor.copy(alpha = 0.4f)),
+                                modifier = Modifier.padding(start = 6.dp)
+                            ) {
+                                Text(
+                                    text = anime.status.getLabel(anime.category),
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        color = statusColor,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    ),
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+
+                        if (anime.titleEnglish != null && anime.title != anime.titleEnglish) {
+                            Text(
+                                text = anime.title,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    color = palette.textDarkMuted,
+                                    fontSize = 11.sp
+                                ),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+
+                        // Genres or Type
+                        if (anime.genres.isNotEmpty()) {
+                            Text(
+                                text = (listOf(anime.mediaType) + anime.genres.take(2)).joinToString(" • "),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    color = palette.textSecondary,
+                                    fontSize = 10.5.sp
+                                ),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(top = 2.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Progress Info & Bar
+                    Column {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(
-                                Icons.Filled.Star,
-                                contentDescription = null,
-                                tint = palette.accentGold,
-                                modifier = Modifier.size(11.dp)
-                            )
-                            Spacer(modifier = Modifier.width(2.dp))
+                            val totalStr = if (anime.totalEpisodes > 0) "${anime.totalEpisodes}" else "?"
+                            val unitWord = if (anime.category == MediaTypeCategory.MANGA) "Bölüm" else "Bölüm"
                             Text(
-                                text = String.format("%.1f", anime.score),
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    color = Color.White,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold
+                                text = "${anime.watchedEpisodes} / $totalStr $unitWord",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    color = palette.textPrimary,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 12.sp
                                 )
+                            )
+
+                            Text(
+                                text = "${(anime.progressFraction * 100).toInt()}%",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    color = if (anime.isCompleted) palette.accentGold else accentColor,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.5.sp
+                                )
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        LinearProgressIndicator(
+                            progress = { animatedProgress },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(6.dp)
+                                .clip(RoundedCornerShape(3.dp)),
+                            color = if (anime.isCompleted) palette.accentGold else accentColor,
+                            trackColor = palette.panelNavyElevated
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Action Buttons Row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        IconButton(
+                            onClick = onDecrementUnit,
+                            enabled = anime.watchedEpisodes > 0,
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(palette.panelNavyElevated)
+                        ) {
+                            Text(
+                                text = "-1",
+                                color = if (anime.watchedEpisodes > 0) palette.textSecondary else palette.textDarkMuted,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Button(
+                            onClick = onIncrementUnit,
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (anime.isCompleted) palette.accentGold.copy(alpha = 0.2f) else accentColor.copy(alpha = 0.2f),
+                                contentColor = if (anime.isCompleted) palette.accentGold else accentColor
+                            ),
+                            border = BorderStroke(1.dp, if (anime.isCompleted) palette.accentGold.copy(alpha = 0.5f) else accentColor.copy(alpha = 0.5f)),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                            modifier = Modifier.height(32.dp)
+                        ) {
+                            Icon(
+                                Icons.Filled.Add,
+                                contentDescription = null,
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = if (anime.isCompleted) "Tekrar" else "+1 Bölüm",
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        IconButton(
+                            onClick = onClickEdit,
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(palette.panelNavyElevated)
+                        ) {
+                            Icon(
+                                Icons.Filled.Edit,
+                                contentDescription = "Detay & Düzenle",
+                                tint = palette.textSecondary,
+                                modifier = Modifier.size(15.dp)
                             )
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
-
-            // Details Column
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight(),
-                verticalArrangement = Arrangement.SpaceBetween
-            ) {
-                // Title and Status
-                Column {
+            // OUT OF SYNC INDICATOR BANNER
+            if (anime.isOutOfSync) {
+                Surface(
+                    color = palette.accentAmber.copy(alpha = 0.12f),
+                    border = BorderStroke(0.5.dp, palette.accentAmber.copy(alpha = 0.4f)),
+                    shape = RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        Text(
-                            text = anime.displayTitle,
-                            style = MaterialTheme.typography.titleSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = palette.textPrimary,
-                                fontSize = 14.5.sp
-                            ),
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f)
-                        )
-
-                        // Status Badge
-                        val statusBg = when (anime.status) {
-                            AnimeWatchStatus.WATCHING -> palette.accentEmerald.copy(alpha = 0.15f)
-                            AnimeWatchStatus.COMPLETED -> palette.accentGold.copy(alpha = 0.15f)
-                            AnimeWatchStatus.PLAN_TO_WATCH -> palette.accentIndigo.copy(alpha = 0.15f)
-                            else -> palette.panelNavyElevated
-                        }
-                        val statusColor = when (anime.status) {
-                            AnimeWatchStatus.WATCHING -> palette.accentEmerald
-                            AnimeWatchStatus.COMPLETED -> palette.accentGold
-                            AnimeWatchStatus.PLAN_TO_WATCH -> palette.accentIndigo
-                            else -> palette.textSecondary
-                        }
-
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = statusBg,
-                            border = BorderStroke(0.5.dp, statusColor.copy(alpha = 0.4f)),
-                            modifier = Modifier.padding(start = 6.dp)
-                        ) {
-                            Text(
-                                text = anime.status.label,
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    color = statusColor,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                ),
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
-                        }
-                    }
-
-                    if (anime.titleEnglish != null && anime.title != anime.titleEnglish) {
-                        Text(
-                            text = anime.title,
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                color = palette.textDarkMuted,
-                                fontSize = 11.sp
-                            ),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-
-                    // Genres or Type
-                    if (anime.genres.isNotEmpty()) {
-                        Text(
-                            text = anime.genres.take(3).joinToString(" • "),
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                color = palette.textSecondary,
-                                fontSize = 10.5.sp
-                            ),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.padding(top = 2.dp)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Progress Info & Bar
-                Column {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        val totalStr = if (anime.totalEpisodes > 0) "${anime.totalEpisodes}" else "?"
-                        Text(
-                            text = "${anime.watchedEpisodes} / $totalStr Bölüm",
-                            style = MaterialTheme.typography.labelMedium.copy(
-                                color = palette.textPrimary,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 12.sp
-                            )
-                        )
-
-                        Text(
-                            text = "${(anime.progressFraction * 100).toInt()}%",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                color = if (anime.isCompleted) palette.accentGold else accentColor,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.5.sp
-                            )
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    LinearProgressIndicator(
-                        progress = { animatedProgress },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(6.dp)
-                            .clip(RoundedCornerShape(3.dp)),
-                        color = if (anime.isCompleted) palette.accentGold else accentColor,
-                        trackColor = palette.panelNavyElevated
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Quick Episode Increment / Decrement & Edit Controls
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    // Quick Decrement
-                    IconButton(
-                        onClick = onDecrementEpisode,
-                        enabled = anime.watchedEpisodes > 0,
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .background(palette.panelNavyElevated)
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "-1",
-                            color = if (anime.watchedEpisodes > 0) palette.textSecondary else palette.textDarkMuted,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
+                            text = "⚡",
+                            fontSize = 12.sp
                         )
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    // +1 Bölüm Button
-                    Button(
-                        onClick = onIncrementEpisode,
-                        shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (anime.isCompleted) palette.accentGold.copy(alpha = 0.2f) else accentColor.copy(alpha = 0.2f),
-                            contentColor = if (anime.isCompleted) palette.accentGold else accentColor
-                        ),
-                        border = BorderStroke(1.dp, if (anime.isCompleted) palette.accentGold.copy(alpha = 0.5f) else accentColor.copy(alpha = 0.5f)),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                        modifier = Modifier.height(32.dp)
-                    ) {
-                        Icon(
-                            Icons.Filled.Add,
-                            contentDescription = null,
-                            modifier = Modifier.size(15.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = if (anime.isCompleted) "Tekrar İzle" else "+1 Bölüm",
-                            fontSize = 11.5.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    // Edit Options Button
-                    IconButton(
-                        onClick = onClickEdit,
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .background(palette.panelNavyElevated)
-                    ) {
-                        Icon(
-                            Icons.Filled.Edit,
-                            contentDescription = "Düzenle",
-                            tint = palette.textSecondary,
-                            modifier = Modifier.size(15.dp)
+                            text = "MAL: ${anime.malWatchedEpisodes}. Bölüm • Yerel: ${anime.watchedEpisodes} (${if (anime.syncDiff > 0) "+${anime.syncDiff}" else "${anime.syncDiff}"} Güncellenecek)",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                color = palette.accentAmber,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 11.sp
+                            ),
+                            modifier = Modifier.weight(1f)
                         )
                     }
                 }
@@ -783,13 +955,15 @@ private fun AnimeListItemCard(
 }
 
 @Composable
-private fun EmptyAnimeState(
+private fun EmptyMediaState(
+    category: MediaTypeCategory,
     filter: AnimeFilter,
-    onAddAnime: () -> Unit,
+    onAdd: () -> Unit,
     onSyncMal: () -> Unit,
     accentColor: Color
 ) {
     val palette = LocalAppPalette.current
+    val typeTitle = if (category == MediaTypeCategory.MANGA) "Manga & Manhwa" else "Anime"
 
     Column(
         modifier = Modifier
@@ -799,19 +973,19 @@ private fun EmptyAnimeState(
         verticalArrangement = Arrangement.Center
     ) {
         Icon(
-            Icons.Filled.PlayArrow,
+            if (category == MediaTypeCategory.MANGA) Icons.Filled.Bookmark else Icons.Filled.PlayArrow,
             contentDescription = null,
             tint = palette.textDarkMuted,
-            modifier = Modifier.size(56.dp)
+            modifier = Modifier.size(52.dp)
         )
         Spacer(modifier = Modifier.height(14.dp))
         Text(
             text = when (filter) {
-                AnimeFilter.ALL -> "Henüz anime listeniz boş"
-                AnimeFilter.WATCHING -> "Şu anda izlenen anime bulunamadı"
-                AnimeFilter.PLAN_TO_WATCH -> "İzlenecekler listeniz boş"
-                AnimeFilter.COMPLETED -> "Tamamlanan anime bulunamadı"
-                AnimeFilter.OTHER -> "Bu filtrede anime bulunamadı"
+                AnimeFilter.ALL -> "Listenizde henüz $typeTitle bulunmuyor"
+                AnimeFilter.IN_PROGRESS -> "Şu anda devam eden $typeTitle yok"
+                AnimeFilter.PLAN -> "Planlanan $typeTitle listeniz boş"
+                AnimeFilter.COMPLETED -> "Tamamlanan $typeTitle bulunamadı"
+                AnimeFilter.OTHER -> "Bu filtrede içerik bulunamadı"
             },
             style = MaterialTheme.typography.titleSmall.copy(
                 fontWeight = FontWeight.Bold,
@@ -822,7 +996,7 @@ private fun EmptyAnimeState(
         )
         Spacer(modifier = Modifier.height(6.dp))
         Text(
-            text = "MyAnimeList profilinizi senkronize edebilir veya yeni anime arayıp ekleyebilirsiniz.",
+            text = "MyAnimeList profilinizdeki $typeTitle listesini eşitleyebilir veya canlı arama yapıp ekleyebilirsiniz.",
             style = MaterialTheme.typography.bodySmall.copy(
                 color = palette.textSecondary,
                 fontSize = 12.sp
@@ -847,14 +1021,14 @@ private fun EmptyAnimeState(
             }
 
             OutlinedButton(
-                onClick = onAddAnime,
+                onClick = onAdd,
                 shape = RoundedCornerShape(10.dp),
                 border = BorderStroke(1.dp, accentColor),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = accentColor)
             ) {
                 Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(6.dp))
-                Text("Anime Ara & Ekle", fontSize = 12.5.sp)
+                Text("Canlı Ara & Ekle", fontSize = 12.5.sp)
             }
         }
     }
@@ -863,7 +1037,7 @@ private fun EmptyAnimeState(
 @Composable
 private fun MalSyncDialog(
     onDismiss: () -> Unit,
-    onSyncSuccess: (Int) -> Unit,
+    onSyncSuccess: (Int, Int) -> Unit,
     accentColor: Color
 ) {
     val context = LocalContext.current
@@ -919,7 +1093,7 @@ private fun MalSyncDialog(
                                 fontSize = 15.sp
                             )
                             Text(
-                                "Tek tıkla tüm listenizi aktarın",
+                                "Anime ve Manga listenizi eşitleyin",
                                 color = palette.textSecondary,
                                 fontSize = 11.5.sp
                             )
@@ -938,7 +1112,7 @@ private fun MalSyncDialog(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = "MyAnimeList kullanıcı adınızı girin. Şifre veya yetkilendirme gerekmez; herkese açık anime listeniz bölümleri ve afişleriyle birlikte aktarılır.",
+                    text = "MyAnimeList kullanıcı adınızı girin. Açık olan hem Anime hem de Manga & Manhwa listeleriniz kaydedilmiş bölümleri ve orijinal puanlarıyla birlikte cihazınıza aktarılır.",
                     color = palette.textSecondary,
                     fontSize = 12.sp,
                     lineHeight = 16.sp
@@ -953,7 +1127,7 @@ private fun MalSyncDialog(
                         errorMessage = null
                     },
                     label = { Text("MAL Kullanıcı Adı", fontSize = 12.sp) },
-                    placeholder = { Text("Örn: Xinil, inancozdil", fontSize = 12.sp) },
+                    placeholder = { Text("Örn: ozdilinanc13", fontSize = 12.sp) },
                     singleLine = true,
                     enabled = !isLoading,
                     modifier = Modifier.fillMaxWidth(),
@@ -1005,9 +1179,9 @@ private fun MalSyncDialog(
                             val result = AnimeRepository.syncWithMyAnimeList(context, username)
                             isLoading = false
                             if (result.isSuccess) {
-                                val count = result.getOrDefault(0)
-                                successMessage = "$count anime başarıyla eşitlendi!"
-                                onSyncSuccess(count)
+                                val (animeCount, mangaCount) = result.getOrDefault(Pair(0, 0))
+                                successMessage = "$animeCount Anime ve $mangaCount Manga başarıyla eşitlendi!"
+                                onSyncSuccess(animeCount, mangaCount)
                             } else {
                                 errorMessage = result.exceptionOrNull()?.message ?: "Bağlantı hatası oluştu"
                             }
@@ -1030,7 +1204,7 @@ private fun MalSyncDialog(
                             strokeWidth = 2.dp
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Listeler İndiriliyor...", fontSize = 13.sp)
+                        Text("Listeler Eşitleniyor...", fontSize = 13.sp)
                     } else {
                         Icon(Icons.Outlined.Sync, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
@@ -1043,9 +1217,10 @@ private fun MalSyncDialog(
 }
 
 @Composable
-private fun AnimeSearchDialog(
+private fun MediaSearchDialog(
+    initialCategory: MediaTypeCategory,
     onDismiss: () -> Unit,
-    onAnimeAdded: (AnimeItem) -> Unit,
+    onItemAdded: (AnimeItem) -> Unit,
     accentColor: Color
 ) {
     val context = LocalContext.current
@@ -1053,6 +1228,7 @@ private fun AnimeSearchDialog(
     val coroutineScope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
 
+    var selectedSearchType by remember { mutableStateOf(initialCategory) }
     var query by remember { mutableStateOf("") }
     var searchResults by remember { mutableStateOf<List<AnimeSearchItem>>(emptyList()) }
     var isSearching by remember { mutableStateOf(false) }
@@ -1066,12 +1242,16 @@ private fun AnimeSearchDialog(
         searchError = null
 
         coroutineScope.launch {
-            val result = AnimeApiService.searchAnime(query)
+            val result = if (selectedSearchType == MediaTypeCategory.MANGA) {
+                AnimeApiService.searchManga(query)
+            } else {
+                AnimeApiService.searchAnime(query)
+            }
             isSearching = false
             if (result.isSuccess) {
                 searchResults = result.getOrDefault(emptyList())
                 if (searchResults.isEmpty()) {
-                    searchError = "Aramanızla eşleşen anime bulunamadı."
+                    searchError = "Aramanızla eşleşen içerik bulunamadı."
                 }
             } else {
                 searchError = result.exceptionOrNull()?.message ?: "Arama sırasında bir hata oluştu"
@@ -1116,7 +1296,7 @@ private fun AnimeSearchDialog(
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = "Anime / Manhwa Ara & Ekle",
+                            text = "Canlı Ara & Ekle",
                             fontWeight = FontWeight.Bold,
                             color = palette.textPrimary,
                             fontSize = 15.sp
@@ -1132,13 +1312,58 @@ private fun AnimeSearchDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Toggle: Anime vs Manga search
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val isAnime = selectedSearchType == MediaTypeCategory.ANIME
+                    FilterChip(
+                        selected = isAnime,
+                        onClick = {
+                            selectedSearchType = MediaTypeCategory.ANIME
+                            if (query.isNotBlank()) executeSearch()
+                        },
+                        label = { Text("🎬 Anime Ara", fontSize = 11.5.sp) },
+                        modifier = Modifier.weight(1f),
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = accentColor.copy(alpha = 0.2f),
+                            selectedLabelColor = accentColor,
+                            containerColor = palette.panelNavyElevated,
+                            labelColor = palette.textSecondary
+                        )
+                    )
+
+                    val isManga = selectedSearchType == MediaTypeCategory.MANGA
+                    FilterChip(
+                        selected = isManga,
+                        onClick = {
+                            selectedSearchType = MediaTypeCategory.MANGA
+                            if (query.isNotBlank()) executeSearch()
+                        },
+                        label = { Text("📖 Manga Ara", fontSize = 11.5.sp) },
+                        modifier = Modifier.weight(1f),
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = palette.accentPurple.copy(alpha = 0.2f),
+                            selectedLabelColor = palette.accentPurple,
+                            containerColor = palette.panelNavyElevated,
+                            labelColor = palette.textSecondary
+                        )
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // Search Input Field
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
-                    placeholder = { Text("Örn: Solo Leveling, Death Note, Naruto...", fontSize = 12.sp, color = palette.textDarkMuted) },
+                    placeholder = {
+                        Text(
+                            if (selectedSearchType == MediaTypeCategory.MANGA) "Örn: Berserk, Haikyuu, Solo Leveling..." else "Örn: Death Note, Attack on Titan...",
+                            fontSize = 12.sp,
+                            color = palette.textDarkMuted
+                        )
+                    },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
@@ -1192,7 +1417,7 @@ private fun AnimeSearchDialog(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "Jikan API üzerinden binlerce anime arasında arama yapın ve listenize ekleyin.",
+                            text = "Binlerce anime ve manga/manhwa serisini arayıp tek tıkla listenize ekleyebilirsiniz.",
                             color = palette.textDarkMuted,
                             fontSize = 12.5.sp,
                             textAlign = TextAlign.Center,
@@ -1206,7 +1431,7 @@ private fun AnimeSearchDialog(
                             .weight(1f),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        items(searchResults, key = { it.malId }) { item ->
+                        items(searchResults, key = { "${it.category.name}_${it.malId}" }) { item ->
                             val isAdded = addedIds.contains(item.malId)
 
                             Card(
@@ -1268,22 +1493,25 @@ private fun AnimeSearchDialog(
                                     Button(
                                         onClick = {
                                             if (!isAdded) {
+                                                val idPrefix = if (item.category == MediaTypeCategory.MANGA) "mal_manga" else "mal"
                                                 val animeItem = AnimeItem(
-                                                    id = "mal_${item.malId}",
+                                                    id = "${idPrefix}_${item.malId}",
                                                     malId = item.malId,
                                                     title = item.title,
                                                     titleEnglish = item.titleEnglish,
                                                     imageUrl = item.imageUrl,
                                                     watchedEpisodes = 0,
                                                     totalEpisodes = item.totalEpisodes,
+                                                    malWatchedEpisodes = 0,
                                                     score = item.score,
                                                     status = AnimeWatchStatus.PLAN_TO_WATCH,
                                                     mediaType = item.mediaType,
+                                                    category = item.category,
                                                     genres = item.genres,
                                                     notes = "",
                                                     updatedAt = System.currentTimeMillis()
                                                 )
-                                                onAnimeAdded(animeItem)
+                                                onItemAdded(animeItem)
                                                 addedIds = addedIds + item.malId
                                             }
                                         },
@@ -1317,7 +1545,7 @@ private fun AnimeSearchDialog(
 }
 
 @Composable
-private fun AnimeEditDialog(
+private fun MediaDetailDialog(
     anime: AnimeItem,
     onDismiss: () -> Unit,
     onSave: (AnimeItem) -> Unit,
@@ -1328,9 +1556,11 @@ private fun AnimeEditDialog(
 
     var watchedText by remember { mutableStateOf("${anime.watchedEpisodes}") }
     var totalText by remember { mutableStateOf(if (anime.totalEpisodes > 0) "${anime.totalEpisodes}" else "") }
-    var scoreText by remember { mutableStateOf(if (anime.score > 0) "${anime.score}" else "") }
     var selectedStatus by remember { mutableStateOf(anime.status) }
     var notesText by remember { mutableStateOf(anime.notes) }
+
+    val currentWatchedInt = watchedText.toIntOrNull() ?: anime.watchedEpisodes
+    val isLocallyOutOfSync = anime.malId != null && currentWatchedInt != anime.malWatchedEpisodes
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -1361,11 +1591,21 @@ private fun AnimeEditDialog(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
-                        Text(
-                            text = "Anime Durumunu Düzenle",
-                            color = palette.textSecondary,
-                            fontSize = 11.5.sp
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "${anime.category.emoji} ${anime.category.label}",
+                                color = palette.textSecondary,
+                                fontSize = 11.5.sp
+                            )
+                            if (anime.score > 0) {
+                                Text(
+                                    text = " • ⭐ ${anime.score} (MAL Puanı)",
+                                    color = palette.accentGold,
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
                     }
 
                     IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
@@ -1383,9 +1623,53 @@ private fun AnimeEditDialog(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
+                    // MAL Sync Status Banner
+                    item {
+                        Surface(
+                            color = if (isLocallyOutOfSync) palette.accentAmber.copy(alpha = 0.15f) else palette.panelNavyElevated,
+                            border = BorderStroke(1.dp, if (isLocallyOutOfSync) palette.accentAmber.copy(alpha = 0.5f) else palette.borderSubtle),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = "MAL'deki Son Bölüm: ${anime.malWatchedEpisodes}",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = palette.textSecondary
+                                    )
+                                    Text(
+                                        text = "Uygulama İlerlemesi: $currentWatchedInt",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isLocallyOutOfSync) palette.accentAmber else palette.accentEmerald
+                                    )
+                                }
+                                if (isLocallyOutOfSync) {
+                                    val diff = currentWatchedInt - anime.malWatchedEpisodes
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "⚡ MyAnimeList'te henüz güncellenmedi (${if (diff > 0) "+$diff" else "$diff"} bölüm). MAL profilinize gidip güncelleyebilirsiniz.",
+                                        fontSize = 11.sp,
+                                        color = palette.accentAmber
+                                    )
+                                }
+                            }
+                        }
+                    }
+
                     // Status Chips
                     item {
-                        Text("İzleme Durumu", fontSize = 12.sp, color = palette.textSecondary, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            if (anime.category == MediaTypeCategory.MANGA) "Okuma Durumu" else "İzleme Durumu",
+                            fontSize = 12.sp,
+                            color = palette.textSecondary,
+                            fontWeight = FontWeight.SemiBold
+                        )
                         Spacer(modifier = Modifier.height(6.dp))
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             items(AnimeWatchStatus.entries) { st ->
@@ -1393,7 +1677,7 @@ private fun AnimeEditDialog(
                                 FilterChip(
                                     selected = isSelected,
                                     onClick = { selectedStatus = st },
-                                    label = { Text("${st.emoji} ${st.label}", fontSize = 11.sp) },
+                                    label = { Text("${st.emoji} ${st.getLabel(anime.category)}", fontSize = 11.sp) },
                                     colors = FilterChipDefaults.filterChipColors(
                                         selectedContainerColor = accentColor.copy(alpha = 0.25f),
                                         selectedLabelColor = accentColor,
@@ -1411,13 +1695,13 @@ private fun AnimeEditDialog(
                         }
                     }
 
-                    // Episodes Row
+                    // Episodes / Chapters Row
                     item {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             OutlinedTextField(
                                 value = watchedText,
                                 onValueChange = { watchedText = it.filter { ch -> ch.isDigit() } },
-                                label = { Text("İzlenen Bölüm", fontSize = 11.sp) },
+                                label = { Text(if (anime.category == MediaTypeCategory.MANGA) "Okunan Bölüm" else "İzlenen Bölüm", fontSize = 11.sp) },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 singleLine = true,
                                 modifier = Modifier.weight(1f),
@@ -1436,7 +1720,7 @@ private fun AnimeEditDialog(
                                 value = totalText,
                                 onValueChange = { totalText = it.filter { ch -> ch.isDigit() } },
                                 label = { Text("Toplam Bölüm", fontSize = 11.sp) },
-                                placeholder = { Text("0 = Bilinmiyor", fontSize = 11.sp) },
+                                placeholder = { Text("0 = Devam Ediyor", fontSize = 11.sp) },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 singleLine = true,
                                 modifier = Modifier.weight(1f),
@@ -1453,29 +1737,7 @@ private fun AnimeEditDialog(
                         }
                     }
 
-                    // Score
-                    item {
-                        OutlinedTextField(
-                            value = scoreText,
-                            onValueChange = { scoreText = it },
-                            label = { Text("Puan (0.0 - 10.0)", fontSize = 11.sp) },
-                            placeholder = { Text("Örn: 9.0", fontSize = 11.sp) },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(10.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = palette.panelNavyElevated,
-                                unfocusedContainerColor = palette.panelNavyElevated,
-                                focusedBorderColor = accentColor,
-                                unfocusedBorderColor = palette.borderSubtle,
-                                focusedTextColor = palette.textPrimary,
-                                unfocusedTextColor = palette.textPrimary
-                            )
-                        )
-                    }
-
-                    // Notes
+                    // Personal Notes
                     item {
                         OutlinedTextField(
                             value = notesText,
@@ -1519,11 +1781,9 @@ private fun AnimeEditDialog(
                         onClick = {
                             val watched = watchedText.toIntOrNull() ?: anime.watchedEpisodes
                             val total = totalText.toIntOrNull() ?: anime.totalEpisodes
-                            val score = scoreText.toFloatOrNull() ?: anime.score
                             val updated = anime.copy(
                                 watchedEpisodes = watched,
                                 totalEpisodes = total,
-                                score = score.coerceIn(0f, 10f),
                                 status = selectedStatus,
                                 notes = notesText,
                                 updatedAt = System.currentTimeMillis()

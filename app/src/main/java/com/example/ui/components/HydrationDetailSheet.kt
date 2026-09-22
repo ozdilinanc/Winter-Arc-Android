@@ -78,6 +78,7 @@ data class DayHydrationStat(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HydrationDetailSheet(
+    selectedDateKey: String = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()),
     currentWaterMl: Int,
     targetWaterMl: Int,
     onUpdateWater: (Int) -> Unit,
@@ -90,7 +91,6 @@ fun HydrationDetailSheet(
     val context = LocalContext.current
     val hapticEngine = rememberHapticEngine()
     val prefs = remember { context.getSharedPreferences("winter_arc_daily_tracker", Context.MODE_PRIVATE) }
-    val todayKey = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()) }
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -107,9 +107,9 @@ fun HydrationDetailSheet(
     }
 
     // İçecek miktarları state (SharedPreferences tabanlı)
-    var beverageAmounts by remember(todayKey) {
+    var beverageAmounts by remember(selectedDateKey) {
         mutableStateOf(
-            beverageDefinitions.associate { it.id to prefs.getInt("drink_${it.id}_$todayKey", 0) }
+            beverageDefinitions.associate { it.id to prefs.getInt("drink_${it.id}_$selectedDateKey", 0) }
         )
     }
 
@@ -118,11 +118,11 @@ fun HydrationDetailSheet(
         val current = beverageAmounts[drinkId] ?: 0
         val updated = (current + deltaMl).coerceAtLeast(0)
         beverageAmounts = beverageAmounts.toMutableMap().also { it[drinkId] = updated }
-        prefs.edit().putInt("drink_${drinkId}_$todayKey", updated).apply()
+        prefs.edit().putInt("drink_${drinkId}_$selectedDateKey", updated).apply()
     }
 
     // Haftalık Hidrasyon Verileri (1. Görseldeki 7 gün: Mon - Sun)
-    val weeklyStats = remember(currentWaterMl, targetWaterMl) {
+    val weeklyStats = remember(currentWaterMl, targetWaterMl, selectedDateKey) {
         val cal = Calendar.getInstance()
         cal.firstDayOfWeek = Calendar.MONDAY
         cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
@@ -144,7 +144,7 @@ fun HydrationDetailSheet(
                 "sun" -> "Sun"
                 else -> dLabel
             }
-            val isToday = (dKey == todayKey)
+            val isToday = (dKey == selectedDateKey)
             val consumed = if (isToday) {
                 currentWaterMl
             } else {

@@ -1,6 +1,12 @@
 package com.example.ui.components
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -33,10 +39,11 @@ import kotlin.math.sin
 
 /**
  * 2. Referans Görsel tarzında modern Günlük Su Hedefi Kartı (Daily Drink Target).
- * - Tüm temalara (Forest Pine, Nordic Frost, Warm Espresso, Dracula, Light Paper, Cyber Neon vb.)
- *   %100 dinamik uyum sağlayan akışkan dalga (fluid wave) arka planı
- * - Temanın accentCyan ve yüzey renkleriyle uyumlu butonlar & sayaç
- * - Gösterge boncuklu (knob) dairesel ilerleme halkası
+ * - İçilen günlük suya (currentMl / targetMl) göre dinamik olarak yükselen/alçalan
+ *   gerçek zamanlı akışkan su seviyesi (Fluid Water Level)
+ * - Sürekli ve huzur verici şekilde dalgalanan organik su yüzeyi (Infinite Wave Transition)
+ * - Su içinde süzülen mikro baloncuklar ve ışıldayan yüzey parıltısı
+ * - Tüm temalara %100 uyumlu renk paleti ve dairesel gösterge
  * - Karta tıklandığında detay sayfası (HydrationDetailSheet) açılır.
  */
 @Composable
@@ -48,11 +55,50 @@ fun DailyDrinkTargetCard(
     modifier: Modifier = Modifier
 ) {
     val palette = LocalAppPalette.current
-    val progress = (currentMl.toFloat() / targetMl.coerceAtLeast(1).toFloat()).coerceIn(0f, 1f)
+    val rawProgress = (currentMl.toFloat() / targetMl.coerceAtLeast(1).toFloat()).coerceAtLeast(0f)
+    val progress = rawProgress.coerceIn(0f, 1f)
     val animatedProgress by animateFloatAsState(
         targetValue = progress,
-        animationSpec = tween(durationMillis = 900),
+        animationSpec = tween(durationMillis = 900, easing = FastOutSlowInEasing),
         label = "drinkTargetProgress"
+    )
+
+    // Dinamik su seviyesi (0f = boş dip, 1f = hedefe ulaşıldı, 1.25f = hedef aşıldı)
+    val targetFillFactor = rawProgress.coerceIn(0f, 1.25f)
+    val animatedWaterLevel by animateFloatAsState(
+        targetValue = targetFillFactor,
+        animationSpec = tween(durationMillis = 1000, easing = FastOutSlowInEasing),
+        label = "waterFillLevel"
+    )
+
+    // Canlı, organik su dalgalanması (Infinite animation)
+    val infiniteTransition = rememberInfiniteTransition(label = "waterWaveTransition")
+    val wavePhase1 by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = (2f * Math.PI).toFloat(),
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 4000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "wavePhase1"
+    )
+    val wavePhase2 by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = (2f * Math.PI).toFloat(),
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2800, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "wavePhase2"
+    )
+    val bubblePhase by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 3500, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "bubblePhase"
     )
 
     val glassesCount = (currentMl / 200).coerceAtLeast(0)
@@ -78,8 +124,8 @@ fun DailyDrinkTargetCard(
     }
 
     // Akışkan dalga renkleri: Temanın birincil ve ikincil accent renklerinin yarı saydam katmanları
-    val waveColor1 = palette.accentCyan.copy(alpha = if (palette.isLight) 0.15f else 0.12f)
-    val waveColor2 = palette.accentIndigo.copy(alpha = if (palette.isLight) 0.11f else 0.08f)
+    val waveColor1 = palette.accentCyan.copy(alpha = if (palette.isLight) 0.18f else 0.15f)
+    val waveColor2 = palette.accentIndigo.copy(alpha = if (palette.isLight) 0.14f else 0.11f)
 
     val trackRingColor = palette.accentCyan.copy(alpha = 0.16f)
     val progressArcColor = if (isGoalMet) StatusCompleted else palette.accentCyan
@@ -105,7 +151,7 @@ fun DailyDrinkTargetCard(
                 .background(cardBackground)
         ) {
             // ================================================================
-            // 1. ARKA PLAN: AKIŞKAN DALGA EĞRİLERİ (Fluid Waves)
+            // 1. ARKA PLAN: DİNAMİK SU SEVİYESİ & AKIŞKAN DALGA ANİMASYONU
             // ================================================================
             Canvas(
                 modifier = Modifier
@@ -115,33 +161,108 @@ fun DailyDrinkTargetCard(
                 val width = size.width
                 val height = size.height
 
-                // Arka dalga katmanı 1
-                val path1 = Path().apply {
-                    moveTo(0f, height * 0.42f)
-                    cubicTo(
-                        width * 0.25f, height * 0.35f,
-                        width * 0.60f, height * 0.55f,
-                        width, height * 0.45f
-                    )
-                    lineTo(width, height)
-                    lineTo(0f, height)
-                    close()
-                }
-                drawPath(path1, color = waveColor1)
+                if (animatedWaterLevel > 0.005f) {
+                    // Maksimum doluluk seviyesi (başlık metninin arkasında ferah nefes alanı)
+                    val maxFillHeight = height * 0.84f
+                    val currentFillHeight = animatedWaterLevel.coerceIn(0f, 1.15f) * maxFillHeight
+                    val baseWaterY = height - currentFillHeight
 
-                // Ön dalga katmanı 2
-                val path2 = Path().apply {
-                    moveTo(0f, height * 0.54f)
-                    cubicTo(
-                        width * 0.35f, height * 0.62f,
-                        width * 0.70f, height * 0.46f,
-                        width, height * 0.56f
+                    // Dalga genlikleri (Su miktarı azken sakin, doldukça canlı dalgalar)
+                    val amplitude1 = (7.dp.toPx() * animatedWaterLevel.coerceIn(0.2f, 1f))
+                    val amplitude2 = (5.5.dp.toPx() * animatedWaterLevel.coerceIn(0.2f, 1f))
+
+                    // 1. Arka dalga katmanı (Daha yavaş, hafif koyu/indigo ton, zengin derinlik)
+                    val pathBack = Path().apply {
+                        moveTo(0f, height)
+                        var x = 0f
+                        val step = 16f
+                        while (x <= width + step) {
+                            val waveY = (baseWaterY - 4.dp.toPx()) + amplitude1 * sin(
+                                (x / width * 2.4f * Math.PI.toFloat() + wavePhase1)
+                            )
+                            if (x == 0f) lineTo(0f, waveY) else lineTo(x, waveY)
+                            x += step
+                        }
+                        lineTo(width, height)
+                        close()
+                    }
+                    drawPath(
+                        path = pathBack,
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                waveColor2.copy(alpha = waveColor2.alpha * 1.4f),
+                                waveColor2.copy(alpha = waveColor2.alpha * 0.35f)
+                            ),
+                            startY = (baseWaterY - 10.dp.toPx()).coerceAtLeast(0f),
+                            endY = height
+                        )
                     )
-                    lineTo(width, height)
-                    lineTo(0f, height)
-                    close()
+
+                    // 2. Ön dalga katmanı (Daha hızlı, parlak cyan ton)
+                    val frontWavePoints = mutableListOf<Offset>()
+                    val pathFront = Path().apply {
+                        moveTo(0f, height)
+                        var x = 0f
+                        val step = 16f
+                        while (x <= width + step) {
+                            val waveY = baseWaterY + amplitude2 * sin(
+                                (x / width * 2.8f * Math.PI.toFloat() + wavePhase2 + 1.2f)
+                            )
+                            val pt = Offset(x.coerceAtMost(width), waveY)
+                            frontWavePoints.add(pt)
+                            if (x == 0f) lineTo(0f, waveY) else lineTo(pt.x, pt.y)
+                            x += step
+                        }
+                        lineTo(width, height)
+                        close()
+                    }
+                    drawPath(
+                        path = pathFront,
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                waveColor1.copy(alpha = if (isGoalMet) 0.38f else 0.28f),
+                                waveColor1.copy(alpha = if (isGoalMet) 0.16f else 0.08f)
+                            ),
+                            startY = (baseWaterY - 10.dp.toPx()).coerceAtLeast(0f),
+                            endY = height
+                        )
+                    )
+
+                    // 3. Su yüzeyi parıltı çizgisi (Surface Crest Highlight)
+                    val crestPath = Path().apply {
+                        if (frontWavePoints.isNotEmpty()) {
+                            moveTo(frontWavePoints.first().x, frontWavePoints.first().y)
+                            for (i in 1 until frontWavePoints.size) {
+                                lineTo(frontWavePoints[i].x, frontWavePoints[i].y)
+                            }
+                        }
+                    }
+                    drawPath(
+                        path = crestPath,
+                        color = (if (isGoalMet) StatusCompleted else palette.accentCyan).copy(
+                            alpha = if (palette.isLight) 0.32f else 0.45f
+                        ),
+                        style = Stroke(width = 1.6.dp.toPx(), cap = StrokeCap.Round)
+                    )
+
+                    // 4. Mikro su baloncukları (Canlı yükselen baloncuklar)
+                    val bubbleXs = listOf(0.16f, 0.34f, 0.54f, 0.74f)
+                    bubbleXs.forEachIndexed { index, relX ->
+                        val bubbleProgress = (bubblePhase + index * 0.25f) % 1f
+                        val bY = height - (bubbleProgress * currentFillHeight * 0.90f)
+                        val bX = width * relX + sin((bubbleProgress * 2f * Math.PI + index).toFloat()) * 6.dp.toPx()
+                        val bAlpha = ((1f - bubbleProgress) * 0.35f * animatedWaterLevel.coerceIn(0f, 1f)).coerceIn(0f, 0.35f)
+                        val bRadius = (2.dp.toPx() + (index % 2) * 1.dp.toPx())
+
+                        if (bY > baseWaterY && bY < height) {
+                            drawCircle(
+                                color = Color.White.copy(alpha = bAlpha),
+                                radius = bRadius,
+                                center = Offset(bX, bY)
+                            )
+                        }
+                    }
                 }
-                drawPath(path2, color = waveColor2)
             }
 
             // ================================================================

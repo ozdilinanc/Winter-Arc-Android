@@ -1,12 +1,18 @@
 package com.example.ui.components
 
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import java.util.Calendar
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -90,39 +96,134 @@ fun DailyTrackerView(
     val context = LocalContext.current
     val hapticEngine = rememberHapticEngine()
     val prefs = remember { context.getSharedPreferences("winter_arc_daily_tracker", Context.MODE_PRIVATE) }
-    val todayKey = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()) }
 
-    // Tarih formatı (Örn: "Pazartesi, 21 Eylül")
-    val formattedDate = remember {
-        val formatter = SimpleDateFormat("EEEE, d MMMM", Locale.forLanguageTag("tr"))
-        formatter.format(Date()).replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.forLanguageTag("tr")) else it.toString() }
+    fun getSystemTodayKey(): String =
+        SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+
+    var systemTodayKey by remember { mutableStateOf(getSystemTodayKey()) }
+    var selectedCalendar by remember { mutableStateOf(Calendar.getInstance()) }
+
+    val selectedDateKey = remember(selectedCalendar) {
+        SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(selectedCalendar.time)
+    }
+    val isViewingToday = (selectedDateKey == systemTodayKey)
+
+    // Tarih etiketi (Örn: "Bugün, 22 Eylül" veya "Dün, 21 Eylül" veya "Pazartesi, 20 Eylül")
+    val formattedDate = remember(selectedDateKey, systemTodayKey) {
+        val date = selectedCalendar.time
+        val calNow = Calendar.getInstance()
+        calNow.add(Calendar.DAY_OF_YEAR, -1)
+        val yesterdayKey = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(calNow.time)
+
+        val baseDayMonth = SimpleDateFormat("d MMMM", Locale.forLanguageTag("tr")).format(date)
+        when (selectedDateKey) {
+            systemTodayKey -> "Bugün, $baseDayMonth"
+            yesterdayKey -> "Dün, $baseDayMonth"
+            else -> {
+                val fullFormatter = SimpleDateFormat("EEEE, d MMMM", Locale.forLanguageTag("tr"))
+                fullFormatter.format(date).replaceFirstChar {
+                    if (it.isLowerCase()) it.titlecase(Locale.forLanguageTag("tr")) else it.toString()
+                }
+            }
+        }
+    }
+
+    // Tarih gezinme fonksiyonları
+    fun navigatePrevDay() {
+        hapticEngine.vibrateSelection()
+        val newCal = (selectedCalendar.clone() as Calendar).apply {
+            add(Calendar.DAY_OF_YEAR, -1)
+        }
+        selectedCalendar = newCal
+    }
+
+    fun navigateNextDay() {
+        if (!isViewingToday) {
+            hapticEngine.vibrateSelection()
+            val newCal = (selectedCalendar.clone() as Calendar).apply {
+                add(Calendar.DAY_OF_YEAR, 1)
+            }
+            selectedCalendar = newCal
+        }
+    }
+
+    fun resetToToday() {
+        hapticEngine.vibrateSelection()
+        selectedCalendar = Calendar.getInstance()
+    }
+
+    // Gece yarısı / gün değişimi veya uygulama arka plandan öne geldiğinde otomatik yenileme
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, context) {
+        val lifecycleObserver = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                val freshToday = getSystemTodayKey()
+                if (freshToday != systemTodayKey) {
+                    val wasToday = (selectedDateKey == systemTodayKey)
+                    systemTodayKey = freshToday
+                    if (wasToday) {
+                        selectedCalendar = Calendar.getInstance()
+                    }
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(lifecycleObserver)
+
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_DATE_CHANGED)
+            addAction(Intent.ACTION_TIME_TICK)
+            addAction(Intent.ACTION_TIMEZONE_CHANGED)
+            addAction(Intent.ACTION_TIME_CHANGED)
+        }
+        val dateReceiver = object : BroadcastReceiver() {
+            override fun onReceive(ctx: Context?, intent: Intent?) {
+                val freshToday = getSystemTodayKey()
+                if (freshToday != systemTodayKey) {
+                    val wasToday = (selectedDateKey == systemTodayKey)
+                    systemTodayKey = freshToday
+                    if (wasToday) {
+                        selectedCalendar = Calendar.getInstance()
+                    }
+                }
+            }
+        }
+        context.registerReceiver(dateReceiver, filter)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(lifecycleObserver)
+            try {
+                context.unregisterReceiver(dateReceiver)
+            } catch (_: Exception) {}
+        }
     }
 
     // ----------------------------------------------------
     // 1. Ekran Süresi & Dopamin Kalkanı State
     // ----------------------------------------------------
     var socialUsage by remember { mutableStateOf(ScreenTimeHelper.getTodaySocialUsage(context)) }
-    var dopamineStatus by remember(todayKey) {
-        mutableStateOf(prefs.getString("dopamine_status_$todayKey", "none") ?: "none")
+    var dopamineStatus by remember(selectedDateKey) {
+        mutableStateOf(prefs.getString("dopamine_status_$selectedDateKey", "none") ?: "none")
     }
     var streakCount by remember {
         mutableIntStateOf(prefs.getInt("dopamine_streak", 5))
     }
 
     // Ekran süresini periyodik/ekran açılışında güncelle
-    LaunchedEffect(Unit) {
-        socialUsage = ScreenTimeHelper.getTodaySocialUsage(context)
-        if (socialUsage.isPermissionGranted) {
-            // Instagram süresi limite göre otomatik statü belirleme
-            if (socialUsage.instagramMinutes <= INSTAGRAM_LIMIT_MINUTES) {
-                if (dopamineStatus != "maintained") {
-                    dopamineStatus = "maintained"
-                    prefs.edit().putString("dopamine_status_$todayKey", "maintained").apply()
-                }
-            } else {
-                if (dopamineStatus != "broken") {
-                    dopamineStatus = "broken"
-                    prefs.edit().putString("dopamine_status_$todayKey", "broken").apply()
+    LaunchedEffect(systemTodayKey, isViewingToday) {
+        if (isViewingToday) {
+            socialUsage = ScreenTimeHelper.getTodaySocialUsage(context)
+            if (socialUsage.isPermissionGranted) {
+                // Instagram süresi limite göre otomatik statü belirleme
+                if (socialUsage.instagramMinutes <= INSTAGRAM_LIMIT_MINUTES) {
+                    if (dopamineStatus != "maintained") {
+                        dopamineStatus = "maintained"
+                        prefs.edit().putString("dopamine_status_$systemTodayKey", "maintained").apply()
+                    }
+                } else {
+                    if (dopamineStatus != "broken") {
+                        dopamineStatus = "broken"
+                        prefs.edit().putString("dopamine_status_$systemTodayKey", "broken").apply()
+                    }
                 }
             }
         }
@@ -136,11 +237,11 @@ fun DailyTrackerView(
                 prefs.edit().putInt("dopamine_streak", streakCount).apply()
             }
             dopamineStatus = "maintained"
-            prefs.edit().putString("dopamine_status_$todayKey", "maintained").apply()
+            prefs.edit().putString("dopamine_status_$selectedDateKey", "maintained").apply()
             Toast.makeText(context, "Dopamin detoksu korundu! 🔥 Serin: $streakCount Gün", Toast.LENGTH_SHORT).show()
         } else {
             dopamineStatus = "broken"
-            prefs.edit().putString("dopamine_status_$todayKey", "broken").apply()
+            prefs.edit().putString("dopamine_status_$selectedDateKey", "broken").apply()
             streakCount = 0
             prefs.edit().putInt("dopamine_streak", 0).apply()
             Toast.makeText(context, "Detoks bozuldu. Yeniden odaklan!", Toast.LENGTH_SHORT).show()
@@ -153,8 +254,8 @@ fun DailyTrackerView(
     var targetWaterMl by remember {
         mutableIntStateOf(prefs.getInt("water_target_ml", 3000))
     }
-    var waterMl by remember(todayKey) {
-        mutableIntStateOf(prefs.getInt("water_ml_$todayKey", 1500))
+    var waterMl by remember(selectedDateKey) {
+        mutableIntStateOf(prefs.getInt("water_ml_$selectedDateKey", 0))
     }
     var showHydrationSheet by remember { mutableStateOf(false) }
 
@@ -162,7 +263,7 @@ fun DailyTrackerView(
         hapticEngine.vibrateSelection()
         val newAmount = (waterMl + delta).coerceIn(0, 5000)
         waterMl = newAmount
-        prefs.edit().putInt("water_ml_$todayKey", newAmount).apply()
+        prefs.edit().putInt("water_ml_$selectedDateKey", newAmount).apply()
     }
 
     fun updateTargetWater(newTarget: Int) {
@@ -176,16 +277,16 @@ fun DailyTrackerView(
     // ----------------------------------------------------
     val coroutineScope = rememberCoroutineScope()
     var isSyncingHealth by remember { mutableStateOf(false) }
-    var lastHealthSync by remember(todayKey) {
-        mutableStateOf(HealthSyncManager.getLastSync(context, todayKey))
+    var lastHealthSync by remember(selectedDateKey) {
+        mutableStateOf(HealthSyncManager.getLastSync(context, selectedDateKey))
     }
-    var slept6HoursPlus by remember(todayKey) {
-        mutableStateOf(prefs.getBoolean("sleep_6h_plus_$todayKey", false))
+    var slept6HoursPlus by remember(selectedDateKey) {
+        mutableStateOf(prefs.getBoolean("sleep_6h_plus_$selectedDateKey", false))
     }
 
     // Manuel Adım & Uyku Düzeltme State (Huawei / Google Fit gecikmeli senkronizasyon için)
-    var manualStepsOverride by remember(todayKey) {
-        mutableLongStateOf(prefs.getLong("manual_steps_override_$todayKey", 0L))
+    var manualStepsOverride by remember(selectedDateKey) {
+        mutableLongStateOf(prefs.getLong("manual_steps_override_$selectedDateKey", 0L))
     }
     var showStepEditDialog by remember { mutableStateOf(false) }
     var showSleepEditDialog by remember { mutableStateOf(false) }
@@ -202,9 +303,9 @@ fun DailyTrackerView(
         )
     }
 
-    var routineStatusMap by remember(todayKey) {
+    var routineStatusMap by remember(selectedDateKey) {
         mutableStateOf(
-            routineDefinitions.associate { it.id to prefs.getBoolean("${it.id}_$todayKey", false) }
+            routineDefinitions.associate { it.id to prefs.getBoolean("${it.id}_$selectedDateKey", false) }
         )
     }
 
@@ -213,33 +314,35 @@ fun DailyTrackerView(
         val updated = !current
         if (updated) hapticEngine.vibrateSkillCompleted() else hapticEngine.vibrateSelection()
         routineStatusMap = routineStatusMap.toMutableMap().also { it[id] = updated }
-        prefs.edit().putBoolean("${id}_$todayKey", updated).apply()
+        prefs.edit().putBoolean("${id}_$selectedDateKey", updated).apply()
     }
 
     fun applyHealthSyncResult(result: HealthSyncManager.HealthSyncResult) {
-        HealthSyncManager.saveLastSync(context, todayKey, result)
-        lastHealthSync = result
+        HealthSyncManager.saveLastSync(context, systemTodayKey, result)
+        if (isViewingToday) {
+            lastHealthSync = result
+        }
 
         val currentEffective = maxOf(result.stepsCount, manualStepsOverride)
         // 1. Adım sayısı 7000+ ise yürüyüş otomatik tamamlanır
-        if (currentEffective >= HealthSyncManager.WALK_STEP_TARGET) {
+        if (currentEffective >= HealthSyncManager.WALK_STEP_TARGET && isViewingToday) {
             routineStatusMap = routineStatusMap.toMutableMap().also { it["hab_walk"] = true }
-            prefs.edit().putBoolean("hab_walk_$todayKey", true).apply()
+            prefs.edit().putBoolean("hab_walk_$systemTodayKey", true).apply()
         }
 
         // 2. Uyku süresi 6+ saat ise otomatik tamamlanır
-        if (result.isSleep6hPlus || (result.sleepMinutesTotal >= 360)) {
+        if ((result.isSleep6hPlus || (result.sleepMinutesTotal >= 360)) && isViewingToday) {
             slept6HoursPlus = true
-            prefs.edit().putBoolean("sleep_6h_plus_$todayKey", true).apply()
+            prefs.edit().putBoolean("sleep_6h_plus_$systemTodayKey", true).apply()
         }
     }
 
     fun updateManualSteps(newSteps: Long) {
         manualStepsOverride = newSteps
-        prefs.edit().putLong("manual_steps_override_$todayKey", newSteps).apply()
+        prefs.edit().putLong("manual_steps_override_$selectedDateKey", newSteps).apply()
         if (newSteps >= HealthSyncManager.WALK_STEP_TARGET) {
             routineStatusMap = routineStatusMap.toMutableMap().also { it["hab_walk"] = true }
-            prefs.edit().putBoolean("hab_walk_$todayKey", true).apply()
+            prefs.edit().putBoolean("hab_walk_$selectedDateKey", true).apply()
             hapticEngine.vibrateSkillCompleted()
         } else {
             hapticEngine.vibrateSelection()
@@ -262,10 +365,10 @@ fun DailyTrackerView(
             syncedAtMillis = System.currentTimeMillis(),
             isSuccess = true
         )
-        HealthSyncManager.saveLastSync(context, todayKey, updatedResult)
+        HealthSyncManager.saveLastSync(context, selectedDateKey, updatedResult)
         lastHealthSync = updatedResult
         slept6HoursPlus = is6hPlus
-        prefs.edit().putBoolean("sleep_6h_plus_$todayKey", is6hPlus).apply()
+        prefs.edit().putBoolean("sleep_6h_plus_$selectedDateKey", is6hPlus).apply()
         hapticEngine.vibrateSkillCompleted()
         Toast.makeText(context, "Uyku süresi ${hours}s olarak güncellendi! 🌙", Toast.LENGTH_SHORT).show()
     }
@@ -356,6 +459,10 @@ fun DailyTrackerView(
         item {
             NutrioDailyHeroCard(
                 formattedDate = formattedDate,
+                isViewingToday = isViewingToday,
+                onPrevDay = { navigatePrevDay() },
+                onNextDay = { navigateNextDay() },
+                onResetToToday = { resetToToday() },
                 streakCount = streakCount,
                 completedTotalGoals = completedTotalGoals,
                 totalGoals = totalGoals,
@@ -566,6 +673,7 @@ fun DailyTrackerView(
 
     if (showHydrationSheet) {
         HydrationDetailSheet(
+            selectedDateKey = selectedDateKey,
             currentWaterMl = waterMl,
             targetWaterMl = targetWaterMl,
             onUpdateWater = { delta -> updateWater(delta) },
@@ -582,6 +690,10 @@ fun DailyTrackerView(
 @Composable
 private fun NutrioDailyHeroCard(
     formattedDate: String,
+    isViewingToday: Boolean,
+    onPrevDay: () -> Unit,
+    onNextDay: () -> Unit,
+    onResetToToday: () -> Unit,
     streakCount: Int,
     completedTotalGoals: Int,
     totalGoals: Int,
@@ -634,41 +746,60 @@ private fun NutrioDailyHeroCard(
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = PanelNavyHighlight.copy(alpha = 0.75f),
-                    border = BorderStroke(1.dp, BorderSubtle.copy(alpha = 0.6f))
+                    border = BorderStroke(1.dp, if (!isViewingToday) AccentAmber.copy(alpha = 0.5f) else BorderSubtle.copy(alpha = 0.6f))
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.ChevronLeft,
-                            contentDescription = "Önceki",
-                            tint = TextMuted,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = formattedDate,
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = TextPrimary,
-                                fontSize = 11.5.sp
+                        IconButton(
+                            onClick = onPrevDay,
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ChevronLeft,
+                                contentDescription = "Önceki Gün",
+                                tint = TextPrimary,
+                                modifier = Modifier.size(17.dp)
                             )
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Icon(
-                            imageVector = Icons.Default.DateRange,
-                            contentDescription = "Takvim",
-                            tint = AccentCyan,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(2.dp))
-                        Icon(
-                            imageVector = Icons.Default.ChevronRight,
-                            contentDescription = "Sonraki",
-                            tint = TextDarkMuted,
-                            modifier = Modifier.size(16.dp)
-                        )
+                        }
+
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { onResetToToday() }
+                                .padding(horizontal = 6.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = formattedDate,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isViewingToday) TextPrimary else AccentAmber,
+                                    fontSize = 11.5.sp
+                                )
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                imageVector = Icons.Default.DateRange,
+                                contentDescription = if (isViewingToday) "Bugün" else "Bugüne Dön",
+                                tint = if (isViewingToday) AccentCyan else AccentAmber,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+
+                        IconButton(
+                            onClick = onNextDay,
+                            enabled = !isViewingToday,
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ChevronRight,
+                                contentDescription = "Sonraki Gün",
+                                tint = if (!isViewingToday) TextPrimary else TextDarkMuted.copy(alpha = 0.35f),
+                                modifier = Modifier.size(17.dp)
+                            )
+                        }
                     }
                 }
 
