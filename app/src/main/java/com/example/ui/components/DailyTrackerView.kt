@@ -1636,13 +1636,13 @@ private fun WaterReminderCompactCard(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(RoundedCornerShape(10.dp))
-                        .background(Color(0xFF0284C7).copy(alpha = 0.15f)),
+                        .background(AccentCyan.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_tracker_water_drop),
                         contentDescription = null,
-                        tint = Color(0xFF0284C7),
+                        tint = AccentCyan,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -1686,8 +1686,8 @@ private fun WaterReminderCompactCard(
                     checked = waterEnabled,
                     onCheckedChange = onToggleWater,
                     colors = SwitchDefaults.colors(
-                        checkedThumbColor = BranchTools,
-                        checkedTrackColor = BranchTools.copy(alpha = 0.35f),
+                        checkedThumbColor = AccentCyan,
+                        checkedTrackColor = AccentCyan.copy(alpha = 0.35f),
                         uncheckedThumbColor = TextDarkMuted,
                         uncheckedTrackColor = BorderSubtle
                     ),

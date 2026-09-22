@@ -97,7 +97,7 @@ fun SchoolBooksView(
                             if (sec.id == sectionId) {
                                 val updatedChapters = sec.chapters.map { ch ->
                                     if (ch.id == chapterId) ch.copy(isCompleted = !ch.isCompleted)
-                                    else ch =
+                                    else ch
                                 }
                                 sec.copy(chapters = updatedChapters)
                             } else sec

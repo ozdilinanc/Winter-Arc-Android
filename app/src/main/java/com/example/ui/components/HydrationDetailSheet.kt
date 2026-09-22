@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -70,6 +71,9 @@ data class DayHydrationStat(
  * 1. 1. Görsel Stili: 3D/İzometrik Sütunlu "Hydration Stats" Haftalık Çubuk Grafiği
  * 2. Günlük Su Hedefi (Target) & Hızlı Yudum/Bardak/Şişe Ekleme
  * 3. 3. Görsel Stili: Düz dairesel (Flat Circle, 45° gölge) ikonlu Diğer İçecekler Listesi
+ *
+ * TÜM TEMALARLA (Forest Pine, Warm Espresso, Nordic Frost, Dracula, Light Paper, Cyber Neon vb.)
+ * %100 UYUMLUDUR; tema değişiminde tüm sütunlar, kartlar, butonlar ve yazılar dinamik güncellenir.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,6 +86,7 @@ fun HydrationDetailSheet(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val palette = LocalAppPalette.current
     val context = LocalContext.current
     val hapticEngine = rememberHapticEngine()
     val prefs = remember { context.getSharedPreferences("winter_arc_daily_tracker", Context.MODE_PRIVATE) }
@@ -90,14 +95,14 @@ fun HydrationDetailSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     // İçecek Tanımları (3. görseldeki flat circle tarzındaki ikonlarla)
-    val beverageDefinitions = remember {
+    val beverageDefinitions = remember(palette) {
         listOf(
             BeverageItem("soda", "Kola / Gazlı İçecek", "330 ml kutu", 330, R.drawable.ic_beverage_soda, Color(0xFFFFA000)),
             BeverageItem("coffee", "Kahve / Espresso", "200 ml kupa", 200, R.drawable.ic_beverage_coffee, Color(0xFF8D6E63)),
             BeverageItem("tea", "Çay / Bitki Çayı", "150 ml bardak", 150, R.drawable.ic_beverage_tea, Color(0xFF10B981)),
             BeverageItem("juice", "Taze Meyve Suyu", "250 ml bardak", 250, R.drawable.ic_beverage_juice, Color(0xFFFB923C)),
             BeverageItem("sparkling", "Maden Suyu / Soda", "200 ml şişe", 200, R.drawable.ic_beverage_water, Color(0xFF0284C7)),
-            BeverageItem("energy", "Enerji İçeceği", "250 ml kutu", 250, R.drawable.ic_beverage_energy, Color(0xFF6366F1))
+            BeverageItem("energy", "Enerji İçeceği", "250 ml kutu", 250, R.drawable.ic_beverage_energy, palette.accentPurple)
         )
     }
 
@@ -165,9 +170,9 @@ fun HydrationDetailSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = PanelNavyElevated,
+        containerColor = palette.panelNavy,
         dragHandle = {
-            BottomSheetDefaults.DragHandle(color = BorderActive)
+            BottomSheetDefaults.DragHandle(color = palette.borderActive)
         },
         modifier = modifier
     ) {
@@ -192,13 +197,14 @@ fun HydrationDetailSheet(
                             modifier = Modifier
                                 .size(42.dp)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(Color(0xFF6366F1).copy(alpha = 0.15f)),
+                                .background(palette.accentCyan.copy(alpha = 0.15f))
+                                .border(1.dp, palette.accentCyan.copy(alpha = 0.35f), RoundedCornerShape(12.dp)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 painter = painterResource(id = R.drawable.ic_tracker_water_drop),
                                 contentDescription = null,
-                                tint = Color(0xFF6366F1),
+                                tint = palette.accentCyan,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -208,7 +214,7 @@ fun HydrationDetailSheet(
                                 text = "HİDRASYON & SIVI MERKEZİ",
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.ExtraBold,
-                                    color = TextPrimary,
+                                    color = palette.textPrimary,
                                     fontSize = 16.sp,
                                     letterSpacing = 0.5.sp
                                 )
@@ -216,7 +222,7 @@ fun HydrationDetailSheet(
                             Text(
                                 text = "Günlük su, haftalık istatistik ve içecekler",
                                 style = MaterialTheme.typography.bodySmall.copy(
-                                    color = TextMuted,
+                                    color = palette.textMuted,
                                     fontSize = 11.5.sp
                                 )
                             )
@@ -228,12 +234,13 @@ fun HydrationDetailSheet(
                         modifier = Modifier
                             .size(36.dp)
                             .clip(CircleShape)
-                            .background(PanelNavyHighlight)
+                            .background(palette.panelNavyHighlight)
+                            .border(1.dp, palette.borderSubtle, CircleShape)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Kapat",
-                            tint = TextMuted,
+                            tint = palette.textMuted,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -273,7 +280,7 @@ fun HydrationDetailSheet(
                         text = "DİĞER İÇECEKLER & SIVILAR",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
-                            color = AccentCyan,
+                            color = palette.accentCyan,
                             letterSpacing = 1.sp,
                             fontSize = 11.sp
                         )
@@ -281,7 +288,7 @@ fun HydrationDetailSheet(
                     Text(
                         text = "İçilen miktarı kaydet",
                         style = MaterialTheme.typography.labelSmall.copy(
-                            color = TextDarkMuted,
+                            color = palette.textDarkMuted,
                             fontSize = 10.sp
                         )
                     )
@@ -309,12 +316,14 @@ private fun HydrationStatsWeeklyCard(
     weeklyStats: List<DayHydrationStat>,
     modifier: Modifier = Modifier
 ) {
+    val palette = LocalAppPalette.current
+
     Card(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(22.dp))
-            .border(1.dp, BorderSubtle, RoundedCornerShape(22.dp)),
-        colors = CardDefaults.cardColors(containerColor = PanelNavyElevated)
+            .border(1.dp, palette.borderSubtle, RoundedCornerShape(22.dp)),
+        colors = CardDefaults.cardColors(containerColor = palette.panelNavyElevated)
     ) {
         Column(
             modifier = Modifier
@@ -331,15 +340,15 @@ private fun HydrationStatsWeeklyCard(
                     text = "Hydration Stats",
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold,
-                        color = TextPrimary,
+                        color = palette.textPrimary,
                         fontSize = 17.sp
                     )
                 )
 
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = PanelNavyHighlight,
-                    border = BorderStroke(1.dp, BorderSubtle)
+                    color = palette.panelNavyHighlight,
+                    border = BorderStroke(1.dp, palette.borderSubtle)
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
@@ -349,7 +358,7 @@ private fun HydrationStatsWeeklyCard(
                             text = "This Week",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.SemiBold,
-                                color = TextPrimary,
+                                color = palette.textPrimary,
                                 fontSize = 11.5.sp
                             )
                         )
@@ -357,7 +366,7 @@ private fun HydrationStatsWeeklyCard(
                         Icon(
                             imageVector = Icons.Default.KeyboardArrowDown,
                             contentDescription = null,
-                            tint = TextMuted,
+                            tint = palette.textMuted,
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -385,7 +394,7 @@ private fun HydrationStatsWeeklyCard(
                             Text(
                                 text = label,
                                 style = MaterialTheme.typography.labelSmall.copy(
-                                    color = TextDarkMuted,
+                                    color = palette.textDarkMuted,
                                     fontSize = 10.5.sp,
                                     fontWeight = FontWeight.Medium
                                 ),
@@ -397,7 +406,7 @@ private fun HydrationStatsWeeklyCard(
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(0.8.dp)
-                                    .background(BorderSubtle.copy(alpha = 0.35f))
+                                    .background(palette.borderSubtle.copy(alpha = 0.35f))
                             )
                         }
                     }
@@ -439,7 +448,7 @@ private fun HydrationStatsWeeklyCard(
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = if (dayStat.isToday) FontWeight.Black else FontWeight.SemiBold,
-                            color = if (dayStat.isToday) Color(0xFF818CF8) else TextMuted,
+                            color = if (dayStat.isToday) palette.accentCyan else palette.textMuted,
                             fontSize = 11.sp
                         ),
                         modifier = Modifier.weight(1f)
@@ -452,9 +461,8 @@ private fun HydrationStatsWeeklyCard(
 
 /**
  * 1. Görseldeki 3D izometrik fasetli sütun barı.
- * - Arka plan yarı saydam mor/lila sütun gövdesi
- * - Doldurulan kısım canlı periwinkle/violet
- * - Üstte 3D elmas/izometrik faset açısı
+ * - Arka plan boş kanal: temanın panel/border tonuyla uyumlu
+ * - Dolu sütun ve fasetler: temanın accentCyan & accentIndigo renkleri ile 3D ışıklandırma
  */
 @Composable
 private fun Isometric3DBarColumn(
@@ -463,17 +471,25 @@ private fun Isometric3DBarColumn(
     isToday: Boolean,
     modifier: Modifier = Modifier
 ) {
+    val palette = LocalAppPalette.current
     val animatedPercent by animateFloatAsState(
         targetValue = percentage,
         animationSpec = tween(durationMillis = 800),
         label = "barHeight_$dayShort"
     )
 
-    // Renkler (1. görseldeki mor / lavanta paleti)
-    val trackColumnColor = Color(0xFFEDE9FE).copy(alpha = 0.25f)
-    val filledColumnColor = if (isToday) Color(0xFF6366F1) else Color(0xFF818CF8)
-    val facetTopColor = if (isToday) Color(0xFFA5B4FC) else Color(0xFFC7D2FE)
-    val facetSideColor = if (isToday) Color(0xFF4F46E5) else Color(0xFF6366F1)
+    // Temaya Dinamik Renkler:
+    val trackColumnColor = if (palette.isLight) {
+        palette.panelNavyHighlight.copy(alpha = 0.55f)
+    } else {
+        palette.panelNavyHighlight.copy(alpha = 0.75f)
+    }
+    val trackTopFacetColor = palette.borderSubtle.copy(alpha = 0.7f)
+
+    val baseColor = if (isToday) palette.accentCyan else palette.accentIndigo
+    val filledColumnColor = baseColor
+    val facetTopColor = lerp(baseColor, Color.White, if (palette.isLight) 0.22f else 0.38f)
+    val facetSideColor = lerp(baseColor, Color.Black, if (palette.isLight) 0.18f else 0.32f)
 
     Box(
         modifier = modifier.padding(horizontal = 4.dp),
@@ -503,7 +519,7 @@ private fun Isometric3DBarColumn(
                 lineTo(xMid, facetHeight)
                 close()
             }
-            drawPath(trackTopFacet, color = trackColumnColor.copy(alpha = 0.4f))
+            drawPath(trackTopFacet, color = trackTopFacetColor)
 
             // 2. Dolu Sütun (Filled Progress Column)
             val fillHeight = (totalHeight * (animatedPercent / 100f)).coerceIn(0f, totalHeight)
@@ -519,7 +535,7 @@ private fun Isometric3DBarColumn(
 
                 // Sağ Taraf Gölgelendirmesi (3D Derinlik)
                 drawRect(
-                    color = facetSideColor.copy(alpha = 0.35f),
+                    color = facetSideColor.copy(alpha = 0.45f),
                     topLeft = Offset(xMid, yTop),
                     size = Size(barWidth / 2f, fillHeight)
                 )
@@ -550,6 +566,7 @@ private fun DailyWaterControlCard(
     onReset: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val palette = LocalAppPalette.current
     val hapticEngine = rememberHapticEngine()
     val progress = (currentMl.toFloat() / targetMl.toFloat()).coerceIn(0f, 1f)
     val percentageInt = (progress * 100).toInt()
@@ -558,8 +575,8 @@ private fun DailyWaterControlCard(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
-            .border(1.dp, BorderSubtle, RoundedCornerShape(20.dp)),
-        colors = CardDefaults.cardColors(containerColor = PanelNavyElevated)
+            .border(1.dp, palette.borderSubtle, RoundedCornerShape(20.dp)),
+        colors = CardDefaults.cardColors(containerColor = palette.panelNavyElevated)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             // Hedef Seçimi Satırı
@@ -573,7 +590,7 @@ private fun DailyWaterControlCard(
                         text = "GÜNLÜK HEDEF",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
-                            color = AccentCyan,
+                            color = palette.accentCyan,
                             fontSize = 10.5.sp,
                             letterSpacing = 0.8.sp
                         )
@@ -582,7 +599,7 @@ private fun DailyWaterControlCard(
                         text = "$targetMl ml / gün",
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.ExtraBold,
-                            color = TextPrimary,
+                            color = palette.textPrimary,
                             fontSize = 16.sp
                         )
                     )
@@ -594,8 +611,8 @@ private fun DailyWaterControlCard(
                         val isSelected = (goal == targetMl)
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = if (isSelected) Color(0xFF6366F1) else PanelNavyHighlight,
-                            border = BorderStroke(1.dp, if (isSelected) Color(0xFF6366F1) else BorderSubtle),
+                            color = if (isSelected) palette.accentCyan else palette.panelNavyHighlight,
+                            border = BorderStroke(1.dp, if (isSelected) palette.accentCyan else palette.borderSubtle),
                             modifier = Modifier.clickable {
                                 hapticEngine.vibrateSelection()
                                 onUpdateTarget(goal)
@@ -606,7 +623,11 @@ private fun DailyWaterControlCard(
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isSelected) Color.White else TextMuted,
+                                    color = if (isSelected) {
+                                        if (palette.isLight) Color.White else palette.canvasDark
+                                    } else {
+                                        palette.textMuted
+                                    },
                                     fontSize = 10.5.sp
                                 )
                             )
@@ -627,7 +648,7 @@ private fun DailyWaterControlCard(
                     text = "Bugün içilen: $currentMl ml",
                     style = MaterialTheme.typography.bodySmall.copy(
                         fontWeight = FontWeight.SemiBold,
-                        color = TextPrimary,
+                        color = palette.textPrimary,
                         fontSize = 12.sp
                     )
                 )
@@ -635,7 +656,7 @@ private fun DailyWaterControlCard(
                     text = "%$percentageInt Tamamlandı",
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontWeight = FontWeight.Bold,
-                        color = if (currentMl >= targetMl) StatusCompleted else Color(0xFF6366F1),
+                        color = if (currentMl >= targetMl) StatusCompleted else palette.accentCyan,
                         fontSize = 11.5.sp
                     )
                 )
@@ -649,8 +670,8 @@ private fun DailyWaterControlCard(
                     .fillMaxWidth()
                     .height(8.dp)
                     .clip(RoundedCornerShape(4.dp)),
-                color = if (currentMl >= targetMl) StatusCompleted else Color(0xFF6366F1),
-                trackColor = BorderSubtle.copy(alpha = 0.4f)
+                color = if (currentMl >= targetMl) StatusCompleted else palette.accentCyan,
+                trackColor = palette.panelNavyHighlight
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -668,8 +689,8 @@ private fun DailyWaterControlCard(
                 ).forEach { (ml, label) ->
                     Surface(
                         shape = RoundedCornerShape(10.dp),
-                        color = PanelNavyHighlight,
-                        border = BorderStroke(1.dp, Color(0xFF6366F1).copy(alpha = 0.35f)),
+                        color = palette.panelNavyHighlight,
+                        border = BorderStroke(1.dp, palette.accentCyan.copy(alpha = 0.35f)),
                         modifier = Modifier
                             .weight(1f)
                             .clickable { onAddWater(ml) }
@@ -682,14 +703,14 @@ private fun DailyWaterControlCard(
                                 text = "+$ml ml",
                                 style = MaterialTheme.typography.labelMedium.copy(
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF818CF8),
+                                    color = palette.accentCyan,
                                     fontSize = 12.sp
                                 )
                             )
                             Text(
                                 text = label,
                                 style = MaterialTheme.typography.labelSmall.copy(
-                                    color = TextDarkMuted,
+                                    color = palette.textDarkMuted,
                                     fontSize = 9.5.sp
                                 )
                             )
@@ -700,8 +721,8 @@ private fun DailyWaterControlCard(
                 // Sıfırlama Butonu
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = Color.Transparent,
-                    border = BorderStroke(1.dp, BorderSubtle),
+                    color = palette.panelNavyHighlight,
+                    border = BorderStroke(1.dp, palette.borderSubtle),
                     modifier = Modifier
                         .size(44.dp)
                         .clickable { onReset() }
@@ -710,7 +731,7 @@ private fun DailyWaterControlCard(
                         Icon(
                             imageVector = Icons.Default.Refresh,
                             contentDescription = "Sıfırla",
-                            tint = TextDarkMuted,
+                            tint = palette.textDarkMuted,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -731,10 +752,12 @@ private fun BeverageRowItem(
     onSubtract: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val palette = LocalAppPalette.current
+
     Surface(
         shape = RoundedCornerShape(16.dp),
-        color = PanelNavyElevated,
-        border = BorderStroke(1.dp, if (consumedMl > 0) item.themeColor.copy(alpha = 0.4f) else BorderSubtle),
+        color = palette.panelNavyElevated,
+        border = BorderStroke(1.dp, if (consumedMl > 0) item.themeColor.copy(alpha = 0.5f) else palette.borderSubtle),
         modifier = modifier.fillMaxWidth()
     ) {
         Row(
@@ -771,14 +794,14 @@ private fun BeverageRowItem(
                         text = item.name,
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.Bold,
-                            color = TextPrimary,
+                            color = palette.textPrimary,
                             fontSize = 13.5.sp
                         )
                     )
                     Text(
                         text = "${item.servingName} • Toplam: $consumedMl ml",
                         style = MaterialTheme.typography.labelSmall.copy(
-                            color = if (consumedMl > 0) item.themeColor else TextMuted,
+                            color = if (consumedMl > 0) item.themeColor else palette.textMuted,
                             fontWeight = if (consumedMl > 0) FontWeight.Bold else FontWeight.Normal,
                             fontSize = 11.sp
                         )
@@ -798,13 +821,13 @@ private fun BeverageRowItem(
                     modifier = Modifier
                         .size(32.dp)
                         .clip(CircleShape)
-                        .background(if (consumedMl > 0) PanelNavyHighlight else Color.Transparent)
-                        .border(1.dp, BorderSubtle, CircleShape)
+                        .background(if (consumedMl > 0) palette.panelNavyHighlight else Color.Transparent)
+                        .border(1.dp, palette.borderSubtle, CircleShape)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Remove,
                         contentDescription = "Azalt",
-                        tint = if (consumedMl > 0) TextPrimary else TextDarkMuted,
+                        tint = if (consumedMl > 0) palette.textPrimary else palette.textDarkMuted,
                         modifier = Modifier.size(16.dp)
                     )
                 }

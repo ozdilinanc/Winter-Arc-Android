@@ -93,7 +93,7 @@ fun DailyDrinkTargetCard(
             .clickable { onCardClick() }
             .border(
                 1.dp,
-                if (isGoalMet) StatusCompleted.copy(alpha = 0.5f) else BorderSubtle,
+                if (isGoalMet) StatusCompleted.copy(alpha = 0.5f) else palette.borderSubtle,
                 RoundedCornerShape(24.dp)
             ),
         shape = RoundedCornerShape(24.dp),
@@ -164,7 +164,7 @@ fun DailyDrinkTargetCard(
                         text = "Daily Drink Target",
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.ExtraBold,
-                            color = TextPrimary,
+                            color = palette.textPrimary,
                             fontSize = 18.sp,
                             letterSpacing = (-0.2).sp
                         )
@@ -191,8 +191,8 @@ fun DailyDrinkTargetCard(
                         // "Drink 200 ml" Kapsül (Pill) Buton
                         Surface(
                             shape = CircleShape,
-                            color = PanelNavyHighlight,
-                            border = BorderStroke(1.dp, palette.accentCyan.copy(alpha = 0.4f)),
+                            color = palette.panelNavyHighlight,
+                            border = BorderStroke(1.dp, palette.accentCyan.copy(alpha = 0.45f)),
                             modifier = Modifier
                                 .clip(CircleShape)
                                 .clickable { onQuickAdd(200) }
@@ -202,7 +202,7 @@ fun DailyDrinkTargetCard(
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp),
                                 style = MaterialTheme.typography.labelMedium.copy(
                                     fontWeight = FontWeight.Bold,
-                                    color = TextPrimary,
+                                    color = palette.textPrimary,
                                     fontSize = 12.5.sp
                                 )
                             )
@@ -211,8 +211,8 @@ fun DailyDrinkTargetCard(
                         // Bardak Butonu (Cam/Su İkonu)
                         Surface(
                             shape = CircleShape,
-                            color = PanelNavyHighlight,
-                            border = BorderStroke(1.dp, BorderSubtle),
+                            color = palette.panelNavyHighlight,
+                            border = BorderStroke(1.dp, palette.borderSubtle),
                             modifier = Modifier
                                 .size(38.dp)
                                 .clip(CircleShape)
@@ -306,7 +306,7 @@ fun DailyDrinkTargetCard(
                             text = "${currentMl}ml",
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Black,
-                                color = TextPrimary,
+                                color = palette.textPrimary,
                                 fontSize = 16.sp
                             )
                         )
@@ -316,14 +316,14 @@ fun DailyDrinkTargetCard(
                             modifier = Modifier
                                 .width(34.dp)
                                 .height(1.dp)
-                                .background(BorderSubtle)
+                                .background(palette.borderSubtle)
                         )
 
                         Text(
                             text = "${targetMl}ml",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold,
-                                color = TextMuted,
+                                color = palette.textMuted,
                                 fontSize = 11.sp
                             )
                         )
