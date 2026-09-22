@@ -113,6 +113,15 @@ fun CategorySubItemsHubView(
             return
         }
 
+        if (selectedSubItemId == "sub_anime_manhwa") {
+            com.example.ui.components.anime.AnimeTrackingHubView(
+                onBack = { selectedSubItemId = null },
+                accentColor = accentColor,
+                modifier = modifier
+            )
+            return
+        }
+
         SubItemChecklistView(
             subItemId = selectedSubItemId!!,
             accentColor = accentColor,
@@ -420,6 +429,7 @@ fun CategorySubItemsHubView(
                                             text = when (item.id) {
                                                 "sub_personal_projects", "sub_projects" -> "${stats.completedCount}/${stats.totalCount} Proje"
                                                 "sub_btk_akademi" -> "${stats.completedCount}/${stats.totalCount} Sertifika"
+                                                "sub_anime_manhwa" -> "${stats.completedCount}/${stats.totalCount} Seri"
                                                 else -> "${stats.completedCount}/${stats.totalCount} Konu"
                                             },
                                             style = MaterialTheme.typography.labelSmall.copy(

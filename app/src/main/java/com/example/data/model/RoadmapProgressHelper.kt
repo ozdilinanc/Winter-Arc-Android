@@ -38,6 +38,27 @@ object RoadmapProgressHelper {
             )
         }
 
+        if (subItemId == "sub_anime_manhwa") {
+            val animes = com.example.data.repository.AnimeRepository.animeFlow.value.ifEmpty {
+                com.example.data.repository.AnimeRepository.defaultSeedAnimes()
+            }
+            val total = animes.size
+            val completed = animes.count { it.status == com.example.data.model.anime.AnimeWatchStatus.COMPLETED }
+            val inProgress = animes.count { it.status == com.example.data.model.anime.AnimeWatchStatus.WATCHING }
+            val points = completed * 1.0f + inProgress * 0.5f
+            val fraction = if (total > 0) (points / total.toFloat()).coerceIn(0f, 1f) else 0f
+            val percent = (fraction * 100).toInt().coerceIn(0, 100)
+            return SubItemProgressStats(
+                totalCount = total,
+                completedCount = completed,
+                practiceCount = inProgress,
+                theoryCount = 0,
+                earnedPoints = points,
+                progressFraction = fraction,
+                progressPercent = percent
+            )
+        }
+
         val roadmap = CustomTopicRepository.getEffectiveRoadmap(prefs, subItemId)
             ?: RoadmapDataStore.allRoadmaps[subItemId]
             ?: return SubItemProgressStats(0, 0, 0, 0, 0f, 0f, 0)

@@ -99,6 +99,7 @@ dependencies {
   implementation(libs.androidx.room.ktx)
   implementation(libs.androidx.room.runtime)
   implementation(libs.converter.moshi)
+  implementation(libs.coil.compose)
   implementation("androidx.health.connect:connect-client:1.1.0-alpha11")
   implementation(libs.firebase.ai)
   // Uncomment to use Firestore:

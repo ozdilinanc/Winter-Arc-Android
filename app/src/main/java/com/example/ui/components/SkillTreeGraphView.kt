@@ -56,6 +56,15 @@ fun SkillTreeGraphView(
     }
 
     if (activeSubItemId != null) {
+        if (activeSubItemId == "sub_anime_manhwa") {
+            com.example.ui.components.anime.AnimeTrackingHubView(
+                onBack = { activeSubItemId = null },
+                accentColor = AccentCyan,
+                modifier = modifier
+            )
+            return
+        }
+
         val color = when (activeSubItemId) {
             "sub_backend_dotnet" -> BranchDotNet
             "sub_devops_dist" -> BranchDevOps
