@@ -1,0 +1,68 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+
+    <!-- 1. Dış Dairesel Arka Plan (Turuncu/Altın) -->
+    <path
+        android:fillColor="#FFA000"
+        android:pathData="M 60,60 m -56,0 a 56,56 0 1,0 112,0 a 56,56 0 1,0 -112,0" />
+
+    <!-- 2. Kutu ve Pipetin 45 Derece Düz Uzun Gölgesi (Flat Long Shadow - Kırpılmış Daire İçi) -->
+    <group>
+        <!-- Daire ile Kırpma Alanı (Clip Path) -->
+        <clip-path android:pathData="M 60,60 m -56,0 a 56,56 0 1,0 112,0 a 56,56 0 1,0 -112,0" />
+
+        <!-- 45 Derece Gölge Poligonu -->
+        <path
+            android:fillColor="#E68A00"
+            android:pathData="M 60,18 L 120,78 L 120,120 L 78,120 L 38,102 L 40,88 L 60,18 Z M 80,34 L 120,74 L 120,120 L 80,120 L 80,98 L 80,34 Z" />
+    </group>
+
+    <!-- 3. Pipet (Kahverengi / Straw) -->
+    <path
+        android:fillColor="#5C2518"
+        android:pathData="M 32,15 L 48,15 C 50,15 51,16.5 50,18 L 47,20 L 35,20 C 33,20 32,18.5 32,15 Z" />
+    <path
+        android:fillColor="#5C2518"
+        android:pathData="M 46,18 L 62,34 L 57,38 L 43,22 Z" />
+
+    <!-- 4. Teneke Kutu Alt Taban (Gümüş / Metalik) -->
+    <path
+        android:fillColor="#CBD5E1"
+        android:pathData="M 43,96 L 77,96 L 73,103 C 72,105 68,106 60,106 C 52,106 48,105 47,103 Z" />
+    <!-- Alt Taban Gölgesi (Karanlık metal) -->
+    <path
+        android:fillColor="#94A3B8"
+        android:pathData="M 60,96 L 77,96 L 73,103 C 72,105 68,106 60,106 Z" />
+
+    <!-- 5. Teneke Kutu Üst Kapak (Gümüş / Metalik) -->
+    <path
+        android:fillColor="#CBD5E1"
+        android:pathData="M 43,34 C 43,32 46,28 50,28 L 70,28 C 74,28 77,32 77,34 Z" />
+    <!-- Üst Kapak Gölgesi -->
+    <path
+        android:fillColor="#94A3B8"
+        android:pathData="M 60,28 L 70,28 C 74,28 77,32 77,34 L 60,34 Z" />
+
+    <!-- 6. Teneke Kutu Gövdesi (Kırmızı / Red Soda Can) -->
+    <path
+        android:fillColor="#B91C1C"
+        android:pathData="M 40,34 L 80,34 C 82,34 83,36 83,38 L 83,92 C 83,94 82,96 80,96 L 40,96 C 38,96 37,94 37,92 L 37,38 C 37,36 38,34 40,34 Z" />
+
+    <!-- Gövdenin Sağ Yarı Gölgesi (Boyutsal Derinlik) -->
+    <path
+        android:fillColor="#991B1B"
+        android:pathData="M 60,34 L 80,34 C 82,34 83,36 83,38 L 83,92 C 83,94 82,96 80,96 L 60,96 Z" />
+
+    <!-- 7. Ortadaki Dairesel Logo Rozeti (Beyaz/Açık Gri) -->
+    <path
+        android:fillColor="#E2E8F0"
+        android:pathData="M 60,65 m -10,0 a 10,10 0 1,0 20,0 a 10,10 0 1,0 -20,0" />
+    <!-- Logo Sağ Yarı Gölgesi -->
+    <path
+        android:fillColor="#CBD5E1"
+        android:pathData="M 60,55 A 10,10 0 0,1 60,75 Z" />
+
+</vector>

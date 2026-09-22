@@ -97,7 +97,7 @@ fun SchoolBooksView(
                             if (sec.id == sectionId) {
                                 val updatedChapters = sec.chapters.map { ch ->
                                     if (ch.id == chapterId) ch.copy(isCompleted = !ch.isCompleted)
-                                    else ch
+                                    else ch =
                                 }
                                 sec.copy(chapters = updatedChapters)
                             } else sec
@@ -358,7 +358,11 @@ private fun BookFilterSegmentedControl(
                         .clip(RoundedCornerShape(8.dp))
                         .background(if (isSelected) PanelNavyHighlight else Color.Transparent)
                         .then(
-                            if (isSelected) Modifier.border(1.dp, BorderActive.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
+                            if (isSelected) Modifier.border(
+                                1.dp,
+                                BorderActive.copy(alpha = 0.35f),
+                                RoundedCornerShape(8.dp)
+                            )
                             else Modifier
                         )
                         .clickable { onFilterSelected(filter) }
@@ -557,6 +561,7 @@ fun BookCoverThumbnail(
             author = "Arpaci-Dusseau",
             icon = Icons.Outlined.Terminal
         )
+
         "book_csapp" -> CoverConfig(
             gradient = listOf(Color(0xFF1E1B4B), Color(0xFF2E1065)),
             accent = Color(0xFFFBBF24),
@@ -565,6 +570,7 @@ fun BookCoverThumbnail(
             author = "Bryant & O'Hallaron",
             icon = Icons.Outlined.Code
         )
+
         "book_ddia" -> CoverConfig(
             gradient = listOf(Color(0xFF064E3B), Color(0xFF022C22)),
             accent = Color(0xFF34D399),
@@ -573,6 +579,7 @@ fun BookCoverThumbnail(
             author = "Martin Kleppmann",
             icon = Icons.Outlined.Storage
         )
+
         "book_networks" -> CoverConfig(
             gradient = listOf(Color(0xFF0C2444), Color(0xFF1E3A8A)),
             accent = Color(0xFF60A5FA),
@@ -581,6 +588,7 @@ fun BookCoverThumbnail(
             author = "Kurose & Ross",
             icon = Icons.Outlined.Hub
         )
+
         else -> CoverConfig(
             gradient = listOf(Color(0xFF1E293B), Color(0xFF0F172A)),
             accent = Color(0xFF38BDF8),
@@ -597,7 +605,11 @@ fun BookCoverThumbnail(
             .height(96.dp)
             .clip(RoundedCornerShape(topStart = 3.dp, bottomStart = 3.dp, topEnd = 7.dp, bottomEnd = 7.dp))
             .background(Brush.verticalGradient(gradientColors))
-            .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(topStart = 3.dp, bottomStart = 3.dp, topEnd = 7.dp, bottomEnd = 7.dp))
+            .border(
+                1.dp,
+                Color.White.copy(alpha = 0.12f),
+                RoundedCornerShape(topStart = 3.dp, bottomStart = 3.dp, topEnd = 7.dp, bottomEnd = 7.dp)
+            )
     ) {
         // Spine Shadow effect on left edge (creating realistic physical 3D book curve)
         Box(
@@ -1015,7 +1027,8 @@ private fun BookStudyDetailView(
             val isCollapsed = collapsedSectionIds.contains(section.id)
             val completedInSection = section.chapters.count { it.isCompleted }
             val totalInSection = section.chapters.size
-            val sectionProgress = if (totalInSection > 0) completedInSection.toFloat() / totalInSection.toFloat() else 0f
+            val sectionProgress =
+                if (totalInSection > 0) completedInSection.toFloat() / totalInSection.toFloat() else 0f
 
             Card(
                 modifier = Modifier

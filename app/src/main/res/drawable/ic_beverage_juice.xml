@@ -1,0 +1,64 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+
+    <!-- 1. Dış Dairesel Arka Plan (Güneş Portakalı) -->
+    <path
+        android:fillColor="#FB923C"
+        android:pathData="M 60,60 m -56,0 a 56,56 0 1,0 112,0 a 56,56 0 1,0 -112,0" />
+
+    <!-- 2. Kırpılmış Düz Uzun Gölge (45 Derece) -->
+    <group>
+        <clip-path android:pathData="M 60,60 m -56,0 a 56,56 0 1,0 112,0 a 56,56 0 1,0 -112,0" />
+        <path
+            android:fillColor="#EA580C"
+            android:pathData="M 70,30 L 120,80 L 120,120 L 76,120 L 46,104 L 70,30 Z M 80,36 L 120,76 L 120,120 L 80,120 Z" />
+    </group>
+
+    <!-- 3. Pipet (Yeşil / Ekolojik Pipet) -->
+    <path
+        android:fillColor="#22C55E"
+        android:pathData="M 40,16 L 52,16 C 54,16 55,17.5 54,19 L 51,21 L 43,21 C 41,21 40,19.5 40,16 Z" />
+    <path
+        android:fillColor="#22C55E"
+        android:pathData="M 50,19 L 64,48 L 59,50 L 46,23 Z" />
+
+    <!-- 4. Meyve Suyu Bardağı (Şeffaf Cam Gövde) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.4"
+        android:pathData="M 44,40 L 76,40 L 71,96 C 71,98 67,100 60,100 C 53,100 49,98 49,96 Z" />
+
+    <!-- 5. Taze Portakal / Meyve Suyu Sıvısı -->
+    <path
+        android:fillColor="#F97316"
+        android:pathData="M 46,48 L 74,48 L 70,95 C 70,97 66,99 60,99 C 54,99 50,97 50,95 Z" />
+    <!-- Sıvı Sağ Yarı Gölgesi -->
+    <path
+        android:fillColor="#EA580C"
+        android:pathData="M 60,48 L 74,48 L 70,95 C 70,97 66,99 60,99 Z" />
+
+    <!-- 6. Buz Küpleri (Ice Cubes) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.6"
+        android:pathData="M 52,54 L 62,54 L 62,64 L 52,64 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.5"
+        android:pathData="M 58,68 L 67,68 L 67,77 L 58,77 Z" />
+
+    <!-- 7. Bardak Kenarındaki Portakal Dilimi (Orange Slice) -->
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M 72,40 C 72,33 77,28 84,28 C 91,28 96,33 96,40 C 96,47 91,52 84,52 C 77,52 72,47 72,40 Z" />
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M 75,40 C 75,35 79,31 84,31 C 89,31 93,35 93,40 C 93,45 89,49 84,49 C 79,49 75,45 75,40 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 83,39 L 85,39 L 85,41 L 83,41 Z" />
+
+</vector>

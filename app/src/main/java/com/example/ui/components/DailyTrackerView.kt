@@ -17,17 +17,27 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.TrackChanges
+import androidx.compose.material.icons.filled.WarningAmber
+import androidx.compose.ui.res.painterResource
+import com.example.R
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material3.*
@@ -140,16 +150,25 @@ fun DailyTrackerView(
     // ----------------------------------------------------
     // 2. Su Takibi State
     // ----------------------------------------------------
-    val targetWaterMl = 3000
+    var targetWaterMl by remember {
+        mutableIntStateOf(prefs.getInt("water_target_ml", 3000))
+    }
     var waterMl by remember(todayKey) {
         mutableIntStateOf(prefs.getInt("water_ml_$todayKey", 1500))
     }
+    var showHydrationSheet by remember { mutableStateOf(false) }
 
     fun updateWater(delta: Int) {
         hapticEngine.vibrateSelection()
-        val newAmount = (waterMl + delta).coerceIn(0, 4500)
+        val newAmount = (waterMl + delta).coerceIn(0, 5000)
         waterMl = newAmount
         prefs.edit().putInt("water_ml_$todayKey", newAmount).apply()
+    }
+
+    fun updateTargetWater(newTarget: Int) {
+        hapticEngine.vibrateLevelUp()
+        targetWaterMl = newTarget
+        prefs.edit().putInt("water_target_ml", newTarget).apply()
     }
 
     // ----------------------------------------------------
@@ -177,9 +196,9 @@ fun DailyTrackerView(
     // ----------------------------------------------------
     val routineDefinitions = remember {
         listOf(
-            DailyHabitItem("hab_walk", "Günlük Yürüyüş (7.000+ Adım)", "Hareket", "🚶‍♂️", 30),
-            DailyHabitItem("hab_reading", "Kitap Okuma (20-30 Sayfa)", "Kültür", "📚", 30),
-            DailyHabitItem("hab_english", "İngilizce & Kelime Pratiği", "Dil", "🇬🇧", 30)
+            DailyHabitItem("hab_walk", "Günlük Yürüyüş (7.000+ Adım)", "Hareket", "walk", 30),
+            DailyHabitItem("hab_reading", "Kitap Okuma (20-30 Sayfa)", "Kültür", "reading", 30),
+            DailyHabitItem("hab_english", "İngilizce & Kelime Pratiği", "Dil", "english", 30)
         )
     }
 
@@ -356,8 +375,8 @@ fun DailyTrackerView(
                     Toast.makeText(context, "3 Temel Rutin: $completedHabitsCount/3 tamamlandı ✅", Toast.LENGTH_SHORT).show()
                 },
                 onTapWaterRing = {
-                    updateWater(250)
-                    Toast.makeText(context, "+250 ml su eklendi! (Toplam: ${(waterMl + 250)} ml) 💧", Toast.LENGTH_SHORT).show()
+                    hapticEngine.vibrateSelection()
+                    showHydrationSheet = true
                 },
                 onTapDopamineRing = {
                     hapticEngine.vibrateSelection()
@@ -380,14 +399,17 @@ fun DailyTrackerView(
         }
 
         // ====================================================================
-        // 3. METRİK 2: SU & HİDRASYON SIVI KAPSÜLÜ
+        // 3. METRİK 2: SU & HİDRASYON KAPSÜLÜ (Daily Drink Target)
         // ====================================================================
         item {
-            WaterLiquidCard(
+            DailyDrinkTargetCard(
                 currentMl = waterMl,
                 targetMl = targetWaterMl,
-                onAddWater = { updateWater(it) },
-                onResetWater = { updateWater(-waterMl) }
+                onQuickAdd = {
+                    updateWater(it)
+                    Toast.makeText(context, "+$it ml su eklendi! (Toplam: ${(waterMl + it)} ml)", Toast.LENGTH_SHORT).show()
+                },
+                onCardClick = { showHydrationSheet = true }
             )
         }
 
@@ -539,6 +561,17 @@ fun DailyTrackerView(
                 setDopamineManual(false)
                 showScreenTimeDialog = false
             }
+        )
+    }
+
+    if (showHydrationSheet) {
+        HydrationDetailSheet(
+            currentWaterMl = waterMl,
+            targetWaterMl = targetWaterMl,
+            onUpdateWater = { delta -> updateWater(delta) },
+            onUpdateTarget = { newTarget -> updateTargetWater(newTarget) },
+            onResetWater = { updateWater(-waterMl) },
+            onDismiss = { showHydrationSheet = false }
         )
     }
 }
@@ -694,7 +727,12 @@ private fun NutrioDailyHeroCard(
                     modifier = Modifier.weight(1f)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = "🎯", fontSize = 12.sp)
+                        Icon(
+                            imageVector = Icons.Default.TrackChanges,
+                            contentDescription = null,
+                            tint = AccentCyan,
+                            modifier = Modifier.size(15.dp)
+                        )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = "Biten",
@@ -748,14 +786,23 @@ private fun NutrioDailyHeroCard(
                                     fontSize = 24.sp
                                 )
                             )
-                            Text(
-                                text = "tamamlandı 🎉",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    color = StatusCompleted,
-                                    fontSize = 10.sp
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "tamamlandı",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = StatusCompleted,
+                                        fontSize = 10.sp
+                                    )
                                 )
-                            )
+                                Spacer(modifier = Modifier.width(3.dp))
+                                Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = null,
+                                    tint = StatusCompleted,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                            }
                         } else {
                             Text(
                                 text = "$remainingGoals",
@@ -788,7 +835,12 @@ private fun NutrioDailyHeroCard(
                     modifier = Modifier.weight(1f)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = "⚡", fontSize = 12.sp)
+                        Icon(
+                            imageVector = Icons.Default.Bolt,
+                            contentDescription = null,
+                            tint = AccentGold,
+                            modifier = Modifier.size(16.dp)
+                        )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = "Kazanılan",
@@ -1082,7 +1134,12 @@ private fun HuaweiSleepAutoCard(
                         .background(AccentPurple.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = "🌙", fontSize = 22.sp)
+                    Icon(
+                        imageVector = Icons.Default.Bedtime,
+                        contentDescription = null,
+                        tint = AccentPurple,
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
@@ -1117,13 +1174,24 @@ private fun HuaweiSleepAutoCard(
                         )
                     )
 
-                    Text(
-                        text = if (isGoalMet) "6+ saat hedefi aşıldı ✅" else "Hedef: 6+ saat kaliteli uyku",
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            color = if (isGoalMet) StatusCompleted else TextMuted,
-                            fontSize = 11.sp
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = if (isGoalMet) "6+ saat hedefi aşıldı" else "Hedef: 6+ saat kaliteli uyku",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = if (isGoalMet) StatusCompleted else TextMuted,
+                                fontSize = 11.sp
+                            )
                         )
-                    )
+                        if (isGoalMet) {
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = StatusCompleted,
+                                modifier = Modifier.size(12.dp)
+                            )
+                        }
+                    }
                 }
             }
 
@@ -1152,168 +1220,7 @@ private fun HuaweiSleepAutoCard(
     }
 }
 
-// ====================================================================
-// ALT BİLEŞEN 3: SU & HİDRASYON KAPSÜLÜ
-// ====================================================================
-@Composable
-private fun WaterLiquidCard(
-    currentMl: Int,
-    targetMl: Int,
-    onAddWater: (Int) -> Unit,
-    onResetWater: () -> Unit
-) {
-    val progress = (currentMl.toFloat() / targetMl.toFloat()).coerceIn(0f, 1f)
-    val animatedProgress by animateFloatAsState(targetValue = progress, label = "waterProgress")
-    val isMet = currentMl >= targetMl
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .border(1.dp, if (isMet) StatusCompleted.copy(alpha = 0.5f) else BorderSubtle, RoundedCornerShape(18.dp)),
-        colors = CardDefaults.cardColors(containerColor = PanelNavyElevated)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(BranchTools.copy(alpha = 0.15f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(text = "💧", fontSize = 18.sp)
-                    }
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Column {
-                        Text(
-                            text = "HİDRASYON",
-                            style = MaterialTheme.typography.titleSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = TextPrimary,
-                                letterSpacing = 0.8.sp,
-                                fontSize = 13.sp
-                            )
-                        )
-                        Text(
-                            text = "Hücresel enerji & odak",
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                color = TextMuted,
-                                fontSize = 10.5.sp
-                            )
-                        )
-                    }
-                }
-
-                Text(
-                    text = "$currentMl / $targetMl ml",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = if (isMet) StatusCompleted else BranchTools,
-                        fontSize = 14.sp
-                    )
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Sıvı Gösterge Çubuğu
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(9.dp)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(BorderSubtle.copy(alpha = 0.35f))
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(animatedProgress)
-                        .fillMaxHeight()
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(
-                            Brush.horizontalGradient(
-                                listOf(
-                                    Color(0xFF0284C7),
-                                    if (isMet) StatusCompleted else BranchTools
-                                )
-                            )
-                        )
-                )
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Hızlı Ekleme Butonları
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = PanelNavyHighlight,
-                    border = BorderStroke(1.dp, BranchTools.copy(alpha = 0.4f)),
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(38.dp)
-                        .clickable { onAddWater(250) }
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            text = "+250 ml",
-                            color = BranchTools,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp
-                        )
-                    }
-                }
-
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = PanelNavyHighlight,
-                    border = BorderStroke(1.dp, BranchTools.copy(alpha = 0.4f)),
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(38.dp)
-                        .clickable { onAddWater(500) }
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            text = "+500 ml",
-                            color = BranchTools,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp
-                        )
-                    }
-                }
-
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = Color.Transparent,
-                    border = BorderStroke(1.dp, BorderSubtle),
-                    modifier = Modifier
-                        .width(40.dp)
-                        .height(38.dp)
-                        .clickable { onResetWater() }
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "Sıfırla",
-                            tint = TextDarkMuted,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
 
 // ====================================================================
 // ALT BİLEŞEN 4: DOPAMİN & INSTAGRAM EKRAN SÜRESİ KALKANI
@@ -1362,7 +1269,12 @@ private fun DopamineScreenTimeCard(
                             .background(AccentAmber.copy(alpha = 0.15f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(text = "🧠", fontSize = 18.sp)
+                        Icon(
+                            imageVector = Icons.Default.Psychology,
+                            contentDescription = null,
+                            tint = AccentAmber,
+                            modifier = Modifier.size(22.dp)
+                        )
                     }
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
@@ -1395,31 +1307,41 @@ private fun DopamineScreenTimeCard(
                 }
 
                 // Rozet
+                val isMaintained = if (isPermitted) isUnderLimit else dopamineStatus == "maintained"
+                val badgeColor = if (isMaintained) StatusCompleted else if (isPermitted) Color(0xFFEF4444) else TextMuted
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = if (isPermitted) {
-                        if (isUnderLimit) StatusCompleted.copy(alpha = 0.18f) else Color(0xFFEF4444).copy(alpha = 0.18f)
-                    } else {
-                        if (dopamineStatus == "maintained") StatusCompleted.copy(alpha = 0.18f) else PanelNavyHighlight
-                    }
+                    color = badgeColor.copy(alpha = 0.16f)
                 ) {
-                    Text(
-                        text = if (isPermitted) {
-                            if (isUnderLimit) "KORUNDU 🔥" else "LİMİT AŞILDI ⚠️"
-                        } else {
-                            if (dopamineStatus == "maintained") "KORUNDU 🔥" else "BEKLİYOR"
-                        },
+                    Row(
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = if (isPermitted) {
-                                if (isUnderLimit) StatusCompleted else Color(0xFFEF4444)
-                            } else {
-                                if (dopamineStatus == "maintained") StatusCompleted else TextMuted
-                            },
-                            fontSize = 10.sp
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        if (isMaintained) {
+                            Icon(
+                                imageVector = Icons.Default.LocalFireDepartment,
+                                contentDescription = null,
+                                tint = badgeColor,
+                                modifier = Modifier.size(12.dp)
+                            )
+                        } else if (isPermitted && !isUnderLimit) {
+                            Icon(
+                                imageVector = Icons.Default.WarningAmber,
+                                contentDescription = null,
+                                tint = badgeColor,
+                                modifier = Modifier.size(12.dp)
+                            )
+                        }
+                        Text(
+                            text = if (isMaintained) "KORUNDU" else if (isPermitted) "LİMİT AŞILDI" else "BEKLİYOR",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = badgeColor,
+                                fontSize = 10.sp
+                            )
                         )
-                    )
+                    }
                 }
             }
 
@@ -1542,7 +1464,40 @@ private fun ModernHabitItemRow(
                     .background(iconBg),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = habit.icon, fontSize = 18.sp)
+                when (habit.id) {
+                    "hab_walk" -> {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_tracker_walk),
+                            contentDescription = habit.title,
+                            tint = AccentCyan,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    "hab_reading" -> {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_tracker_book),
+                            contentDescription = habit.title,
+                            tint = AccentPurple,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    "hab_english" -> {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_tracker_language),
+                            contentDescription = habit.title,
+                            tint = BranchTools,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    else -> {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = habit.title,
+                            tint = TextPrimary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.width(12.dp))
@@ -1560,14 +1515,32 @@ private fun ModernHabitItemRow(
 
                 if (stepsCount != null && stepsCount > 0L) {
                     Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = "👟 Huawei: $stepsCount / 7.000 Adım ${if (stepsCount >= 7000) "✅" else ""}",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            color = if (stepsCount >= 7000) StatusCompleted else AccentCyan,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 10.5.sp
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.DirectionsWalk,
+                            contentDescription = null,
+                            tint = if (stepsCount >= 7000) StatusCompleted else AccentCyan,
+                            modifier = Modifier.size(13.dp)
                         )
-                    )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text(
+                            text = "Huawei: $stepsCount / 7.000 Adım",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                color = if (stepsCount >= 7000) StatusCompleted else AccentCyan,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 10.5.sp
+                            )
+                        )
+                        if (stepsCount >= 7000) {
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = StatusCompleted,
+                                modifier = Modifier.size(12.dp)
+                            )
+                        }
+                    }
                 }
             }
 
@@ -1659,7 +1632,20 @@ private fun WaterReminderCompactCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(text = "💧", fontSize = 18.sp)
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color(0xFF0284C7).copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_tracker_water_drop),
+                        contentDescription = null,
+                        tint = Color(0xFF0284C7),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
                 Spacer(modifier = Modifier.width(10.dp))
                 Column {
                     Text(

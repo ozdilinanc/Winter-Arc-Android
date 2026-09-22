@@ -1,0 +1,53 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+
+    <!-- 1. Dış Dairesel Arka Plan (Elektrik Moru / Indigo) -->
+    <path
+        android:fillColor="#6366F1"
+        android:pathData="M 60,60 m -56,0 a 56,56 0 1,0 112,0 a 56,56 0 1,0 -112,0" />
+
+    <!-- 2. Kırpılmış Düz Uzun Gölge (45 Derece) -->
+    <group>
+        <clip-path android:pathData="M 60,60 m -56,0 a 56,56 0 1,0 112,0 a 56,56 0 1,0 -112,0" />
+        <path
+            android:fillColor="#4F46E5"
+            android:pathData="M 76,28 L 120,72 L 120,120 L 76,120 L 44,106 L 76,28 Z M 76,96 L 120,120 L 76,120 Z" />
+    </group>
+
+    <!-- 3. Enerji Kutusu Alt Taban (Gümüş / Metalik) -->
+    <path
+        android:fillColor="#CBD5E1"
+        android:pathData="M 47,96 L 73,96 L 70,103 C 69,105 65,106 60,106 C 55,106 51,105 50,103 Z" />
+    <path
+        android:fillColor="#94A3B8"
+        android:pathData="M 60,96 L 73,96 L 70,103 C 69,105 65,106 60,106 Z" />
+
+    <!-- 4. Enerji Kutusu Üst Kapak (Gümüş / Metalik) -->
+    <path
+        android:fillColor="#CBD5E1"
+        android:pathData="M 47,26 C 47,24 50,22 54,22 L 66,22 C 70,22 73,24 73,26 Z" />
+    <path
+        android:fillColor="#94A3B8"
+        android:pathData="M 60,22 L 66,22 C 70,22 73,24 73,26 L 60,26 Z" />
+
+    <!-- 5. İnce Slim Kutu Gövdesi (Mat Kömür Grisi / Cyberpunk Dark) -->
+    <path
+        android:fillColor="#1E293B"
+        android:pathData="M 44,26 L 76,26 C 78,26 79,28 79,30 L 79,93 C 79,95 78,96 76,96 L 44,96 C 42,96 41,95 41,93 L 41,30 C 41,28 42,26 44,26 Z" />
+    <!-- Gövde Sağ Yarı Gölgesi -->
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M 60,26 L 76,26 C 78,26 79,28 79,30 L 79,93 C 79,95 78,96 76,96 L 60,96 Z" />
+
+    <!-- 6. Neon Şimşek Amblemi (Electric Bolt) -->
+    <path
+        android:fillColor="#FACC15"
+        android:pathData="M 62,38 L 48,58 L 58,58 L 52,78 L 72,54 L 62,54 Z" />
+    <path
+        android:fillColor="#EAB308"
+        android:pathData="M 60,38 L 60,54 L 72,54 L 56,73 L 58,58 L 48,58 Z" />
+
+</vector>

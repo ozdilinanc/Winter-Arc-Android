@@ -1,0 +1,10 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Açık Kitap Çizimi (Book Reading) -->
+    <path
+        android:fillColor="#A855F7"
+        android:pathData="M 19,2 L 5,2 C 3.9,2 3,2.9 3,4 L 3,20 C 3,21.1 3.9,22 5,22 L 19,22 C 20.1,22 21,21.1 21,20 L 21,4 C 21,2.9 20.1,2 19,2 Z M 19,20 L 5,20 L 5,4 L 10,4 L 10,12 L 12.5,10.5 L 15,12 L 15,4 L 19,4 L 19,20 Z" />
+</vector>
