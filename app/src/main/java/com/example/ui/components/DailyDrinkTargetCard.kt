@@ -15,7 +15,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -34,10 +33,11 @@ import kotlin.math.sin
 
 /**
  * 2. Referans Görsel tarzında modern Günlük Su Hedefi Kartı (Daily Drink Target).
- * - Yumuşak dalga (fluid wave) arka planı
- * - "Drink 200 ml" hap butonu ve bardak ikonu
- * - Gösterge boncuklu (knob) dairesel ilerleme sayacı
- * - Karta tıklandığında detay sayfası açılır.
+ * - Tüm temalara (Forest Pine, Nordic Frost, Warm Espresso, Dracula, Light Paper, Cyber Neon vb.)
+ *   %100 dinamik uyum sağlayan akışkan dalga (fluid wave) arka planı
+ * - Temanın accentCyan ve yüzey renkleriyle uyumlu butonlar & sayaç
+ * - Gösterge boncuklu (knob) dairesel ilerleme halkası
+ * - Karta tıklandığında detay sayfası (HydrationDetailSheet) açılır.
  */
 @Composable
 fun DailyDrinkTargetCard(
@@ -47,6 +47,7 @@ fun DailyDrinkTargetCard(
     onCardClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val palette = LocalAppPalette.current
     val progress = (currentMl.toFloat() / targetMl.coerceAtLeast(1).toFloat()).coerceIn(0f, 1f)
     val animatedProgress by animateFloatAsState(
         targetValue = progress,
@@ -57,18 +58,33 @@ fun DailyDrinkTargetCard(
     val glassesCount = (currentMl / 200).coerceAtLeast(0)
     val isGoalMet = currentMl >= targetMl
 
-    // Dalga ve kart renkleri: Temaya uyumlu yumuşak lila / indigo paleti
-    val cardBackground = Brush.verticalGradient(
-        colors = listOf(
-            Color(0xFFEDE9FE).copy(alpha = 0.95f),
-            Color(0xFFE0E7FF).copy(alpha = 0.90f)
+    // ================================================================
+    // TEMAYA DİNAMİK UYUMLU RENK PALETİ
+    // ================================================================
+    val cardBackground = if (palette.isLight) {
+        Brush.verticalGradient(
+            listOf(
+                palette.panelNavyElevated,
+                palette.panelNavyHighlight.copy(alpha = 0.9f)
+            )
         )
-    )
-    val waveColor1 = Color(0xFFC7D2FE).copy(alpha = 0.65f)
-    val waveColor2 = Color(0xFFA5B4FC).copy(alpha = 0.45f)
-    val trackRingColor = Color(0xFFC7D2FE).copy(alpha = 0.7f)
-    val progressArcColor = Color(0xFF6366F1) // Canlı Indigo / Mor
-    val knobColor = Color(0xFF4F46E5)
+    } else {
+        Brush.verticalGradient(
+            listOf(
+                palette.panelNavyElevated,
+                palette.panelNavyHighlight.copy(alpha = 0.65f)
+            )
+        )
+    }
+
+    // Akışkan dalga renkleri: Temanın birincil ve ikincil accent renklerinin yarı saydam katmanları
+    val waveColor1 = palette.accentCyan.copy(alpha = if (palette.isLight) 0.15f else 0.12f)
+    val waveColor2 = palette.accentIndigo.copy(alpha = if (palette.isLight) 0.11f else 0.08f)
+
+    val trackRingColor = palette.accentCyan.copy(alpha = 0.16f)
+    val progressArcColor = if (isGoalMet) StatusCompleted else palette.accentCyan
+    val knobColor = if (isGoalMet) StatusCompleted else palette.accentCyan
+    val knobGlowColor = (if (isGoalMet) StatusCompleted else palette.accentCyan).copy(alpha = 0.35f)
 
     Card(
         modifier = modifier
@@ -76,8 +92,8 @@ fun DailyDrinkTargetCard(
             .clip(RoundedCornerShape(24.dp))
             .clickable { onCardClick() }
             .border(
-                1.2.dp,
-                if (isGoalMet) StatusCompleted.copy(alpha = 0.6f) else Color.White.copy(alpha = 0.8f),
+                1.dp,
+                if (isGoalMet) StatusCompleted.copy(alpha = 0.5f) else BorderSubtle,
                 RoundedCornerShape(24.dp)
             ),
         shape = RoundedCornerShape(24.dp),
@@ -148,9 +164,9 @@ fun DailyDrinkTargetCard(
                         text = "Daily Drink Target",
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.ExtraBold,
-                            color = Color(0xFF1E1B4B),
-                            fontSize = 19.sp,
-                            letterSpacing = (-0.3).sp
+                            color = TextPrimary,
+                            fontSize = 18.sp,
+                            letterSpacing = (-0.2).sp
                         )
                     )
 
@@ -159,25 +175,24 @@ fun DailyDrinkTargetCard(
                     Text(
                         text = "${currentMl}ml su ($glassesCount Bardak) • Hedef: ${targetMl}ml",
                         style = MaterialTheme.typography.bodySmall.copy(
-                            color = Color(0xFF4338CA),
+                            color = palette.accentCyan,
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 11.5.sp
                         )
                     )
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(18.dp))
 
                     // Hızlı Aksiyon Butonları (Pill Button + Bardak İkon Butonu)
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        // "Drink 200 ml" Hap Buton
+                        // "Drink 200 ml" Kapsül (Pill) Buton
                         Surface(
                             shape = CircleShape,
-                            color = Color.White,
-                            shadowElevation = 3.dp,
-                            border = BorderStroke(1.dp, Color(0xFFE0E7FF)),
+                            color = PanelNavyHighlight,
+                            border = BorderStroke(1.dp, palette.accentCyan.copy(alpha = 0.4f)),
                             modifier = Modifier
                                 .clip(CircleShape)
                                 .clickable { onQuickAdd(200) }
@@ -187,8 +202,8 @@ fun DailyDrinkTargetCard(
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp),
                                 style = MaterialTheme.typography.labelMedium.copy(
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF1E1B4B),
-                                    fontSize = 13.sp
+                                    color = TextPrimary,
+                                    fontSize = 12.5.sp
                                 )
                             )
                         }
@@ -196,9 +211,8 @@ fun DailyDrinkTargetCard(
                         // Bardak Butonu (Cam/Su İkonu)
                         Surface(
                             shape = CircleShape,
-                            color = Color.White,
-                            shadowElevation = 3.dp,
-                            border = BorderStroke(1.dp, Color(0xFFE0E7FF)),
+                            color = PanelNavyHighlight,
+                            border = BorderStroke(1.dp, BorderSubtle),
                             modifier = Modifier
                                 .size(38.dp)
                                 .clip(CircleShape)
@@ -208,7 +222,7 @@ fun DailyDrinkTargetCard(
                                 Icon(
                                     painter = painterResource(id = R.drawable.ic_water_glass_action),
                                     contentDescription = "Detay & Su Ekle",
-                                    tint = Color.Unspecified,
+                                    tint = palette.accentCyan,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -240,7 +254,7 @@ fun DailyDrinkTargetCard(
                             style = Stroke(width = strokeWidthPx)
                         )
 
-                        // 2. İlerleme arkı (Solid Violet / Indigo)
+                        // 2. İlerleme arkı (Temanın Canlı Accent Rengi)
                         val startAngle = -90f
                         val sweepAngle = animatedProgress * 360f
 
@@ -262,10 +276,10 @@ fun DailyDrinkTargetCard(
                                 y = (centerOffset.y + radius * sin(endAngleRad)).toFloat()
                             )
 
-                            // Dış halka parlaması / gölgesi
+                            // Dış halka parlaması / halesi
                             drawCircle(
-                                color = Color.White.copy(alpha = 0.5f),
-                                radius = strokeWidthPx * 0.85f,
+                                color = knobGlowColor,
+                                radius = strokeWidthPx * 0.9f,
                                 center = knobCenter
                             )
                             // Ana boncuk çekirdeği
@@ -292,7 +306,7 @@ fun DailyDrinkTargetCard(
                             text = "${currentMl}ml",
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Black,
-                                color = Color(0xFF1E1B4B),
+                                color = TextPrimary,
                                 fontSize = 16.sp
                             )
                         )
@@ -302,14 +316,14 @@ fun DailyDrinkTargetCard(
                             modifier = Modifier
                                 .width(34.dp)
                                 .height(1.dp)
-                                .background(Color(0xFFCBD5E1))
+                                .background(BorderSubtle)
                         )
 
                         Text(
                             text = "${targetMl}ml",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF475569),
+                                color = TextMuted,
                                 fontSize = 11.sp
                             )
                         )
