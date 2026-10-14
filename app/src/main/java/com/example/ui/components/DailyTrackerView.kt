@@ -18,6 +18,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -44,9 +46,6 @@ import androidx.compose.material.icons.filled.TrackChanges
 import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.ui.res.painterResource
 import com.example.R
-import com.example.ui.util.StepSensorManager
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -69,6 +68,7 @@ import com.example.ui.util.HealthSyncManager
 import com.example.ui.util.ScreenTimeHelper
 import com.example.ui.util.WinterArcNotificationHelper
 import com.example.ui.util.rememberHapticEngine
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -278,21 +278,19 @@ fun DailyTrackerView(
     // ----------------------------------------------------
     val coroutineScope = rememberCoroutineScope()
     var isSyncingHealth by remember { mutableStateOf(false) }
-    var lastHealthSync by remember(selectedDateKey) {
-        mutableStateOf(HealthSyncManager.getLastSync(context, selectedDateKey))
+    val healthResultsByDate = remember { mutableStateMapOf<String, HealthSyncManager.HealthSyncResult>() }
+    val healthMessagesByDate = remember { mutableStateMapOf<String, String>() }
+    val cachedHealthSync = remember(selectedDateKey) {
+        HealthSyncManager.getLastSync(context, selectedDateKey)
     }
-    var slept6HoursPlus by remember(selectedDateKey) {
-        mutableStateOf(prefs.getBoolean("sleep_6h_plus_$selectedDateKey", false))
-    }
-
-    // Manuel Adım & Uyku Düzeltme State (Huawei / Google Fit gecikmeli senkronizasyon için)
-    var manualStepsOverride by remember(selectedDateKey) {
-        mutableLongStateOf(prefs.getLong("manual_steps_override_$selectedDateKey", 0L))
-    }
+    val lastHealthSync = healthResultsByDate[selectedDateKey] ?: cachedHealthSync
+    val slept6HoursPlus = lastHealthSync?.isSleep6hPlus == true
+    val healthSyncMessage = healthMessagesByDate[selectedDateKey] ?: lastHealthSync?.message
+        ?: "Huawei Sağlık bağlantısını kontrol etmek için eşitleyin."
     var showStepEditDialog by remember { mutableStateOf(false) }
     var showSleepEditDialog by remember { mutableStateOf(false) }
     var showScreenTimeDialog by remember { mutableStateOf(false) }
-    val effectiveSteps = maxOf(lastHealthSync?.stepsCount ?: 0L, manualStepsOverride)
+    val effectiveSteps = lastHealthSync?.stepsCount ?: 0L
     // ----------------------------------------------------
     // 4. Sadeleştirilmiş 3 Temel Rutin (Yürüyüş, Kitap, İngilizce)
     // ----------------------------------------------------
@@ -306,11 +304,17 @@ fun DailyTrackerView(
 
     var routineStatusMap by remember(selectedDateKey) {
         mutableStateOf(
-            routineDefinitions.associate { it.id to prefs.getBoolean("${it.id}_$selectedDateKey", false) }
+            routineDefinitions.filter { it.id != "hab_walk" }.associate {
+                it.id to prefs.getBoolean("${it.id}_$selectedDateKey", false)
+            }
         )
     }
 
     fun toggleRoutine(id: String) {
+        if (id == "hab_walk") {
+            showStepEditDialog = true
+            return
+        }
         val current = routineStatusMap[id] ?: false
         val updated = !current
         if (updated) hapticEngine.vibrateSkillCompleted() else hapticEngine.vibrateSelection()
@@ -319,100 +323,68 @@ fun DailyTrackerView(
     }
 
     fun applyHealthSyncResult(result: HealthSyncManager.HealthSyncResult) {
-        HealthSyncManager.saveLastSync(context, systemTodayKey, result)
-        if (isViewingToday) {
-            lastHealthSync = result
+        // Carry the queried date across midnight and date navigation.
+        HealthSyncManager.saveLastSync(context, result.dateKey, result)
+        val verified = if (result.isSuccess) result
+            else HealthSyncManager.getLastSync(context, result.dateKey)
+        healthMessagesByDate[result.dateKey] = result.message +
+            if (!result.isSuccess && verified != null) " Son başarılı okuma gösteriliyor." else ""
+        if (verified != null) {
+            healthResultsByDate[result.dateKey] = verified
         }
-
-        val currentEffective = maxOf(result.stepsCount, manualStepsOverride)
-        // 1. Adım sayısı 7000+ ise yürüyüş otomatik tamamlanır
-        if (currentEffective >= HealthSyncManager.WALK_STEP_TARGET && isViewingToday) {
-            routineStatusMap = routineStatusMap.toMutableMap().also { it["hab_walk"] = true }
-            prefs.edit().putBoolean("hab_walk_$systemTodayKey", true).apply()
-        }
-
-        // 2. Uyku süresi 6+ saat ise otomatik tamamlanır
-        if ((result.isSleep6hPlus || (result.sleepMinutesTotal >= 360)) && isViewingToday) {
-            slept6HoursPlus = true
-            prefs.edit().putBoolean("sleep_6h_plus_$systemTodayKey", true).apply()
-        }
-    }
-
-    fun updateManualSteps(newSteps: Long) {
-        manualStepsOverride = newSteps
-        prefs.edit().putLong("manual_steps_override_$selectedDateKey", newSteps).apply()
-        if (newSteps >= HealthSyncManager.WALK_STEP_TARGET) {
-            routineStatusMap = routineStatusMap.toMutableMap().also { it["hab_walk"] = true }
-            prefs.edit().putBoolean("hab_walk_$selectedDateKey", true).apply()
-            hapticEngine.vibrateSkillCompleted()
-        } else {
-            hapticEngine.vibrateSelection()
-        }
-        Toast.makeText(context, "Adım sayısı $newSteps olarak güncellendi! ✅", Toast.LENGTH_SHORT).show()
-    }
-
-    fun updateManualSleep(hours: Double) {
-        val totalMinutes = (hours * 60).toLong()
-        val quality = HealthSyncManager.determineSleepQuality(hours)
-        val is6hPlus = hours >= HealthSyncManager.SLEEP_HOURS_TARGET
-        val updatedResult = HealthSyncManager.HealthSyncResult(
-            stepsCount = effectiveSteps,
-            sleepHours = hours,
-            sleepMinutesTotal = totalMinutes,
-            sleepQuality = quality,
-            isSleep6hPlus = is6hPlus,
-            isWalkGoalMet = effectiveSteps >= HealthSyncManager.WALK_STEP_TARGET,
-            source = "Manuel Uyku 🌙",
-            syncedAtMillis = System.currentTimeMillis(),
-            isSuccess = true
-        )
-        HealthSyncManager.saveLastSync(context, selectedDateKey, updatedResult)
-        lastHealthSync = updatedResult
-        slept6HoursPlus = is6hPlus
-        prefs.edit().putBoolean("sleep_6h_plus_$selectedDateKey", is6hPlus).apply()
-        hapticEngine.vibrateSkillCompleted()
-        Toast.makeText(context, "Uyku süresi ${hours}s olarak güncellendi! 🌙", Toast.LENGTH_SHORT).show()
     }
 
     val healthPermissionLauncher = rememberLauncherForActivityResult(
         contract = HealthSyncManager.createPermissionContract()
-    ) { grantedPermissions ->
-        if (grantedPermissions.containsAll(HealthSyncManager.REQUIRED_HEALTH_PERMISSIONS)) {
-            coroutineScope.launch {
-                isSyncingHealth = true
-                val result = HealthSyncManager.fetchTodayHealthData(context)
-                applyHealthSyncResult(result)
-                isSyncingHealth = false
-            }
-        }
-    }
-
-    fun syncHealthData() {
+    ) { _ ->
+        // Partial permission grants must still read available data and report missing permissions.
         coroutineScope.launch {
+            if (isSyncingHealth) return@launch
             isSyncingHealth = true
             try {
-                val availability = HealthSyncManager.checkHealthConnectAvailability(context)
-                if (availability == HealthSyncManager.HealthConnectAvailability.AVAILABLE) {
-                    val hasPerms = HealthSyncManager.hasHealthPermissions(context)
-                    if (!hasPerms) {
-                        healthPermissionLauncher.launch(HealthSyncManager.REQUIRED_HEALTH_PERMISSIONS)
-                        return@launch
-                    }
-                }
-                val result = HealthSyncManager.fetchTodayHealthData(context)
-                applyHealthSyncResult(result)
-            } catch (_: Exception) {
+                applyHealthSyncResult(HealthSyncManager.fetchTodayHealthData(context))
             } finally {
                 isSyncingHealth = false
             }
         }
     }
 
-    // Ekran açıldığında Huawei Sağlık / Health Connect otomatik eşitlensin!
-    LaunchedEffect(Unit) {
-        syncHealthData()
+    fun syncHealthData(requestPermissions: Boolean = true) {
+        if (isSyncingHealth) return
+        isSyncingHealth = true
+        coroutineScope.launch {
+            val syncDateKey = systemTodayKey
+            try {
+                if (requestPermissions &&
+                    HealthSyncManager.checkHealthConnectAvailability(context) ==
+                    HealthSyncManager.HealthConnectAvailability.AVAILABLE &&
+                    !HealthSyncManager.hasHealthPermissions(context)) {
+                    healthPermissionLauncher.launch(HealthSyncManager.REQUIRED_HEALTH_PERMISSIONS)
+                    return@launch
+                }
+                applyHealthSyncResult(HealthSyncManager.fetchTodayHealthData(context))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                healthMessagesByDate[syncDateKey] =
+                    "Sağlık bağlantısı açılamadı. Health Connect izinlerini kontrol edin."
+            } finally {
+                isSyncingHealth = false
+            }
+        }
     }
 
+    LaunchedEffect(systemTodayKey) { syncHealthData(requestPermissions = false) }
+    val refreshHealthOnResume by rememberUpdatedState(newValue = {
+        syncHealthData(requestPermissions = false)
+    })
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) refreshHealthOnResume()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
     // ----------------------------------------------------
     // 5. Su Alarmı State
     // ----------------------------------------------------
@@ -433,7 +405,8 @@ fun DailyTrackerView(
     // ----------------------------------------------------
     // İlerleme Oranları Hesaplamaları
     // ----------------------------------------------------
-    val completedHabitsCount = routineStatusMap.count { it.value }
+    val completedHabitsCount = routineStatusMap.count { it.value } +
+        if (lastHealthSync?.isWalkGoalMet == true) 1 else 0
     val habitRatio = (completedHabitsCount.toFloat() / routineDefinitions.size.toFloat()).coerceIn(0f, 1f)
     val dopamineRatio = if (dopamineStatus == "maintained") 1f else 0f
     val waterRatio = (waterMl.toFloat() / targetWaterMl.toFloat()).coerceIn(0f, 1f)
@@ -506,6 +479,14 @@ fun DailyTrackerView(
             )
         }
 
+        item {
+            Text(
+                text = healthSyncMessage,
+                color = TextMuted,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.fillMaxWidth().clickable { showStepEditDialog = true }
+            )
+        }
         // ====================================================================
         // 3. METRİK 2: SU & HİDRASYON KAPSÜLÜ (Daily Drink Target)
         // ====================================================================
@@ -555,13 +536,14 @@ fun DailyTrackerView(
 
         items(routineDefinitions.size, key = { routineDefinitions[it].id }) { index ->
             val habit = routineDefinitions[index]
-            val isDone = routineStatusMap[habit.id] ?: false
+            val isDone = if (habit.id == "hab_walk") lastHealthSync?.isWalkGoalMet == true
+                else routineStatusMap[habit.id] ?: false
 
             ModernHabitItemRow(
                 habit = habit,
                 isCompleted = isDone,
-                stepsCount = if (habit.id == "hab_walk") effectiveSteps else null,
-                stepSource = if (habit.id == "hab_walk") (lastHealthSync?.source ?: "Huawei") else null,
+                stepsCount = if (habit.id == "hab_walk" && lastHealthSync?.hasStepsData == true)
+                    effectiveSteps else null,
                 onToggle = { toggleRoutine(habit.id) },
                 onLaunchClawssary = {
                     val launchIntent = try {
@@ -615,56 +597,21 @@ fun DailyTrackerView(
         }
     }
 
-    if (showStepEditDialog) {
-        StepEditDialog(
-            currentSteps = effectiveSteps,
-            healthConnectSteps = lastHealthSync?.stepsCount ?: 0L,
-            onDismiss = { showStepEditDialog = false },
-            onSaveSteps = { newSteps ->
-                updateManualSteps(newSteps)
+    if (showStepEditDialog || showSleepEditDialog) {
+        HuaweiHealthSyncDialog(
+            lastSync = lastHealthSync,
+            message = healthSyncMessage,
+            isSyncing = isSyncingHealth,
+            isViewingToday = isViewingToday,
+            onDismiss = {
                 showStepEditDialog = false
-            },
-            onLaunchHuaweiHealth = {
-                HealthSyncManager.launchInstalledHealthApp(context)
-            },
-            onRefreshHealthConnect = {
-                syncHealthData()
-            }
-        )
-    }
-
-    if (showSleepEditDialog) {
-        SleepEditDialog(
-            currentMinutes = lastHealthSync?.sleepMinutesTotal ?: 0L,
-            currentSource = lastHealthSync?.source ?: "Health Connect",
-            onDismiss = { showSleepEditDialog = false },
-            onSaveSleep = { hours ->
-                updateManualSleep(hours)
                 showSleepEditDialog = false
             },
-            onLaunchHuaweiHealth = {
-                HealthSyncManager.launchInstalledHealthApp(context)
-            },
-            onLaunchGoogleFit = {
-                try {
-                    val pm = context.packageManager
-                    val intent = pm.getLaunchIntentForPackage("com.google.android.apps.fitness")
-                    if (intent != null) {
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        context.startActivity(intent)
-                    } else {
-                        Toast.makeText(context, "Google Fit yüklü görünmüyor.", Toast.LENGTH_SHORT).show()
-                    }
-                } catch (e: Exception) {
-                    Toast.makeText(context, "Uygulama açılamadı: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
-            },
-            onRefreshHealthConnect = {
-                syncHealthData()
-            }
+            onLaunchHuaweiHealth = { HealthSyncManager.launchInstalledHealthApp(context) },
+            onOpenHealthConnect = { HealthSyncManager.launchHealthConnectOrStore(context) },
+            onRefresh = { syncHealthData() }
         )
     }
-
     if (showScreenTimeDialog) {
         ScreenTimeDetailDialog(
             socialUsage = socialUsage,
@@ -1246,13 +1193,7 @@ private fun HuaweiSleepAutoCard(
     val mins = totalMins % 60
     val isGoalMet = slept6hPlus || totalMins >= 360
 
-    val cardTitle = when {
-        lastSync?.source?.contains("Google Fit") == true && lastSync.source.contains("Huawei") -> "HUAWEI & FIT UYKU"
-        lastSync?.source?.contains("Google Fit") == true -> "GOOGLE FIT UYKU"
-        lastSync?.source?.contains("Huawei") == true -> "HUAWEI SAĞLIK UYKU"
-        lastSync?.source?.contains("Manuel") == true -> "MANUEL UYKU GİRİŞİ"
-        else -> "OTOMATİK UYKU TAKİBİ"
-    }
+    val cardTitle = "HUAWEI SAĞLIK UYKU"
 
     Card(
         modifier = Modifier
@@ -1313,7 +1254,7 @@ private fun HuaweiSleepAutoCard(
                     Spacer(modifier = Modifier.height(2.dp))
 
                     Text(
-                        text = if (totalMins > 0) "${hours}s ${mins}dk" else "Kayıt Yok • Dokun",
+                        text = if (lastSync?.hasSleepData == true) "${hours}s ${mins}dk" else "Kayıt Yok • Dokun",
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
                             color = if (isGoalMet) StatusCompleted else TextPrimary,
@@ -1555,7 +1496,6 @@ private fun ModernHabitItemRow(
     habit: DailyHabitItem,
     isCompleted: Boolean,
     stepsCount: Long? = null,
-    stepSource: String? = null,
     onToggle: () -> Unit,
     onLaunchClawssary: () -> Unit,
     onLaunchHuaweiHealth: (() -> Unit)? = null
@@ -1661,7 +1601,7 @@ private fun ModernHabitItemRow(
                     )
                 )
 
-                if (stepsCount != null && stepsCount > 0L) {
+                if (stepsCount != null) {
                     Spacer(modifier = Modifier.height(2.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
@@ -1671,15 +1611,8 @@ private fun ModernHabitItemRow(
                             modifier = Modifier.size(13.dp)
                         )
                         Spacer(modifier = Modifier.width(3.dp))
-                        val sourceLabel = when {
-                            stepSource != null && stepSource.contains("Sensör") -> "Sensör"
-                            stepSource != null && stepSource.contains("Huawei") -> "Huawei"
-                            stepSource != null && stepSource.contains("Fit") -> "Google Fit"
-                            stepSource != null && stepSource.contains("Samsung") -> "Samsung"
-                            else -> "Adım"
-                        }
                         Text(
-                            text = "$sourceLabel: $stepsCount / 7.000 Adım",
+                            text = "Huawei: $stepsCount / 7.000 Adım",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 color = if (stepsCount >= 7000) StatusCompleted else AccentCyan,
                                 fontWeight = FontWeight.Bold,
@@ -1853,611 +1786,63 @@ private fun WaterReminderCompactCard(
     }
 }
 
-// ====================================================================
-// ALT BİLEŞEN 7: ADIM EŞİTLEME & DÜZELTME DİYALOĞU
-// ====================================================================
 @Composable
-private fun StepEditDialog(
-    currentSteps: Long,
-    healthConnectSteps: Long,
+private fun HuaweiHealthSyncDialog(
+    lastSync: HealthSyncManager.HealthSyncResult?,
+    message: String,
+    isSyncing: Boolean,
+    isViewingToday: Boolean,
     onDismiss: () -> Unit,
-    onSaveSteps: (Long) -> Unit,
     onLaunchHuaweiHealth: () -> Unit,
-    onRefreshHealthConnect: () -> Unit
+    onOpenHealthConnect: () -> Unit,
+    onRefresh: () -> Unit
 ) {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val hardwareSteps = remember { StepSensorManager.getTodaySteps(context) }
-    var textInput by remember { mutableStateOf(if (currentSteps > 0) currentSteps.toString() else "") }
-
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(24.dp),
         containerColor = PanelNavyElevated,
-        title = {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "⌚", fontSize = 22.sp)
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = "Adım Eşitleme",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary
-                        )
-                    )
-                }
-                IconButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.size(28.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Kapat",
-                        tint = TextDarkMuted,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            }
-        },
+        title = { Text("Huawei Sağlık eşitleme", color = TextPrimary) },
         text = {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                // Bilgilendirme ve Health Connect Durumu
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = PanelNavyHighlight),
-                    border = BorderStroke(1.dp, BorderSubtle)
-                ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "Health Connect Kaydı:",
-                                style = MaterialTheme.typography.labelSmall.copy(color = TextMuted)
-                            )
-                            Text(
-                                text = "$healthConnectSteps adım",
-                                style = MaterialTheme.typography.labelMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    color = AccentCyan
-                                )
-                            )
-                        }
-                        if (hardwareSteps > 0L) {
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "Cihaz Adım Sensörü:",
-                                    style = MaterialTheme.typography.labelSmall.copy(color = TextMuted)
-                                )
-                                Text(
-                                    text = "$hardwareSteps adım",
-                                    style = MaterialTheme.typography.labelMedium.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        color = StatusCompleted
-                                    )
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Huawei Sağlık saat adımlarını Health Connect'e aktarır. Health Connect yoksa cihazın donanım sensörü otomatik kullanılır.",
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                color = TextDarkMuted,
-                                fontSize = 11.sp,
-                                lineHeight = 15.sp
-                            )
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Hızlı Butonlar: Huawei Sağlık'ı Aç & Yeniden Oku
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Button(
-                        onClick = onLaunchHuaweiHealth,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = AccentCyan.copy(alpha = 0.15f),
-                            contentColor = AccentCyan
-                        ),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.OpenInNew,
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "Huawei Sağlık",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp
-                            )
-                        )
-                    }
-
-                    Button(
-                        onClick = onRefreshHealthConnect,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = BranchTools.copy(alpha = 0.15f),
-                            contentColor = BranchTools
-                        ),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "Tekrar Oku",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp
-                            )
-                        )
-                    }
-                }
-
-                if (hardwareSteps > 0L) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Button(
-                        onClick = {
-                            textInput = hardwareSteps.toString()
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = StatusCompleted.copy(alpha = 0.15f),
-                            contentColor = StatusCompleted
-                        ),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.DirectionsWalk,
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Cihaz Sensöründen Doldur ($hardwareSteps adım)",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp
-                            )
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // Elle Adım Girişi
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 Text(
-                    text = "Veya saatindeki güncel adımı yaz:",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        color = TextPrimary
-                    )
+                    text = if (lastSync?.hasStepsData == true) "Adım: ${lastSync.stepsCount}"
+                        else "Adım: Huawei kaydı yok",
+                    color = TextPrimary
                 )
-                Spacer(modifier = Modifier.height(6.dp))
-
-                OutlinedTextField(
-                    value = textInput,
-                    onValueChange = { newValue ->
-                        if (newValue.all { it.isDigit() } && newValue.length <= 6) {
-                            textInput = newValue
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Örn: 7518", color = TextDarkMuted) },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = AccentCyan,
-                        unfocusedBorderColor = BorderSubtle,
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary,
-                        cursorColor = AccentCyan
-                    )
+                Text(
+                    text = if (lastSync?.hasSleepData == true)
+                        "Uyku: ${lastSync.sleepMinutesTotal / 60}s ${lastSync.sleepMinutesTotal % 60}dk"
+                        else "Uyku: Huawei kaydı yok",
+                    color = TextPrimary
                 )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Hızlı Seçim Rozetleri (+500, +1.000, 7000 Hedef, Sıfırla)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    listOf(
-                        "+500" to 500L,
-                        "+1.000" to 1000L,
-                        "7.000 Hedef" to 7000L
-                    ).forEach { (label, delta) ->
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = PanelNavyHighlight,
-                            border = BorderStroke(0.5.dp, BorderSubtle),
-                            modifier = Modifier
-                                .weight(1f)
-                                .clickable {
-                                    val cur = textInput.toLongOrNull() ?: currentSteps
-                                    val newVal = if (delta == 7000L) 7000L else cur + delta
-                                    textInput = newVal.toString()
-                                }
-                        ) {
-                            Text(
-                                text = label,
-                                modifier = Modifier.padding(vertical = 5.dp),
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Medium,
-                                    color = TextPrimary,
-                                    fontSize = 10.sp
-                                ),
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                            )
-                        }
-                    }
-
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = PanelNavyHighlight,
-                        border = BorderStroke(0.5.dp, BorderSubtle),
-                        modifier = Modifier
-                            .weight(0.8f)
-                            .clickable {
-                                textInput = "0"
-                            }
-                    ) {
-                        Text(
-                            text = "Sıfırla",
-                            modifier = Modifier.padding(vertical = 5.dp),
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Medium,
-                                color = StatusFailed,
-                                fontSize = 10.sp
-                            ),
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                        )
-                    }
+                if (lastSync != null) {
+                    Text(
+                        "Son okuma: " + SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault())
+                            .format(Date(lastSync.syncedAtMillis)),
+                        color = TextMuted
+                    )
                 }
+                Text(message, color = TextMuted)
+                Text(
+                    "Huawei Sağlık'ta saati eşitleyin, ardından Health Connect için adım ve uyku " +
+                        "yazma izinlerini açın. Winter Arc'a da adım ve uyku okuma izinlerini verin.",
+                    color = TextMuted
+                )
+                TextButton(onClick = onLaunchHuaweiHealth) { Text("Huawei Sağlık'ı aç") }
+                TextButton(onClick = onOpenHealthConnect) { Text("Health Connect izinleri") }
+                if (!isViewingToday) Text("Yenileme bugünün verilerini okur.", color = TextMuted)
             }
         },
         confirmButton = {
-            Button(
-                onClick = {
-                    val parsed = textInput.toLongOrNull() ?: 0L
-                    onSaveSteps(parsed)
-                },
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = AccentCyan,
-                    contentColor = CanvasDark
-                )
-            ) {
-                Text(
-                    text = "Kaydet",
-                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
-                )
+            TextButton(onClick = onRefresh, enabled = !isSyncing && isViewingToday) {
+                Text(if (isSyncing) "Eşitleniyor…" else "İzin ver ve yenile")
             }
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(
-                    text = "Vazgeç",
-                    style = MaterialTheme.typography.labelMedium.copy(color = TextMuted)
-                )
-            }
-        }
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Kapat") } }
     )
 }
-
-// ====================================================================
-// ALT BİLEŞEN 8: UYKU EŞİTLEME & DÜZELTME DİYALOĞU
-// ====================================================================
-@Composable
-private fun SleepEditDialog(
-    currentMinutes: Long,
-    currentSource: String,
-    onDismiss: () -> Unit,
-    onSaveSleep: (Double) -> Unit,
-    onLaunchHuaweiHealth: () -> Unit,
-    onLaunchGoogleFit: () -> Unit,
-    onRefreshHealthConnect: () -> Unit
-) {
-    val currentHours = if (currentMinutes > 0) String.format(Locale.US, "%.1f", currentMinutes / 60.0) else ""
-    var textInput by remember { mutableStateOf(currentHours) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(24.dp),
-        containerColor = PanelNavyElevated,
-        title = {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "🌙", fontSize = 22.sp)
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = "Uyku Takibi & Eşitleme",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary
-                        )
-                    )
-                }
-                IconButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.size(28.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Kapat",
-                        tint = TextDarkMuted,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            }
-        },
-        text = {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                // Bilgilendirme ve Health Connect Durumu
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = PanelNavyHighlight),
-                    border = BorderStroke(1.dp, BorderSubtle)
-                ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "Mevcut Kayıt:",
-                                style = MaterialTheme.typography.labelSmall.copy(color = TextMuted)
-                            )
-                            Text(
-                                text = if (currentMinutes > 0) "${currentMinutes / 60}s ${currentMinutes % 60}dk" else "Kayıt Yok",
-                                style = MaterialTheme.typography.labelMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (currentMinutes >= 360) StatusCompleted else AccentPurple
-                                )
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Kaynak: $currentSource\nHuawei ve Google Fit uyku seansını bitirdikten sonra Health Connect'e aktarır.",
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                color = TextDarkMuted,
-                                fontSize = 11.sp,
-                                lineHeight = 15.sp
-                            )
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Hızlı Uygulama Açma Butonları
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Button(
-                        onClick = onLaunchHuaweiHealth,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = AccentCyan.copy(alpha = 0.15f),
-                            contentColor = AccentCyan
-                        ),
-                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
-                    ) {
-                        Text(
-                            text = "Huawei ⌚",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp
-                            )
-                        )
-                    }
-
-                    Button(
-                        onClick = onLaunchGoogleFit,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = BranchEnglish.copy(alpha = 0.15f),
-                            contentColor = BranchEnglish
-                        ),
-                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
-                    ) {
-                        Text(
-                            text = "Google Fit 🏃",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp
-                            )
-                        )
-                    }
-
-                    Button(
-                        onClick = onRefreshHealthConnect,
-                        modifier = Modifier.weight(0.9f),
-                        shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = BranchTools.copy(alpha = 0.15f),
-                            contentColor = BranchTools
-                        ),
-                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = null,
-                            modifier = Modifier.size(13.dp)
-                        )
-                        Spacer(modifier = Modifier.width(3.dp))
-                        Text(
-                            text = "Yenile",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp
-                            )
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // Elle Uyku Saati Girişi
-                Text(
-                    text = "Veya dün geceki uykunu saat olarak gir:",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        color = TextPrimary
-                    )
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-
-                OutlinedTextField(
-                    value = textInput,
-                    onValueChange = { newValue ->
-                        if (newValue.length <= 4 && newValue.all { it.isDigit() || it == '.' }) {
-                            textInput = newValue
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Örn: 7.5", color = TextDarkMuted) },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = AccentPurple,
-                        unfocusedBorderColor = BorderSubtle,
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary,
-                        cursorColor = AccentPurple
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Hızlı Seçim Rozetleri (6.0s, 7.0s, 7.5s Hedef, 8.0s, Sıfırla)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(5.dp)
-                ) {
-                    listOf(
-                        "6.0s" to 6.0,
-                        "7.0s" to 7.0,
-                        "7.5s" to 7.5,
-                        "8.0s" to 8.0
-                    ).forEach { (label, hours) ->
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = PanelNavyHighlight,
-                            border = BorderStroke(0.5.dp, BorderSubtle),
-                            modifier = Modifier
-                                .weight(1f)
-                                .clickable {
-                                    textInput = hours.toString()
-                                }
-                        ) {
-                            Text(
-                                text = label,
-                                modifier = Modifier.padding(vertical = 5.dp),
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Medium,
-                                    color = TextPrimary,
-                                    fontSize = 10.sp
-                                ),
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                            )
-                        }
-                    }
-
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = PanelNavyHighlight,
-                        border = BorderStroke(0.5.dp, BorderSubtle),
-                        modifier = Modifier
-                            .weight(0.8f)
-                            .clickable {
-                                textInput = "0"
-                            }
-                    ) {
-                        Text(
-                            text = "Sıfırla",
-                            modifier = Modifier.padding(vertical = 5.dp),
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Medium,
-                                color = StatusFailed,
-                                fontSize = 10.sp
-                            ),
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    val parsed = textInput.toDoubleOrNull() ?: 0.0
-                    onSaveSleep(parsed)
-                },
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = AccentPurple,
-                    contentColor = CanvasDark
-                )
-            ) {
-                Text(
-                    text = "Kaydet",
-                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
-                )
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(
-                    text = "Vazgeç",
-                    style = MaterialTheme.typography.labelMedium.copy(color = TextMuted)
-                )
-            }
-        }
-    )
-}
-
-// ====================================================================
-// ALT BİLEŞEN 8: EKRAN SÜRESİ VE DOPAMİN DETAY DİYALOĞU
-// ====================================================================
 @Composable
 private fun ScreenTimeDetailDialog(
     socialUsage: ScreenTimeHelper.SocialMediaUsage,

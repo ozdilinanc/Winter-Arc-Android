@@ -77,6 +77,7 @@ graph TD
 ### 2. 🔥 Winter Arc Günlük Rutin Takipçisi
 - **Dopamin Detoksu**: Bozulmayan gün serisi (Streak) sayacı, pratik `Bozdum / Bozmadım` butonları ve haptic geri bildirim.
 - **Uyku Disiplini**: 6+ saat kaliteli uyku kontrolü.
+- **Huawei Sağlık**: Health Connect üzerinden yalnızca Huawei kaynaklı adım ve uyku takibi. [Kurulum ve doğrulama](docs/huawei-health-sync.md).
 - **Su Takibi**: 2000ml hedefli dinamik bardak ekleme motoru.
 - **Tarih Filtreli Alışkanlıklar**: Geçmiş günlerin kayıtlarını inceleme ve anlık güncelleme.
 
