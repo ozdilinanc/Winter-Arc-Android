@@ -30,11 +30,15 @@ class CustomTopicRepositoryTest {
     }
 
     @Test
-    fun verifySampleItemsCountIsExactlyThree() {
+    fun verifyLibraryAndOtherSampleItems() {
         val booksRoadmap = RoadmapDataStore.allRoadmaps["sub_reading_books"]
         assertNotNull(booksRoadmap)
         val bookItems = booksRoadmap!!.sections.flatMap { it.items }
-        assertEquals("Kitap Dünyası must contain exactly 3 sample items", 3, bookItems.size)
+        assertEquals(161, bookItems.size)
+        assertEquals(bookItems.size, bookItems.map { it.id }.toSet().size)
+        assertEquals(1, bookItems.count { it.title == "Marcus Aurelius - Kendime Düşünceler" })
+        assertEquals(2, bookItems.count { it.title.startsWith("Antoine de Saint-Exupéry - Küçük Prens") })
+        assertEquals(2, bookItems.count { it.title.startsWith("Jane Austen - Aşk ve Gurur") })
 
         val cardsRoadmap = RoadmapDataStore.allRoadmaps["sub_card_sleights"]
         assertNotNull(cardsRoadmap)
@@ -45,6 +49,17 @@ class CustomTopicRepositoryTest {
         assertNotNull(animeRoadmap)
         val animeItems = animeRoadmap!!.sections.flatMap { it.items }
         assertEquals("Anime & Manhwa must contain exactly 3 sample items", 3, animeItems.size)
+    }
+
+    @Test
+    fun libraryPreservesSavedProgressAndDeletedBooks() {
+        prefs.edit().putString("status_bk_phil_meditations", TopicProgressState.COMPLETED.key).commit()
+        CustomTopicRepository.deleteItem(prefs, "sub_reading_books", "library_book_001")
+        val items = CustomTopicRepository.getEffectiveRoadmap(prefs, "sub_reading_books")!!.sections.flatMap { it.items }
+        assertFalse(items.any { it.id == "library_book_001" })
+        assertEquals(1, RoadmapProgressHelper.getSubItemStats("sub_reading_books", prefs).completedCount)
+        val genres = CustomTopicRepository.getGenresForSubItem("sub_reading_books").map { it.title }.toSet()
+        assertTrue(CustomTopicRepository.getEffectiveRoadmap(prefs, "sub_reading_books")!!.sections.all { it.title in genres })
     }
 
     @Test
@@ -80,7 +95,7 @@ class CustomTopicRepositoryTest {
         val initialRoadmap = CustomTopicRepository.getEffectiveRoadmap(prefs, "sub_reading_books")
         assertNotNull(initialRoadmap)
         val initialCount = initialRoadmap!!.sections.sumOf { it.items.size }
-        assertEquals(3, initialCount)
+        assertEquals(161, initialCount)
 
         val newBook = CustomTopicItem(
             id = "custom_bk_dune_1",
@@ -103,7 +118,7 @@ class CustomTopicRepositoryTest {
         val updatedRoadmap = CustomTopicRepository.getEffectiveRoadmap(prefs, "sub_reading_books")
         assertNotNull(updatedRoadmap)
         val totalItems = updatedRoadmap!!.sections.sumOf { it.items.size }
-        assertEquals(4, totalItems)
+        assertEquals(initialCount + 1, totalItems)
 
         val duneSection = updatedRoadmap.sections.find { it.title == "Bilim Kurgu & Fantastik" }
         assertNotNull("Section for Bilim Kurgu & Fantastik should be created", duneSection)
@@ -152,7 +167,7 @@ class CustomTopicRepositoryTest {
     @Test
     fun testDynamicProgressCalculationWithCustomItems() {
         val initialStats = RoadmapProgressHelper.getSubItemStats("sub_reading_books", prefs)
-        assertEquals(3, initialStats.totalCount)
+        assertEquals(161, initialStats.totalCount)
         assertEquals(0, initialStats.completedCount)
         assertEquals(0, initialStats.progressPercent)
 
@@ -168,9 +183,9 @@ class CustomTopicRepositoryTest {
         )
         CustomTopicRepository.addCustomItem(prefs, customBook)
 
-        // Total should now be 4
+        // A custom book is added to the library
         val statsAfterAdd = RoadmapProgressHelper.getSubItemStats("sub_reading_books", prefs)
-        assertEquals(4, statsAfterAdd.totalCount)
+        assertEquals(initialStats.totalCount + 1, statsAfterAdd.totalCount)
 
         // Complete 2 items (1 seed, 1 custom)
         prefs.edit()
@@ -179,8 +194,8 @@ class CustomTopicRepositoryTest {
             .commit()
 
         val statsAfterCompletion = RoadmapProgressHelper.getSubItemStats("sub_reading_books", prefs)
-        assertEquals(4, statsAfterCompletion.totalCount)
+        assertEquals(initialStats.totalCount + 1, statsAfterCompletion.totalCount)
         assertEquals(2, statsAfterCompletion.completedCount)
-        assertEquals(50, statsAfterCompletion.progressPercent)
+        assertEquals((2f / statsAfterCompletion.totalCount * 100).toInt(), statsAfterCompletion.progressPercent)
     }
 }

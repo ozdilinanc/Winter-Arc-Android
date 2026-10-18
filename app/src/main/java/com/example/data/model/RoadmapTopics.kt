@@ -1174,8 +1174,8 @@ object RoadmapDataStore {
             title = "Kitap Dünyası",
             subtitle = "Tarih, Kişisel Gelişim, Felsefe & Edebiyat",
             emoji = "📚",
-            targetLevel = "Hedef: Kendi Okuma Kütüphaneni Kur & Düzenli Okuma Alışkanlığı",
-            overview = "Tarih perspektifi, zihinsel disiplin, Stoacı felsefe ve başyapıt romanlar. Yeni kitaplar ekleyerek kendi özel okuma yol haritanı oluştur.",
+            targetLevel = "Kişisel kütüphanem",
+            overview = "Kütüphanendeki kitapları bul, okuma durumunu takip et ve yeni kitaplar ekle.",
             sections = listOf(
                 TopicSection(
                     title = "Tarih & Biyografi",
@@ -1213,7 +1213,7 @@ object RoadmapDataStore {
                         )
                     )
                 )
-            )
+            ) + com.example.data.seed.PersonalLibrarySeed.sections
         ),
 
         // ==========================================
