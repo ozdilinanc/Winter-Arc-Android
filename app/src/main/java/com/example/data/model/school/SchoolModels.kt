@@ -15,7 +15,8 @@ data class CourseAttendanceWeek(
     val weekNumber: Int,
     val label: String,
     val status: AttendanceStatus = AttendanceStatus.PENDING,
-    val note: String = ""
+    val note: String = "",
+    val isStudied: Boolean = false
 )
 
 data class GradeWeights(
@@ -137,6 +138,7 @@ data class SchoolCourse(
             weekObj.put("label", week.label)
             weekObj.put("status", week.status.name)
             weekObj.put("note", week.note)
+            weekObj.put("isStudied", week.isStudied)
             attArray.put(weekObj)
         }
         json.put("attendance", attArray)
@@ -180,7 +182,7 @@ data class SchoolCourse(
                     val statusName = item.optString("status", AttendanceStatus.PENDING.name)
                     val status = try { AttendanceStatus.valueOf(statusName) } catch (_: Exception) { AttendanceStatus.PENDING }
                     val note = item.optString("note", "")
-                    attList.add(CourseAttendanceWeek(weekNumber, label, status, note))
+                    attList.add(CourseAttendanceWeek(weekNumber, label, status, note, item.optBoolean("isStudied", false)))
                 }
             }
             val finalAttendance = if (attList.isNotEmpty()) attList else defaultAttendanceWeeks()

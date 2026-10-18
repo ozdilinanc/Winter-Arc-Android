@@ -122,6 +122,24 @@ object SchoolCourseRepository {
     }
 
     @Synchronized
+    fun updateStudyWeek(
+        context: Context,
+        courseId: String,
+        weekNumber: Int,
+        isStudied: Boolean
+    ): List<SchoolCourse> {
+        val updated = getCourses(context).map { course ->
+            if (course.id == courseId) {
+                course.copy(attendance = course.attendance.map { week ->
+                    if (week.weekNumber == weekNumber) week.copy(isStudied = isStudied) else week
+                })
+            } else course
+        }
+        saveCourses(context, updated)
+        return updated
+    }
+
+    @Synchronized
     fun resetToDefaults(context: Context): List<SchoolCourse> {
         val defaults = defaultSemesterCourses()
         saveCourses(context, defaults)

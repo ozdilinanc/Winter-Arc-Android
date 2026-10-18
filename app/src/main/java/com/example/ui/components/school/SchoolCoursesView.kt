@@ -5,6 +5,9 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -55,6 +58,7 @@ fun SchoolCoursesView(
 
     var selectedViewTab by remember { mutableStateOf(initialTab) } // 0: Dersler & Notlar, 1: Haftalık Program
     var activeAttendanceCourseId by remember { mutableStateOf(initialAttendanceCourseId) }
+    var activeStudyCourseId by rememberSaveable { mutableStateOf<String?>(null) }
     var activeGradeDialogCourseId by remember { mutableStateOf<String?>(null) }
     var activeWeightsDialogCourseId by remember { mutableStateOf<String?>(null) }
     var isAddDialogOpen by remember { mutableStateOf(false) }
@@ -64,13 +68,27 @@ fun SchoolCoursesView(
 
     // System Back handling
     BackHandler {
-        if (activeAttendanceCourseId != null) {
+        if (activeStudyCourseId != null) {
+            activeStudyCourseId = null
+        } else if (activeAttendanceCourseId != null) {
             activeAttendanceCourseId = null
         } else if (selectedViewTab != 0) {
             selectedViewTab = 0
         } else {
             onBack()
         }
+    }
+
+    courses.find { it.id == activeStudyCourseId }?.let { course ->
+        CourseStudyDetailView(
+            course = course,
+            onWeekChanged = { weekNumber, checked ->
+                courses = SchoolCourseRepository.updateStudyWeek(context, course.id, weekNumber, checked)
+            },
+            onBack = { activeStudyCourseId = null },
+            modifier = modifier
+        )
+        return
     }
 
     // 16-WEEK ATTENDANCE SCREEN
@@ -400,19 +418,27 @@ fun SchoolCoursesView(
 
         // Courses List
         items(filteredCourses, key = { it.id }) { course ->
-            if (selectedViewTab == 0) {
-                CourseCardItem(
-                    course = course,
-                    onOpenAttendance = { activeAttendanceCourseId = course.id },
-                    onOpenGrades = { activeGradeDialogCourseId = course.id },
-                    onOpenWeights = { activeWeightsDialogCourseId = course.id },
-                    onDelete = { courses = SchoolCourseRepository.deleteCourse(context, course.id) }
-                )
-            } else {
-                CourseAttendanceOverviewCard(
-                    course = course,
-                    onOpenAttendance = { activeAttendanceCourseId = course.id }
-                )
+            Column {
+                if (selectedViewTab == 0) {
+                    CourseCardItem(
+                        course = course,
+                        onOpenAttendance = { activeAttendanceCourseId = course.id },
+                        onOpenGrades = { activeGradeDialogCourseId = course.id },
+                        onOpenWeights = { activeWeightsDialogCourseId = course.id },
+                        onDelete = { courses = SchoolCourseRepository.deleteCourse(context, course.id) }
+                    )
+                } else {
+                    CourseAttendanceOverviewCard(
+                        course = course,
+                        onOpenAttendance = { activeAttendanceCourseId = course.id }
+                    )
+                }
+                TextButton(onClick = { activeStudyCourseId = course.id }) {
+                    Text(
+                        text = "Haftalık çalışma · ${course.attendance.count { it.isStudied }}/${course.attendance.size}",
+                        color = AccentCyan
+                    )
+                }
             }
         }
     }
@@ -2298,6 +2324,66 @@ private fun SemesterSelectChip(
                     fontSize = 11.sp
                 )
             )
+        }
+    }
+}
+
+@Composable
+private fun CourseStudyDetailView(
+    course: SchoolCourse,
+    onWeekChanged: (Int, Boolean) -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    BackHandler(onBack = onBack)
+    LazyColumn(
+        modifier = modifier.fillMaxSize().background(CanvasDark).padding(horizontal = 16.dp),
+        contentPadding = PaddingValues(top = 14.dp, bottom = 32.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        item {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Geri", tint = TextPrimary)
+                }
+                Text("Haftalık çalışma", color = TextPrimary, style = MaterialTheme.typography.titleMedium)
+            }
+            Text(course.name, color = TextPrimary, style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "${course.attendance.count { it.isStudied }}/${course.attendance.size} hafta tamamlandı",
+                color = TextSecondary
+            )
+            Text("Çalışmasını bitirdiğin haftaları işaretle.", color = TextSecondary, fontSize = 13.sp)
+            Spacer(Modifier.height(8.dp))
+        }
+        items(course.attendance, key = { it.weekNumber }) { week ->
+            Row(
+                modifier = Modifier.fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(PanelNavy)
+                    .toggleable(
+                        value = week.isStudied,
+                        role = Role.Checkbox,
+                        onValueChange = { onWeekChanged(week.weekNumber, it) }
+                    )
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = when (week.weekNumber) {
+                        8, 16 -> "${week.weekNumber}. hafta · ${week.label}"
+                        else -> week.label
+                    },
+                    color = TextPrimary,
+                    modifier = Modifier.weight(1f)
+                )
+                Checkbox(
+                    checked = week.isStudied,
+                    onCheckedChange = null,
+                    colors = CheckboxDefaults.colors(checkedColor = AccentCyan)
+                )
+            }
         }
     }
 }

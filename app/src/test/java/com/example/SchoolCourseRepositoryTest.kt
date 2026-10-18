@@ -30,6 +30,35 @@ class SchoolCourseRepositoryTest {
     }
 
     @Test
+    fun studyWeeksPersistIndependentlyOfAttendanceAndGrades() {
+        val course = SchoolCourseRepository.getCourses(context).first()
+        SchoolCourseRepository.updateAttendance(context, course.id, 1, AttendanceStatus.ABSENT, "Not")
+        SchoolCourseRepository.updateStudyWeek(context, course.id, 1, true)
+        SchoolCourseRepository.updateStudyWeek(context, course.id, 8, true)
+        val restored = SchoolCourseRepository.getCourses(context).first { it.id == course.id }
+        assertTrue(restored.attendance.first().isStudied)
+        assertTrue(restored.attendance.first { it.weekNumber == 8 }.isStudied)
+        assertEquals(AttendanceStatus.ABSENT, restored.attendance.first().status)
+        assertEquals("Not", restored.attendance.first().note)
+
+        SchoolCourseRepository.updateAttendance(context, course.id, 1, AttendanceStatus.ATTENDED)
+        assertTrue(SchoolCourseRepository.getCourses(context).first().attendance.first().isStudied)
+        SchoolCourseRepository.updateStudyWeek(context, course.id, 1, false)
+        assertFalse(SchoolCourseRepository.getCourses(context).first().attendance.first().isStudied)
+        assertFalse(SchoolCourseRepository.getCourses(context)[1].attendance.any { it.isStudied })
+    }
+
+    @Test
+    fun oldCourseJsonDefaultsStudyWeeksToUnchecked() {
+        val json = SchoolCourseRepository.getCourses(context).first().toJson()
+        val weeks = json.getJSONArray("attendance")
+        for (index in 0 until weeks.length()) weeks.getJSONObject(index).remove("isStudied")
+        val restored = SchoolCourse.fromJson(json)
+        assertEquals(16, restored.attendance.size)
+        assertFalse(restored.attendance.any { it.isStudied })
+    }
+
+    @Test
     fun verifyDefaultCoursesLoadedCorrectly() {
         val courses = SchoolCourseRepository.getCourses(context)
         assertEquals("Tam olarak 5 ders yüklenmeli", 5, courses.size)
