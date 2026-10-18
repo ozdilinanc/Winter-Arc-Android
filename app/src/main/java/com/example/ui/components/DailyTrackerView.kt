@@ -92,7 +92,8 @@ fun DailyTrackerView(
     onCompleteSkill: ((SkillNode) -> Unit)? = null,
     onCycleFocus: (() -> Unit)? = null,
     onOpenThemePicker: () -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    healthDetailsOnly: Boolean = false
 ) {
     val context = LocalContext.current
     val hapticEngine = rememberHapticEngine()
@@ -211,7 +212,7 @@ fun DailyTrackerView(
 
     // Ekran süresini periyodik/ekran açılışında güncelle
     LaunchedEffect(systemTodayKey, isViewingToday) {
-        if (isViewingToday) {
+        if (isViewingToday && !healthDetailsOnly) {
             socialUsage = ScreenTimeHelper.getTodaySocialUsage(context)
             if (socialUsage.isPermissionGranted) {
                 // Instagram süresi limite göre otomatik statü belirleme
@@ -430,40 +431,56 @@ fun DailyTrackerView(
         // ====================================================================
         // 1. HERO SECTION: Nutrio-İlhamlı Büyük Çember & 3'lü Disiplin Halkaları
         // ====================================================================
-        item {
-            NutrioDailyHeroCard(
-                formattedDate = formattedDate,
-                isViewingToday = isViewingToday,
-                onPrevDay = { navigatePrevDay() },
-                onNextDay = { navigateNextDay() },
-                onResetToToday = { resetToToday() },
-                streakCount = streakCount,
-                completedTotalGoals = completedTotalGoals,
-                totalGoals = totalGoals,
-                overallDailyRatio = overallDailyRatio,
-                completedHabitsCount = completedHabitsCount,
-                totalHabitsCount = routineDefinitions.size,
-                habitRatio = habitRatio,
-                waterMl = waterMl,
-                targetWaterMl = targetWaterMl,
-                waterRatio = waterRatio,
-                socialUsage = socialUsage,
-                dopamineStatus = dopamineStatus,
-                slept6HoursPlus = slept6HoursPlus,
-                onOpenThemePicker = onOpenThemePicker,
-                onTapRoutineRing = {
-                    hapticEngine.vibrateSelection()
-                    Toast.makeText(context, "3 Temel Rutin: $completedHabitsCount/3 tamamlandı ✅", Toast.LENGTH_SHORT).show()
-                },
-                onTapWaterRing = {
-                    hapticEngine.vibrateSelection()
-                    showHydrationSheet = true
-                },
-                onTapDopamineRing = {
-                    hapticEngine.vibrateSelection()
-                    showScreenTimeDialog = true
+        if (healthDetailsOnly) {
+            item {
+                Text(formattedDate, color = TextPrimary, style = MaterialTheme.typography.titleMedium)
+                Row {
+                    TextButton(onClick = { navigatePrevDay() }) { Text("Önceki gün") }
+                    TextButton(onClick = { resetToToday() }, enabled = !isViewingToday) { Text("Bugün") }
+                    TextButton(onClick = { navigateNextDay() }, enabled = !isViewingToday) { Text("Sonraki gün") }
                 }
-            )
+                Text(
+                    if (lastHealthSync?.hasStepsData == true) "Adım: $effectiveSteps" else "Henüz adım verisi yok.",
+                    color = TextSecondary, modifier = Modifier.clickable { showStepEditDialog = true }
+                )
+            }
+        } else {
+            item {
+                NutrioDailyHeroCard(
+                    formattedDate = formattedDate,
+                    isViewingToday = isViewingToday,
+                    onPrevDay = { navigatePrevDay() },
+                    onNextDay = { navigateNextDay() },
+                    onResetToToday = { resetToToday() },
+                    streakCount = streakCount,
+                    completedTotalGoals = completedTotalGoals,
+                    totalGoals = totalGoals,
+                    overallDailyRatio = overallDailyRatio,
+                    completedHabitsCount = completedHabitsCount,
+                    totalHabitsCount = routineDefinitions.size,
+                    habitRatio = habitRatio,
+                    waterMl = waterMl,
+                    targetWaterMl = targetWaterMl,
+                    waterRatio = waterRatio,
+                    socialUsage = socialUsage,
+                    dopamineStatus = dopamineStatus,
+                    slept6HoursPlus = slept6HoursPlus,
+                    onOpenThemePicker = onOpenThemePicker,
+                    onTapRoutineRing = {
+                        hapticEngine.vibrateSelection()
+                        Toast.makeText(context, "3 Temel Rutin: $completedHabitsCount/3 tamamlandı ✅", Toast.LENGTH_SHORT).show()
+                    },
+                    onTapWaterRing = {
+                        hapticEngine.vibrateSelection()
+                        showHydrationSheet = true
+                    },
+                    onTapDopamineRing = {
+                        hapticEngine.vibrateSelection()
+                        showScreenTimeDialog = true
+                    }
+                )
+            }
+
         }
 
         // ====================================================================
@@ -505,80 +522,83 @@ fun DailyTrackerView(
         // ====================================================================
         // 4. METRİK 3: DOPAMİN & INSTAGRAM EKRAN SÜRESİ KALKANI
         // ====================================================================
-        item {
-            DopamineScreenTimeCard(
-                socialUsage = socialUsage,
-                dopamineStatus = dopamineStatus,
-                onCardClick = { showScreenTimeDialog = true },
-                onOpenSettings = {
-                    ScreenTimeHelper.openUsageSettings(context)
-                },
-                onManualMaintain = { setDopamineManual(true) },
-                onManualBreak = { setDopamineManual(false) }
-            )
-        }
+        if (!healthDetailsOnly) {
+            item {
+                DopamineScreenTimeCard(
+                    socialUsage = socialUsage,
+                    dopamineStatus = dopamineStatus,
+                    onCardClick = { showScreenTimeDialog = true },
+                    onOpenSettings = {
+                        ScreenTimeHelper.openUsageSettings(context)
+                    },
+                    onManualMaintain = { setDopamineManual(true) },
+                    onManualBreak = { setDopamineManual(false) }
+                )
+            }
 
-        // ====================================================================
-        // 5. GÜNLÜK 3 TEMEL RUTİN (Yürüyüş, Kitap, Clawssary İngilizce)
-        // ====================================================================
-        item {
-            Text(
-                text = "GÜNLÜK RUTİNLER (3 HEDEF)",
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = AccentCyan,
-                    letterSpacing = 1.sp,
-                    fontSize = 11.sp
-                ),
-                modifier = Modifier.padding(top = 4.dp)
-            )
-        }
+            // ====================================================================
+            // 5. GÜNLÜK 3 TEMEL RUTİN (Yürüyüş, Kitap, Clawssary İngilizce)
+            // ====================================================================
+            item {
+                Text(
+                    text = "GÜNLÜK RUTİNLER (3 HEDEF)",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = AccentCyan,
+                        letterSpacing = 1.sp,
+                        fontSize = 11.sp
+                    ),
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
 
-        items(routineDefinitions.size, key = { routineDefinitions[it].id }) { index ->
-            val habit = routineDefinitions[index]
-            val isDone = if (habit.id == "hab_walk") lastHealthSync?.isWalkGoalMet == true
-                else routineStatusMap[habit.id] ?: false
+            items(routineDefinitions.size, key = { routineDefinitions[it].id }) { index ->
+                val habit = routineDefinitions[index]
+                val isDone = if (habit.id == "hab_walk") lastHealthSync?.isWalkGoalMet == true
+                    else routineStatusMap[habit.id] ?: false
 
-            ModernHabitItemRow(
-                habit = habit,
-                isCompleted = isDone,
-                stepsCount = if (habit.id == "hab_walk" && lastHealthSync?.hasStepsData == true)
-                    effectiveSteps else null,
-                onToggle = { toggleRoutine(habit.id) },
-                onLaunchClawssary = {
-                    val launchIntent = try {
-                        context.packageManager.getLaunchIntentForPackage(CLAWSSARY_PACKAGE)
-                    } catch (e: Exception) {
-                        null
-                    }
-                    if (launchIntent != null) {
-                        try {
-                            hapticEngine.vibrateSkillCompleted()
-                            context.startActivity(launchIntent)
-                            if (!isDone) {
-                                toggleRoutine(habit.id)
-                            }
+                ModernHabitItemRow(
+                    habit = habit,
+                    isCompleted = isDone,
+                    stepsCount = if (habit.id == "hab_walk" && lastHealthSync?.hasStepsData == true)
+                        effectiveSteps else null,
+                    onToggle = { toggleRoutine(habit.id) },
+                    onLaunchClawssary = {
+                        val launchIntent = try {
+                            context.packageManager.getLaunchIntentForPackage(CLAWSSARY_PACKAGE)
                         } catch (e: Exception) {
-                            Toast.makeText(context, "Uygulama açılamadı: ${e.message}", Toast.LENGTH_SHORT).show()
+                            null
                         }
-                    } else {
-                        // Uygulama yüklü değilse doğrudan mağazaya veya bilgilendirmeye yönlendir
-                        hapticEngine.vibrateSelection()
-                        try {
-                            val marketIntent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("market://details?id=$CLAWSSARY_PACKAGE"))
-                            marketIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            context.startActivity(marketIntent)
-                        } catch (_: Exception) {
-                            val webIntent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://play.google.com/store/apps/details?id=$CLAWSSARY_PACKAGE"))
-                            webIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            context.startActivity(webIntent)
+                        if (launchIntent != null) {
+                            try {
+                                hapticEngine.vibrateSkillCompleted()
+                                context.startActivity(launchIntent)
+                                if (!isDone) {
+                                    toggleRoutine(habit.id)
+                                }
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Uygulama açılamadı: ${e.message}", Toast.LENGTH_SHORT).show()
+                            }
+                        } else {
+                            // Uygulama yüklü değilse doğrudan mağazaya veya bilgilendirmeye yönlendir
+                            hapticEngine.vibrateSelection()
+                            try {
+                                val marketIntent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("market://details?id=$CLAWSSARY_PACKAGE"))
+                                marketIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                context.startActivity(marketIntent)
+                            } catch (_: Exception) {
+                                val webIntent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://play.google.com/store/apps/details?id=$CLAWSSARY_PACKAGE"))
+                                webIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                context.startActivity(webIntent)
+                            }
                         }
+                    },
+                    onLaunchHuaweiHealth = {
+                        showStepEditDialog = true
                     }
-                },
-                onLaunchHuaweiHealth = {
-                    showStepEditDialog = true
-                }
-            )
+                )
+            }
+
         }
 
         // ====================================================================

@@ -408,7 +408,7 @@ private fun SleekTopBar(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = if (!lastMalUsername.isNullOrBlank()) "@$lastMalUsername • Eşitle" else "MAL Hesabı Bağla",
+                        text = if (!lastMalUsername.isNullOrBlank()) "@$lastMalUsername · İçe aktar" else "MAL’dan içe aktar",
                         style = MaterialTheme.typography.labelSmall.copy(
                             color = palette.accentIndigo,
                             fontWeight = FontWeight.SemiBold,
@@ -991,7 +991,7 @@ private fun MediaListItemCard(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "MAL: ${anime.malWatchedEpisodes}. Bölüm • Yerel: ${anime.watchedEpisodes} (${if (anime.syncDiff > 0) "+${anime.syncDiff}" else "${anime.syncDiff}"} Güncellenecek)",
+                            text = "MAL: ${anime.malWatchedEpisodes}. Bölüm • Yerel: ${anime.watchedEpisodes} (${if (anime.syncDiff > 0) "+${anime.syncDiff}" else "${anime.syncDiff}"} · MAL’a aktarılmadı)",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 color = palette.accentAmber,
                                 fontWeight = FontWeight.SemiBold,
@@ -1139,13 +1139,13 @@ private fun MalSyncDialog(
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
-                                "MyAnimeList Senkronizasyonu",
+                                "MyAnimeList’ten içe aktar",
                                 fontWeight = FontWeight.Bold,
                                 color = palette.textPrimary,
                                 fontSize = 15.sp
                             )
                             Text(
-                                "Anime ve Manga listenizi eşitleyin",
+                                "Herkese açık listeni cihazına al",
                                 color = palette.textSecondary,
                                 fontSize = 11.5.sp
                             )
@@ -1164,7 +1164,7 @@ private fun MalSyncDialog(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = "MyAnimeList kullanıcı adınızı girin. Açık olan hem Anime hem de Manga & Manhwa listeleriniz kaydedilmiş bölümleri ve orijinal puanlarıyla birlikte cihazınıza aktarılır.",
+                    text = "Kullanıcı adınla herkese açık anime ve manga listeni içeri alabilirsin. Buradaki değişiklikler MAL hesabına gönderilmez.",
                     color = palette.textSecondary,
                     fontSize = 12.sp,
                     lineHeight = 16.sp

@@ -108,16 +108,7 @@ fun SkillTreeApp(
                 }
 
                 SkillDashboardViewMode.CATEGORIES -> {
-                    CategoriesDashboardView(
-                        skills = uiState.allSkills,
-                        projects = uiState.projects,
-                        onAdvanceProjectStage = viewModel::advanceProjectStage,
-                        onRegressProjectStage = viewModel::regressProjectStage,
-                        onCreateProject = viewModel::createProject,
-                        onDeleteProject = viewModel::deleteProject,
-                        onOpenThemePicker = { isThemePickerOpen = true },
-                        onCategorySelected = { /* Deep category details to be added later */ }
-                    )
+                    CategoriesDashboardView(onOpenThemePicker = { isThemePickerOpen = true })
                 }
 
                 SkillDashboardViewMode.SCHEDULE -> {
@@ -127,15 +118,7 @@ fun SkillTreeApp(
                 }
 
                 SkillDashboardViewMode.DAILY_TRACKER -> {
-                    DailyTrackerView(
-                        focusSkill = uiState.currentDailyFocusSkill,
-                        onCompleteSkill = { skill ->
-                            hapticEngine.vibrateSkillCompleted()
-                            viewModel.onUpdateSkillStatus(skill.id, SkillStatus.COMPLETED)
-                        },
-                        onCycleFocus = viewModel::cycleNextDailyFocusSkill,
-                        onOpenThemePicker = { isThemePickerOpen = true }
-                    )
+                    TodayHubView(onOpenThemePicker = { isThemePickerOpen = true })
                 }
 
                 SkillDashboardViewMode.PROGRESS_ANALYTICS -> {
@@ -270,7 +253,7 @@ private fun ElegantDarkBottomNav(
                     modifier = Modifier.weight(1f)
                 )
                 NavDockButton(
-                    item = NavDestination(SkillDashboardViewMode.CATEGORIES, Icons.Outlined.Dashboard, "KATEGORİ"),
+                    item = NavDestination(SkillDashboardViewMode.CATEGORIES, Icons.Outlined.Dashboard, "ALANLAR"),
                     isSelected = currentMode == SkillDashboardViewMode.CATEGORIES,
                     palette = palette,
                     haptic = haptic,
@@ -544,7 +527,7 @@ private fun SkillTreeComingSoonView(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "Tüm yol haritalarına, .NET & Android yetkinliklerine, projelere ve BTK Akademi diploma takibine şu an Kategoriler sekmesinden eksiksiz ulaşabilirsin.",
+                    text = "Backend ve Android konularına, BTK kurslarına ve ürettiğin işlere Alanlarım sekmesinden ulaşabilirsin.",
                     style = MaterialTheme.typography.bodySmall.copy(
                         color = TextMuted,
                         fontSize = 12.sp,
@@ -572,7 +555,7 @@ private fun SkillTreeComingSoonView(
                             modifier = Modifier.size(18.dp)
                         )
                         Text(
-                            text = "Kategorilere Git",
+                            text = "Alanlarıma git",
                             style = MaterialTheme.typography.labelLarge.copy(
                                 fontWeight = FontWeight.Bold,
                                 color = CanvasDark,

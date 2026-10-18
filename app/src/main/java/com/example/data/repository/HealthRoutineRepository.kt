@@ -7,6 +7,31 @@ object HealthRoutineRepository {
     const val PREFS_NAME = "winter_arc_daily_tracker"
     val habits = listOf("nutrition", "movement", "sleep")
 
+    val hobbies = linkedMapOf(
+        "hab_reading" to "Kitap okuma",
+        "hab_english" to "Clawssary / İngilizce",
+        "hab_cards" to "Kart numarası çalışması",
+        "hab_spanish" to "İspanyolca"
+    )
+
+    fun enabledHobbies(prefs: SharedPreferences): Set<String> =
+        prefs.getStringSet("enabled_hobbies", setOf("hab_reading", "hab_english"))!!.intersect(hobbies.keys)
+
+    fun setHobbyEnabled(prefs: SharedPreferences, id: String, enabled: Boolean) {
+        require(id in hobbies)
+        val selected = enabledHobbies(prefs).toMutableSet()
+        if (enabled) selected.add(id) else selected.remove(id)
+        prefs.edit().putStringSet("enabled_hobbies", selected).apply()
+    }
+
+    fun isHobbyCompleted(prefs: SharedPreferences, date: String, id: String): Boolean =
+        prefs.getBoolean("${id}_$date", false)
+
+    fun setHobbyCompleted(prefs: SharedPreferences, date: String, id: String, completed: Boolean) {
+        require(id in hobbies)
+        prefs.edit().putBoolean("${id}_$date", completed).apply()
+    }
+
     fun isCompleted(prefs: SharedPreferences, date: String, habit: String): Boolean =
         prefs.getBoolean("health_${habit}_$date", false)
 

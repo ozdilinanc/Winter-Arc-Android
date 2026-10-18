@@ -75,7 +75,7 @@ object AnimeRepository {
 
     @Synchronized
     fun getLastMalUsername(context: Context): String? {
-        return getPrefs(context).getString(KEY_LAST_MAL_USERNAME, null)
+        return getPrefs(context).getString(KEY_LAST_MAL_USERNAME, "ozdilinanc13")
     }
 
     @Synchronized

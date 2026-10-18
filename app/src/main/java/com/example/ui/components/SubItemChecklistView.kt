@@ -627,6 +627,7 @@ fun SubItemChecklistView(
                 onUpdateState = { itemId, newState ->
                     updateItemState(itemId, newState)
                 },
+                initiallyExpanded = subItemId == "sub_medium" || searchQuery.isNotBlank(),
                 onDeleteItem = if (isCustomizable) { item -> itemToDelete = item } else null
             )
         }
@@ -718,9 +719,10 @@ private fun TopicSectionCard(
     accentColor: Color,
     itemStates: Map<String, TopicProgressState>,
     onUpdateState: (String, TopicProgressState) -> Unit,
-    onDeleteItem: ((TopicCheckItem) -> Unit)? = null
+    onDeleteItem: ((TopicCheckItem) -> Unit)? = null,
+    initiallyExpanded: Boolean = false
 ) {
-    var isExpanded by remember { mutableStateOf(true) }
+    var isExpanded by remember(section.title, initiallyExpanded) { mutableStateOf(initiallyExpanded) }
     val sectionCompletedCount = section.items.count { itemStates[it.id] == TopicProgressState.COMPLETED }
 
     Card(

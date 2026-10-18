@@ -42,6 +42,19 @@ class HealthRoutineRepositoryTest {
     }
 
     @Test
+    fun hobbySelectionKeepsPreviousReadingAndEnglishRecords() {
+        prefs.edit().clear().putBoolean("hab_reading_2026-10-19", true).commit()
+        assertTrue(Routine.enabledHobbies(prefs).contains("hab_reading"))
+        assertTrue(Routine.isHobbyCompleted(prefs, "2026-10-19", "hab_reading"))
+        Routine.setHobbyEnabled(prefs, "hab_reading", false)
+        assertFalse(Routine.enabledHobbies(prefs).contains("hab_reading"))
+        Routine.setHobbyEnabled(prefs, "hab_reading", true)
+        assertTrue(Routine.isHobbyCompleted(prefs, "2026-10-19", "hab_reading"))
+        Routine.setHobbyCompleted(prefs, "2026-10-19", "hab_cards", true)
+        assertFalse(Routine.isHobbyCompleted(prefs, "2026-10-20", "hab_cards"))
+    }
+
+    @Test
     fun healthRoutineHasNoLegacyLearningChecklist() {
         val roadmap = RoadmapDataStore.allRoadmaps.getValue("sub_winter_arc_discipline")
         assertEquals("Sağlık & Rutin", roadmap.title)

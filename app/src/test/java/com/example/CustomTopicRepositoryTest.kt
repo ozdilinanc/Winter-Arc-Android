@@ -43,7 +43,7 @@ class CustomTopicRepositoryTest {
         val cardsRoadmap = RoadmapDataStore.allRoadmaps["sub_card_sleights"]
         assertNotNull(cardsRoadmap)
         val cardItems = cardsRoadmap!!.sections.flatMap { it.items }
-        assertEquals("Kart Numaraları must contain exactly 3 sample items", 3, cardItems.size)
+        assertTrue("Kart numaraları boş başlamalı", cardItems.isEmpty())
 
         val animeRoadmap = RoadmapDataStore.allRoadmaps["sub_anime_manhwa"]
         assertNotNull(animeRoadmap)
@@ -152,16 +152,16 @@ class CustomTopicRepositoryTest {
 
     @Test
     fun testDeleteSampleSeedItem() {
-        // "crd_grips" is one of the initial seed items
-        val initialRoadmap = CustomTopicRepository.getEffectiveRoadmap(prefs, "sub_card_sleights")
-        assertTrue(initialRoadmap!!.sections.flatMap { it.items }.any { it.id == "crd_grips" })
+        // Deleting a library seed must persist without changing other books.
+        val initialRoadmap = CustomTopicRepository.getEffectiveRoadmap(prefs, "sub_reading_books")
+        assertTrue(initialRoadmap!!.sections.flatMap { it.items }.any { it.id == "library_book_001" })
 
         // Delete the seed item
-        CustomTopicRepository.deleteItem(prefs, "sub_card_sleights", "crd_grips")
+        CustomTopicRepository.deleteItem(prefs, "sub_reading_books", "library_book_001")
 
-        val updatedRoadmap = CustomTopicRepository.getEffectiveRoadmap(prefs, "sub_card_sleights")
-        assertFalse(updatedRoadmap!!.sections.flatMap { it.items }.any { it.id == "crd_grips" })
-        assertEquals(2, updatedRoadmap.sections.sumOf { it.items.size })
+        val updatedRoadmap = CustomTopicRepository.getEffectiveRoadmap(prefs, "sub_reading_books")
+        assertFalse(updatedRoadmap!!.sections.flatMap { it.items }.any { it.id == "library_book_001" })
+        assertEquals(160, updatedRoadmap.sections.sumOf { it.items.size })
     }
 
     @Test
