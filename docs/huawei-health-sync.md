@@ -13,6 +13,25 @@ Bir uygulamanın yüklü olması veya yazma izni bulunması, veri aktardığın�
 
 Huawei'nin mevcut gizlilik açıklaması Android'de Health Connect'e fitness ve uyku paylaşımını tanımlar. Telefonunuzdaki sürüm/bölgede bu özellik bulunmuyorsa uygulama bunu tek başına açamaz. Health Connect kullanmadan doğrudan erişim için ayrı Huawei Health Kit/AppGallery Connect kurulumu ve ilgili okuma kapsamlarının Huawei tarafından onaylanması gerekir; bu projede doğrudan HMS bağlantısı yoktur.
 
+## Mevcut cihazda doğrulanan engel — 14 Ekim 2026
+
+Android 16 ve Huawei Sağlık 17.0.7.310 ile yapılan kontrolde Huawei Sağlık'ın adım/uyku yazma izinleri ve Winter Arc'ın okuma izinleri açıktı. Buna rağmen Huawei kaynaklı bugünkü kayıtlar okunamadı. Huawei Sağlık'ın **Veri paylaşımı ve yetkilendirme** ekranında Health Connect bağlantısı görünmüyordu. Dolayısıyla yalnızca Android izinlerini açmak aktarımı başlatmadı.
+
+Health Sync kullanılmayacak ve Huawei geliştirici kaydı/Health Kit onayı henüz yok. Bu durumda otomatik veri aktarımı **henüz çalışır durumda değildir**. Kaynak filtreleme, hesaplama, hata görünürlüğü ve önbellek düzeltmeleri uygulanmıştır; bunlar eksik Huawei veri erişiminin yerini tutmaz.
+
+### Doğrudan Huawei Health Kit için gereken kayıt
+
+1. Huawei Developer/AppGallery Connect'te bir Android uygulaması oluşturun. Paket adı: `com.aistudio.skilltree.cegraph`.
+2. Bu projenin `debug.keystore` imzasına ait SHA-256 parmak izini ekleyin:
+
+   ```text
+   CB:A9:31:A6:88:4A:28:59:5A:78:E3:08:A2:A8:4B:58:49:4B:7A:2F:07:03:41:2A:49:F8:C6:C5:C9:70:BB:74
+   ```
+
+   Bu yalnızca mevcut debug imzasıdır. Release sürümünde kullanılan imzanın parmak izi ayrıca kaydedilmelidir.
+3. Account Kit ve Health Kit hizmetlerine başvurun; **adım okuma** ve **uyku okuma** kapsamları için erişim isteyin. Sadece adım onayı, uyku erişimini sağlamaz. Gerekli geliştirici hesap türü ve veri kapsamı uygunluğunu Huawei konsolunda doğrulayın.
+4. App ID ve onaylı kapsamlar hazır olduğunda Account Kit kullanıcı giriş/yetkilendirme akışı ve Health Kit üzerinden Huawei Sağlık veri okuma uygulanabilir. Kullanıcı kendi Huawei hesabıyla onay vermelidir; hesap parolası kaynak koda eklenmez.
+
 ## Hesaplama ve veri bulunamaması
 
 - Adım: yerel saatle bugün 00:00 ile okuma anı arasında, Huawei kaynağına filtrelenmiş resmi aggregate API sonucu. Ham kayıt toplamıyla maksimum alınmaz ve geleceğe zaman tamponu eklenmez.
@@ -34,3 +53,4 @@ Testler kaynak dışlama, eski veya gelecekte biten oturumlar, yerel uyanma tari
 - [Huawei Sağlık veri paylaşımı açıklaması](https://privacy-dre.dbankcdn.com/agreement/scope/huawei/health/privacy-statement/hkgroup_b0_20260910_0/default/privacy-statement-en-us.htm)
 - [Android: aggregate sorgularını veri kaynağına filtreleme](https://developer.android.com/health-and-fitness/health-connect/aggregate-data#filter-by-data-origin)
 - [Android: kayıt okuma ve sayfalama](https://developer.android.com/health-and-fitness/health-connect/read-data)
+- [Huawei: Health Kit başvurusu, uygulama kurulumu ve kullanıcı yetkilendirmesi](https://developer.huawei.com/consumer/en/codelab/MyHealth/)
