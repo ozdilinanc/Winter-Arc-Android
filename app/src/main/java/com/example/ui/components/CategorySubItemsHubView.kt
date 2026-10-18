@@ -122,6 +122,11 @@ fun CategorySubItemsHubView(
             return
         }
 
+        if (selectedSubItemId == "sub_winter_arc_discipline") {
+            HealthRoutineView(onBack = { selectedSubItemId = null }, modifier = modifier)
+            return
+        }
+
         SubItemChecklistView(
             subItemId = selectedSubItemId!!,
             accentColor = accentColor,
@@ -428,6 +433,7 @@ fun CategorySubItemsHubView(
                                         Text(
                                             text = when (item.id) {
                                                 "sub_personal_projects", "sub_projects" -> "${stats.completedCount}/${stats.totalCount} Proje"
+                                                "sub_winter_arc_discipline" -> "4 alışkanlık"
                                                 "sub_btk_akademi" -> "${stats.completedCount}/${stats.totalCount} Sertifika"
                                                 "sub_anime_manhwa" -> "${stats.completedCount}/${stats.totalCount} Seri"
                                                 else -> "${stats.completedCount}/${stats.totalCount} Konu"

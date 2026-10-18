@@ -172,12 +172,12 @@ private val techCultureSubItems = listOf(
 private val personalDevSubItems = listOf(
     CategorySubItem(
         id = "sub_winter_arc_discipline",
-        title = "Winter Arc & Sağlık Protokolü",
-        subtitle = "Uyku, Dopamin Detoksu, Su, Beslenme & Spor",
+        title = "Sağlık & Rutin",
+        subtitle = "Beslenme, yürüyüş/koşu, uyku ve su",
         emoji = "❄️",
-        description = "Bozdum/Bozmadım dopamin detoksu, sirkadiyen uyku ritmi, 3.5L su, temiz beslenme, fitness, tenis ve yürüyüş.",
-        tag = "Disiplin & Rutin",
-        icon = Icons.Outlined.AcUnit
+        description = "Dört günlük alışkanlık için sade takip.",
+        tag = "Günlük takip",
+        icon = Icons.Outlined.FavoriteBorder
     ),
     CategorySubItem(
         id = "sub_reading_books",
@@ -340,8 +340,8 @@ fun CategoriesDashboardView(
             CategorySubItemsHubView(
                 categoryTitle = "KİŞİSEL GELİŞİM",
                 categoryEmoji = "🌱",
-                categorySubtitle = "Winter Arc, Alışkanlıklar & Hobiler",
-                categoryDescription = "Dopamin detoksu, uyku, beslenme, spor, tenis, kitaplar, kart illüzyonları, anime/manhwa ve İngilizce.",
+                categorySubtitle = "Sağlık, Alışkanlıklar & Hobiler",
+                categoryDescription = "Beslenme, hareket, uyku, su, kitaplar, kart illüzyonları, anime/manhwa ve İngilizce.",
                 accentColor = AccentAmber,
                 subItems = personalDevSubItems,
                 categoryIcon = Icons.Outlined.FitnessCenter,
@@ -407,10 +407,10 @@ fun CategoriesDashboardView(
             title = "KİŞİSEL GELİŞİM",
             emoji = "🌱",
             icon = Icons.Outlined.FitnessCenter,
-            subtitle = "Winter Arc, Alışkanlıklar & Hobiler",
-            description = "Dopamin detoksu, uyku, spor/tenis, tarih ve gelişim kitapları, kart illüzyonları, anime/manhwa ve İngilizce.",
+            subtitle = "Sağlık, Alışkanlıklar & Hobiler",
+            description = "Sağlık rutinleri, kitaplar, kart illüzyonları, anime/manhwa ve İngilizce.",
             accentColor = AccentAmber,
-            tags = listOf("Winter Arc", "Kitaplar", "Kart Numaraları", "Anime/Manhwa", "İngilizce"),
+            tags = listOf("Sağlık & Rutin", "Kitaplar", "Kart Numaraları", "Anime/Manhwa", "İngilizce"),
             branchIds = listOf(BranchId.ENGLISH, BranchId.SECOND_LANGUAGE, BranchId.KNOWLEDGE_MANAGEMENT)
         ),
         CategoryMeta(
