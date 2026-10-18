@@ -418,27 +418,21 @@ fun SchoolCoursesView(
 
         // Courses List
         items(filteredCourses, key = { it.id }) { course ->
-            Column {
-                if (selectedViewTab == 0) {
-                    CourseCardItem(
-                        course = course,
-                        onOpenAttendance = { activeAttendanceCourseId = course.id },
-                        onOpenGrades = { activeGradeDialogCourseId = course.id },
-                        onOpenWeights = { activeWeightsDialogCourseId = course.id },
-                        onDelete = { courses = SchoolCourseRepository.deleteCourse(context, course.id) }
-                    )
-                } else {
-                    CourseAttendanceOverviewCard(
-                        course = course,
-                        onOpenAttendance = { activeAttendanceCourseId = course.id }
-                    )
-                }
-                TextButton(onClick = { activeStudyCourseId = course.id }) {
-                    Text(
-                        text = "Haftalık çalışma · ${course.attendance.count { it.isStudied }}/${course.attendance.size}",
-                        color = AccentCyan
-                    )
-                }
+            if (selectedViewTab == 0) {
+                CourseCardItem(
+                    course = course,
+                    onOpenAttendance = { activeAttendanceCourseId = course.id },
+                    onOpenStudy = { activeStudyCourseId = course.id },
+                    onOpenGrades = { activeGradeDialogCourseId = course.id },
+                    onOpenWeights = { activeWeightsDialogCourseId = course.id },
+                    onDelete = { courses = SchoolCourseRepository.deleteCourse(context, course.id) }
+                )
+            } else {
+                CourseAttendanceOverviewCard(
+                    course = course,
+                    onOpenAttendance = { activeAttendanceCourseId = course.id },
+                    onOpenStudy = { activeStudyCourseId = course.id }
+                )
             }
         }
     }
@@ -541,7 +535,8 @@ private fun SemesterFilterChip(
 @Composable
 private fun CourseAttendanceOverviewCard(
     course: SchoolCourse,
-    onOpenAttendance: () -> Unit
+    onOpenAttendance: () -> Unit,
+    onOpenStudy: () -> Unit
 ) {
     val totalAbsent = course.absentCount
     val isFailed = course.isFailedDueToAbsence
@@ -717,6 +712,9 @@ private fun CourseAttendanceOverviewCard(
                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold)
                 )
             }
+            Spacer(Modifier.height(12.dp))
+            CourseStudyAction(course = course, onClick = onOpenStudy)
+
         }
     }
 }
@@ -725,6 +723,7 @@ private fun CourseAttendanceOverviewCard(
 private fun CourseCardItem(
     course: SchoolCourse,
     onOpenAttendance: () -> Unit,
+    onOpenStudy: () -> Unit,
     onOpenGrades: () -> Unit,
     onOpenWeights: () -> Unit,
     onDelete: () -> Unit
@@ -1088,6 +1087,51 @@ private fun CourseCardItem(
                     )
                 }
             }
+            Spacer(Modifier.height(12.dp))
+            CourseStudyAction(course = course, onClick = onOpenStudy)
+
+        }
+    }
+}
+
+@Composable
+internal fun CourseStudyAction(course: SchoolCourse, onClick: () -> Unit) {
+    val completed = course.attendance.count { it.isStudied }
+    val total = course.attendance.size
+    val progress = if (total > 0) completed.toFloat() / total else 0f
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = AccentCyan.copy(alpha = 0.06f),
+        border = BorderStroke(1.dp, AccentCyan.copy(alpha = 0.18f))
+    ) {
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                Icons.AutoMirrored.Outlined.MenuBook, contentDescription = null,
+                tint = AccentCyan, modifier = Modifier.size(22.dp)
+            )
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "Haftalık çalışma", color = TextPrimary,
+                        style = MaterialTheme.typography.labelLarge,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text("$completed/$total hafta", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+                }
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(2.dp)),
+                    color = AccentCyan, trackColor = BorderSubtle,
+                    drawStopIndicator = {}
+                )
+            }
+            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = TextMuted, modifier = Modifier.size(18.dp))
         }
     }
 }
