@@ -1,4 +1,8 @@
-# Huawei Sağlık bağlantısı
+# Huawei Sağlık bağlantısı — arşiv
+
+> **19 Ekim 2026:** Kullanıcının isteğiyle Huawei entegrasyonundan vazgeçildi. Günlük ekranda yürüyüş/koşu, egzersiz, uyku ve beslenme elle işaretlenir. Health Connect izinleri ve günlük eşitleme akışı kaldırıldı. Geliştirici hesabı açılması veya dosya indirilmesi gerekmiyor. Güncel kullanım: [Günlük ekranı](daily-screen.md).
+>
+> Aşağıdaki metin önceki bağlantı denemesinin tarihsel notlarıdır; mevcut uygulama için kurulum talimatı değildir. Eski okuyucu kodu günlük ekrana bağlı değildir; cihaz tanısı testi kaldırılmıştır.
 
 Winter Arc, Health Connect üzerinden **yalnızca `com.huawei.health` tarafından yazılan** adım, uyku, aktif kalori ve egzersiz oturumu kayıtlarını okur. Google Fit entegrasyonu, Health Sync köprüsü, Samsung Health, Android'in kendi adım sayacı ve elle girilmiş eski toplamlar bu sonuçlara dahil edilmez. Health Connect burada telefonun yerel veri paylaşım katmanıdır; Google Fit hesabı gerektirmez.
 

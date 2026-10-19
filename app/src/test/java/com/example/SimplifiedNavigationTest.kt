@@ -73,9 +73,9 @@ class SimplifiedNavigationTest {
 
     @Test fun dailyShowsSimpleHealthAndOptionalHobbies() {
         compose.setContent { MyApplicationTheme { TodayHubView(onOpenThemePicker = {}) } }
-        compose.onNodeWithText("Huawei Sağlık").assertIsDisplayed()
-        compose.onNodeWithText("Aktif kalori").assertIsDisplayed()
-        compose.onNodeWithText("Egzersiz").assertIsDisplayed()
+        compose.onNodeWithText("Kitap okuma").assertIsDisplayed()
+        compose.onNodeWithText("İngilizce").assertIsDisplayed()
+        compose.onNodeWithText("Huawei Sağlık").assertDoesNotExist()
         compose.onRoot().captureRoboImage("build/previews/winterarc-daily.png")
         compose.onNodeWithText("Düzenle").performScrollTo().performClick()
         compose.onNodeWithText("Günlük hobilerin").assertIsDisplayed()
@@ -86,6 +86,7 @@ class SimplifiedNavigationTest {
         compose.onNodeWithTag("daily_routines").performScrollToNode(hasText("Düzenli uyku"))
         compose.onNodeWithText("Sağlıklı beslenme").assertIsDisplayed()
         compose.onNodeWithText("Yürüyüş / koşu").assertIsDisplayed()
+        compose.onNodeWithText("Egzersiz").assertIsDisplayed()
         compose.onNodeWithText("Düzenli uyku").assertIsDisplayed()
         compose.onRoot().captureRoboImage("build/previews/winterarc-daily-lower.png")
     }

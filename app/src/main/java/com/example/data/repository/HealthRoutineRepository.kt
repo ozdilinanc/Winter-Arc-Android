@@ -5,7 +5,7 @@ import android.content.SharedPreferences
 /** Uses the daily tracker's existing water storage so both screens share one record. */
 object HealthRoutineRepository {
     const val PREFS_NAME = "winter_arc_daily_tracker"
-    val habits = listOf("nutrition", "movement", "sleep")
+    val habits = listOf("nutrition", "movement", "exercise", "sleep")
 
     val hobbies = linkedMapOf(
         "hab_reading" to "Kitap okuma",

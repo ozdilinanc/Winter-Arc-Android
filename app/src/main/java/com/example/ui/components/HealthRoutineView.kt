@@ -57,8 +57,6 @@ fun HealthRoutineView(
     var today by remember { mutableStateOf(LocalDate.now()) }
     var showHobbyPicker by rememberSaveable { mutableStateOf(false) }
     var showWaterSettings by rememberSaveable { mutableStateOf(false) }
-    var showConnection by rememberSaveable { mutableStateOf(false) }
-    val (health, connect) = rememberDailyHealthState(date)
     fun refreshDay() {
         val fresh = LocalDate.now()
         if (dateKey == today.toString()) dateKey = fresh.toString()
@@ -112,10 +110,6 @@ fun HealthRoutineView(
             Spacer(Modifier.height(16.dp))
             DailyDateStrip(date, today, onSelect = { dateKey = it.toString() })
         }
-        item(key = "watch") {
-            DailyWatchCard(health.result, health.isRefreshing, health.isCached,
-                onOpenConnection = { showConnection = true })
-        }
         if (showHobbies) item(key = "hobbies") {
             DailySectionHeading("Kendime zaman", "Düzenle") { showHobbyPicker = true }
             if (enabledHobbies.isEmpty()) {
@@ -150,10 +144,6 @@ fun HealthRoutineView(
                 }
             }
         }
-        item(key = "water") {
-            DailyWaterCard(water, target, onAdd = { Routine.addWater(prefs, dateKey, 250) },
-                onRemove = { Routine.addWater(prefs, dateKey, -250) }, onSettings = { showWaterSettings = true })
-        }
         item(key = "routines") {
             DailySectionHeading("Günün rutini")
             DailySurface {
@@ -163,12 +153,18 @@ fun HealthRoutineView(
                 DailyRoutineRow("Yürüyüş / koşu", "Hareket için zaman ayırdım", Icons.AutoMirrored.Outlined.DirectionsWalk,
                     "movement" in checkedHabits, { Routine.setCompleted(prefs, dateKey, "movement", it) })
                 DailyDivider()
+                DailyRoutineRow("Egzersiz", "Antrenman yaptım", Icons.Outlined.FitnessCenter,
+                    "exercise" in checkedHabits, { Routine.setCompleted(prefs, dateKey, "exercise", it) })
+                DailyDivider()
                 DailyRoutineRow("Düzenli uyku", "Uyku düzenime dikkat ettim", Icons.Outlined.Bedtime,
                     "sleep" in checkedHabits, { Routine.setCompleted(prefs, dateKey, "sleep", it) })
             }
         }
+        item(key = "water") {
+            DailyWaterCard(water, target, onAdd = { Routine.addWater(prefs, dateKey, 250) },
+                onRemove = { Routine.addWater(prefs, dateKey, -250) }, onSettings = { showWaterSettings = true })
+        }
     }
-    if (showConnection) DailyHealthConnectionSheet(health, connect, onDismiss = { showConnection = false })
     if (showWaterSettings) WaterSettingsDialog(prefs, target, onDismiss = { showWaterSettings = false })
     if (showHobbyPicker) {
         AlertDialog(onDismissRequest = { showHobbyPicker = false }, title = { Text("Günlük hobilerin") }, text = {

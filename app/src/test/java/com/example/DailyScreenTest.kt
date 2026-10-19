@@ -11,7 +11,6 @@ import com.example.data.repository.HealthRoutineRepository as Routine
 import com.example.ui.components.TodayHubView
 import com.example.ui.theme.AppThemePalette
 import com.example.ui.theme.MyApplicationTheme
-import com.example.ui.util.HealthSyncManager
 import com.github.takahirom.roborazzi.captureRoboImage
 import org.junit.Assert.*
 import org.junit.Before
@@ -33,7 +32,6 @@ class DailyScreenTest {
 
     @Before fun reset() {
         prefs.edit().clear().commit()
-        context.getSharedPreferences("winter_arc_huawei_sync_v2", Context.MODE_PRIVATE).edit().clear().commit()
     }
 
     @Test fun waterAndHobbiesStayOnTheSelectedDate() {
@@ -58,24 +56,34 @@ class DailyScreenTest {
         compose.onNodeWithText("Kitap okuma").assertIsOn()
     }
 
-    @Test fun missingWatchDataIsNotDisplayedAsZeroAndConnectionCanBeOpened() {
+    @Test fun manualExerciseCanBeCheckedAndUncheckedWithoutChangingOtherDays() {
+        val today = LocalDate.now().toString()
+        val previous = LocalDate.now().minusWeeks(1).toString()
+        prefs.edit().putBoolean("health_movement_$today", true)
+            .putBoolean("health_sleep_$today", true)
+            .putBoolean("health_exercise_$previous", true).commit()
         compose.setContent { MyApplicationTheme { TodayHubView(onOpenThemePicker = {}) } }
-        compose.onAllNodesWithText("Kayıt yok").assertCountEquals(4)
-        compose.onNodeWithContentDescription("Huawei bağlantısı").performClick()
-        compose.onNodeWithText("Saat bağlantısı").assertIsDisplayed()
-        compose.onNodeWithText("İzin ver ve kontrol et").assertExists()
+        compose.onNodeWithContentDescription("Huawei bağlantısı").assertDoesNotExist()
+        compose.onNodeWithText("Huawei Sağlık").assertDoesNotExist()
+        compose.onNodeWithTag("daily_routines").performScrollToNode(hasText("Düzenli uyku"))
+        compose.onNodeWithText("Yürüyüş / koşu").assertIsOn()
+        compose.onNodeWithText("Düzenli uyku").assertIsOn()
+        compose.onNodeWithText("Egzersiz").assertIsOff().performClick().assertIsOn()
+        compose.runOnIdle { assertTrue(Routine.isCompleted(prefs, today, "exercise")) }
+        compose.onNodeWithText("Egzersiz").performClick().assertIsOff()
+        compose.runOnIdle {
+            assertFalse(Routine.isCompleted(prefs, today, "exercise"))
+            assertTrue(Routine.isCompleted(prefs, previous, "exercise"))
+            assertTrue(Routine.isCompleted(prefs, today, "movement"))
+            assertTrue(Routine.isCompleted(prefs, today, "sleep"))
+        }
     }
 
-    @Test fun verifiedCacheIsLabelledAndRendersInLightTheme() {
-        val day = LocalDate.now().toString()
-        HealthSyncManager.saveLastSync(context, day, HealthSyncManager.HealthSyncResult(
-            stepsCount = 8234, sleepMinutesTotal = 452, activeCaloriesKcal = 386.0,
-            exerciseMinutesTotal = 42, exerciseCount = 1, hasStepsData = true, hasSleepData = true,
-            hasCaloriesData = true, hasExerciseData = true, isSuccess = true, dateKey = day))
+    @Test fun savedHobbiesRenderInLightTheme() {
+        prefs.edit().putBoolean("hab_reading_${LocalDate.now()}", true).commit()
         compose.setContent { MyApplicationTheme(palette = AppThemePalette.LightPaper) { TodayHubView(onOpenThemePicker = {}) } }
-        compose.onNodeWithText("Son kayıt gösteriliyor").assertIsDisplayed()
-        compose.onNodeWithText("8.234").assertIsDisplayed()
-        compose.onNodeWithText("7 sa 32 dk").assertIsDisplayed()
+        compose.onNodeWithText("Kitap okuma").assertIsOn()
+        compose.onNodeWithText("İngilizce").assertIsOff()
         compose.onRoot().captureRoboImage("build/previews/winterarc-daily-light.png")
     }
 
@@ -87,7 +95,7 @@ class DailyScreenTest {
                 MyApplicationTheme { TodayHubView(onOpenThemePicker = {}) }
             }
         }
-        compose.onNodeWithContentDescription("Huawei bağlantısı").assertIsDisplayed()
+        compose.onNodeWithText("Kendime zaman").assertIsDisplayed()
         compose.onRoot().captureRoboImage("build/previews/winterarc-daily-large-text.png")
         compose.onNodeWithTag("daily_routines").performScrollToNode(hasText("250 ml ekle"))
         compose.onNodeWithText("250 ml ekle").assertIsDisplayed().performClick()
