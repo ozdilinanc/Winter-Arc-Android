@@ -1,4 +1,4 @@
-﻿package com.example.ui.util
+package com.example.ui.util
 
 import android.content.Context
 import android.content.Intent
@@ -9,6 +9,8 @@ import androidx.activity.result.contract.ActivityResultContract
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.PermissionController
 import androidx.health.connect.client.permission.HealthPermission
+import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
+import androidx.health.connect.client.records.ExerciseSessionRecord
 import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.records.metadata.DataOrigin
@@ -36,7 +38,9 @@ object HealthSyncManager {
 
     val REQUIRED_HEALTH_PERMISSIONS: Set<String> by lazy {
         setOf(HealthPermission.getReadPermission(StepsRecord::class),
-            HealthPermission.getReadPermission(SleepSessionRecord::class))
+            HealthPermission.getReadPermission(SleepSessionRecord::class),
+            HealthPermission.getReadPermission(ActiveCaloriesBurnedRecord::class),
+            HealthPermission.getReadPermission(ExerciseSessionRecord::class))
     }
     enum class HealthConnectAvailability { AVAILABLE, NOT_INSTALLED, NOT_SUPPORTED }
 
@@ -53,7 +57,14 @@ object HealthSyncManager {
         val message: String = "",
         val hasStepsData: Boolean = false,
         val hasSleepData: Boolean = false,
-        val dateKey: String = LocalDate.now().toString()
+        val dateKey: String = LocalDate.now().toString(),
+        val activeCaloriesKcal: Double = 0.0,
+        val exerciseMinutesTotal: Long = 0L,
+        val exerciseCount: Int = 0,
+        val hasCaloriesData: Boolean = false,
+        val hasExerciseData: Boolean = false,
+        // Retained values from an earlier read are always labelled in the daily screen.
+        val staleMetrics: Set<String> = emptySet()
     )
 
     fun checkHealthConnectAvailability(context: Context): HealthConnectAvailability =
@@ -78,11 +89,16 @@ object HealthSyncManager {
     fun createPermissionContract(): ActivityResultContract<Set<String>, Set<String>> =
         PermissionController.createRequestPermissionResultContract()
 
-    suspend fun fetchTodayHealthData(context: Context): HealthSyncResult = withContext(Dispatchers.IO) {
+    suspend fun fetchTodayHealthData(context: Context): HealthSyncResult = fetchHealthData(context, LocalDate.now())
+
+    suspend fun fetchHealthData(context: Context, date: LocalDate): HealthSyncResult = withContext(Dispatchers.IO) {
         val now = Instant.now()
         val zone = ZoneId.systemDefault()
-        val today = now.atZone(zone).toLocalDate()
+        val today = date
+        val start = date.atStartOfDay(zone).toInstant()
+        val end = minOf(now, date.plusDays(1).atStartOfDay(zone).toInstant())
         fun failure(message: String) = HealthSyncResult(message = message, dateKey = today.toString())
+        if (!end.isAfter(start)) return@withContext failure("Bu tarih için henüz kayıt yok.")
         when (checkHealthConnectAvailability(context)) {
             HealthConnectAvailability.NOT_INSTALLED -> return@withContext failure(
                 "Health Connect kurulmalı veya güncellenmeli. Huawei Sağlık paylaşımını da etkinleştirin.")
@@ -96,18 +112,19 @@ object HealthSyncManager {
             val messages = mutableListOf<String>()
             var steps: Long? = null
             var sleepMinutes: Long? = null
+            var calories: Double? = null
+            var exercise: Pair<Long, Int>? = null
             if (HealthPermission.getReadPermission(StepsRecord::class) in granted) {
                 try {
-                    val start = today.atStartOfDay(zone).toInstant()
-                    if (now.isAfter(start)) {
+                    if (end.isAfter(start)) {
                         // No raw sums, other sources, hardware fallback or future-time buffer.
                         steps = client.aggregate(AggregateRequest(
                             metrics = setOf(StepsRecord.COUNT_TOTAL),
-                            timeRangeFilter = TimeRangeFilter.between(start, now),
+                            timeRangeFilter = TimeRangeFilter.between(start, end),
                             dataOriginFilter = huaweiOrigin
                         ))[StepsRecord.COUNT_TOTAL]
                     }
-                    if (steps == null) messages += "Bugün için Huawei adım kaydı bulunamadı."
+                    if (steps == null) messages += "Seçili gün için Huawei adım kaydı bulunamadı."
                 } catch (e: CancellationException) { throw e
                 } catch (e: Exception) {
                     Log.e(TAG, "Huawei steps read failed", e)
@@ -123,7 +140,7 @@ object HealthSyncManager {
                         val response = client.readRecords(ReadRecordsRequest(
                             recordType = SleepSessionRecord::class,
                             timeRangeFilter = TimeRangeFilter.between(
-                                today.minusDays(1).atStartOfDay(zone).toInstant(), now),
+                                today.minusDays(1).atStartOfDay(zone).toInstant(), end),
                             dataOriginFilter = huaweiOrigin,
                             pageToken = token
                         ))
@@ -131,18 +148,49 @@ object HealthSyncManager {
                         token = response.pageToken
                     } while (!token.isNullOrEmpty())
                     sleepMinutes = calculateHuaweiSleepMinutes(records, today, zone, now)
-                    if (sleepMinutes == null) messages += "Bugün biten Huawei uyku kaydı bulunamadı."
+                    if (sleepMinutes == null) messages += "Seçili gün biten Huawei uyku kaydı bulunamadı."
                 } catch (e: CancellationException) { throw e
                 } catch (e: Exception) {
                     Log.e(TAG, "Huawei sleep read failed", e)
                     messages += "Huawei uykusu okunamadı; izinleri kontrol edip tekrar deneyin."
                 }
             } else messages += "Uyku okuma izni verilmedi."
-            if (steps == null || sleepMinutes == null) messages +=
-                "Huawei Sağlık > Ben > Gizlilik yönetimi > Veri paylaşımı ve yetkilendirme bölümünde " +
-                "Health Connect paylaşımını kontrol edin ve saatinizi eşitleyin. " +
-                "Bu seçenek yoksa Huawei Sağlık sürümünü ve bölge desteğini kontrol edin. " +
-                "Yalnızca Huawei Sağlık kayıtları okunur."
+            if (HealthPermission.getReadPermission(ActiveCaloriesBurnedRecord::class) in granted) {
+                try {
+                    calories = client.aggregate(AggregateRequest(
+                        metrics = setOf(ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL),
+                        timeRangeFilter = TimeRangeFilter.between(start, end),
+                        dataOriginFilter = huaweiOrigin
+                    ))[ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL]?.inKilocalories
+                    if (calories == null) messages += "Huawei aktif kalori kaydı bulunamadı."
+                } catch (e: CancellationException) { throw e
+                } catch (e: Exception) {
+                    Log.w(TAG, "Huawei calories read failed", e)
+                    messages += "Aktif kalori verisi okunamadı."
+                }
+            } else messages += "Aktif kalori okuma izni verilmedi."
+
+            if (HealthPermission.getReadPermission(ExerciseSessionRecord::class) in granted) {
+                try {
+                    val records = mutableListOf<ExerciseSessionRecord>()
+                    var token: String? = null
+                    do {
+                        val page = client.readRecords(ReadRecordsRequest(
+                            recordType = ExerciseSessionRecord::class,
+                            timeRangeFilter = TimeRangeFilter.between(start, end),
+                            dataOriginFilter = huaweiOrigin, pageToken = token
+                        ))
+                        records += page.records
+                        token = page.pageToken
+                    } while (!token.isNullOrEmpty())
+                    exercise = calculateHuaweiExercise(records, date, zone, now)
+                    if (exercise == null) messages += "Huawei egzersiz kaydı bulunamadı."
+                } catch (e: CancellationException) { throw e
+                } catch (e: Exception) {
+                    Log.w(TAG, "Huawei exercise read failed", e)
+                    messages += "Egzersiz verisi okunamadı."
+                }
+            } else messages += "Egzersiz okuma izni verilmedi."
             val minutes = sleepMinutes ?: 0L
             val hours = minutes / 60.0
             HealthSyncResult(
@@ -150,10 +198,12 @@ object HealthSyncManager {
                 sleepQuality = determineSleepQuality(hours),
                 isSleep6hPlus = sleepMinutes != null && isSleepTargetAchieved(hours),
                 isWalkGoalMet = steps != null && isWalkTargetAchieved(steps),
-                syncedAtMillis = now.toEpochMilli(), isSuccess = steps != null || sleepMinutes != null,
-                message = messages.joinToString(" ").ifEmpty { "Huawei adım ve uyku verileri güncellendi." },
+                syncedAtMillis = now.toEpochMilli(), isSuccess = steps != null || sleepMinutes != null || calories != null || exercise != null,
+                message = messages.joinToString(" ").ifEmpty { "Huawei Sağlık verileri güncellendi." },
                 hasStepsData = steps != null, hasSleepData = sleepMinutes != null,
-                dateKey = today.toString()
+                dateKey = today.toString(), activeCaloriesKcal = calories ?: 0.0,
+                exerciseMinutesTotal = exercise?.first ?: 0L, exerciseCount = exercise?.second ?: 0,
+                hasCaloriesData = calories != null, hasExerciseData = exercise != null
             )
         } catch (e: CancellationException) { throw e
         } catch (e: Exception) {
@@ -200,6 +250,22 @@ object HealthSyncManager {
             }
         }
         return total.toMinutes()
+    }
+
+    /** Completed sessions only; daily elapsed session time, including breaks. Never infer from steps. */
+    internal fun calculateHuaweiExercise(
+        records: List<ExerciseSessionRecord>, date: LocalDate, zone: ZoneId, now: Instant
+    ): Pair<Long, Int>? {
+        val start = date.atStartOfDay(zone).toInstant()
+        val end = minOf(now, date.plusDays(1).atStartOfDay(zone).toInstant())
+        val sessions = records.filter {
+            it.metadata.dataOrigin.packageName == HUAWEI_HEALTH_PACKAGE &&
+                !it.endTime.isAfter(now) && it.startTime < end && it.endTime > start
+        }.distinctBy { Triple(it.startTime, it.endTime, it.exerciseType) }
+        if (sessions.isEmpty()) return null
+        val intervals = mergeIntervals(sessions.map { maxOf(start, it.startTime) to minOf(end, it.endTime) })
+        val seconds = intervals.sumOf { Duration.between(it.first, it.second).seconds }
+        return seconds / 60 to sessions.size
     }
 
     private fun mergeIntervals(intervals: List<Pair<Instant, Instant>>): List<Pair<Instant, Instant>> {
@@ -251,13 +317,26 @@ object HealthSyncManager {
     }
 
     fun saveLastSync(context: Context, todayKey: String, result: HealthSyncResult) {
-        if (!result.isSuccess || (!result.hasStepsData && !result.hasSleepData) ||
+        if (!result.isSuccess || (!result.hasStepsData && !result.hasSleepData &&
+                !result.hasCaloriesData && !result.hasExerciseData) ||
             result.source != HUAWEI_SOURCE || todayKey != result.dateKey) return
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
-            .putLong("steps_$todayKey", result.stepsCount)
-            .putLong("sleep_minutes_$todayKey", result.sleepMinutesTotal)
-            .putBoolean("has_steps_$todayKey", result.hasStepsData)
-            .putBoolean("has_sleep_$todayKey", result.hasSleepData)
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val editor = prefs.edit()
+        val stale = mutableSetOf<String>()
+        fun mark(metric: String, fresh: Boolean) {
+            if (fresh) editor.putBoolean("has_${metric}_$todayKey", true)
+            else if (prefs.getBoolean("has_${metric}_$todayKey", false)) stale += metric
+        }
+        mark("steps", result.hasStepsData)
+        mark("sleep", result.hasSleepData)
+        mark("calories", result.hasCaloriesData)
+        mark("exercise", result.hasExerciseData)
+        if (result.hasStepsData) editor.putLong("steps_$todayKey", result.stepsCount)
+        if (result.hasSleepData) editor.putLong("sleep_minutes_$todayKey", result.sleepMinutesTotal)
+        if (result.hasCaloriesData) editor.putFloat("calories_$todayKey", result.activeCaloriesKcal.toFloat())
+        if (result.hasExerciseData) editor.putLong("exercise_minutes_$todayKey", result.exerciseMinutesTotal)
+            .putInt("exercise_count_$todayKey", result.exerciseCount)
+        editor.putStringSet("stale_$todayKey", stale)
             .putString("message_$todayKey", result.message)
             .putLong("time_$todayKey", result.syncedAtMillis).apply()
     }
@@ -271,13 +350,20 @@ object HealthSyncManager {
         val hours = minutes / 60.0
         val hasSteps = prefs.getBoolean("has_steps_$todayKey", false)
         val hasSleep = prefs.getBoolean("has_sleep_$todayKey", false)
+        val hasCalories = prefs.getBoolean("has_calories_$todayKey", false)
+        val hasExercise = prefs.getBoolean("has_exercise_$todayKey", false)
         return HealthSyncResult(
             stepsCount = steps, sleepHours = hours, sleepMinutesTotal = minutes,
             sleepQuality = determineSleepQuality(hours),
             isSleep6hPlus = hasSleep && isSleepTargetAchieved(hours),
             isWalkGoalMet = hasSteps && isWalkTargetAchieved(steps),
-            syncedAtMillis = time, isSuccess = hasSteps || hasSleep,
+            syncedAtMillis = time, isSuccess = hasSteps || hasSleep || hasCalories || hasExercise,
             message = prefs.getString("message_$todayKey", "") ?: "",
-            hasStepsData = hasSteps, hasSleepData = hasSleep, dateKey = todayKey)
+            hasStepsData = hasSteps, hasSleepData = hasSleep, dateKey = todayKey,
+            activeCaloriesKcal = prefs.getFloat("calories_$todayKey", 0f).toDouble(),
+            exerciseMinutesTotal = prefs.getLong("exercise_minutes_$todayKey", 0L),
+            exerciseCount = prefs.getInt("exercise_count_$todayKey", 0),
+            hasCaloriesData = hasCalories, hasExerciseData = hasExercise,
+            staleMetrics = prefs.getStringSet("stale_$todayKey", emptySet())!!.toSet())
     }
 }

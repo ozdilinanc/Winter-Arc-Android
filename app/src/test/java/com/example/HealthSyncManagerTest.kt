@@ -2,6 +2,8 @@ package com.example
 
 import android.content.Context
 import androidx.health.connect.client.permission.HealthPermission
+import androidx.health.connect.client.records.ExerciseSessionRecord
+import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
 import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.records.metadata.DataOrigin
@@ -72,7 +74,9 @@ class HealthSyncManagerTest {
     @Test
     fun testRequiredHealthPermissionsContainsStepsAndSleep() {
         val permissions = HealthSyncManager.REQUIRED_HEALTH_PERMISSIONS
-        assertEquals(2, permissions.size)
+        assertEquals(4, permissions.size)
+        assertTrue(permissions.contains(HealthPermission.getReadPermission(ActiveCaloriesBurnedRecord::class)))
+        assertTrue(permissions.contains(HealthPermission.getReadPermission(ExerciseSessionRecord::class)))
         assertTrue(permissions.contains(HealthPermission.getReadPermission(StepsRecord::class)))
         assertTrue(permissions.contains(HealthPermission.getReadPermission(SleepSessionRecord::class)))
     }
@@ -236,5 +240,57 @@ class HealthSyncManagerTest {
             HealthSyncManager.HealthSyncResult(stepsCount = 7100L, hasStepsData = true,
                 isSuccess = true, dateKey = date.toString()))
         assertNull(HealthSyncManager.getLastSync(context, date.plusDays(1).toString()))
+    }
+
+    private fun exercise(start: String, end: String, origin: String = HealthSyncManager.HUAWEI_HEALTH_PACKAGE) =
+        ExerciseSessionRecord(startTime = Instant.parse(start), startZoneOffset = null,
+            endTime = Instant.parse(end), endZoneOffset = null,
+            exerciseType = ExerciseSessionRecord.EXERCISE_TYPE_WALKING,
+            metadata = Metadata(dataOrigin = DataOrigin(origin)))
+
+    @Test fun exerciseClipsToLocalDayAndDeduplicatesOverlappingSessions() {
+        val crossing = exercise("2026-10-13T20:45:00Z", "2026-10-13T21:15:00Z")
+        val overlap = exercise("2026-10-13T21:10:00Z", "2026-10-13T21:30:00Z")
+        val summary = HealthSyncManager.calculateHuaweiExercise(listOf(crossing, crossing, overlap), date, zone, now)
+        assertEquals(30L, summary!!.first)
+        assertEquals(2, summary.second)
+    }
+
+    @Test fun exerciseRejectsOtherSourcesAndUnfinishedSessions() {
+        val summary = HealthSyncManager.calculateHuaweiExercise(listOf(
+            exercise("2026-10-14T07:00:00Z", "2026-10-14T08:00:00Z", "nl.appyhapps.healthsync"),
+            exercise("2026-10-14T11:00:00Z", "2026-10-14T13:00:00Z"),
+            exercise("2026-10-12T07:00:00Z", "2026-10-12T08:00:00Z")
+        ), date, zone, now)
+        assertNull(summary)
+    }
+
+    @Test fun partialReadPreservesEarlierMetricsAndMarksThemStale() {
+        val key = date.toString()
+        HealthSyncManager.saveLastSync(context, key, HealthSyncManager.HealthSyncResult(
+            stepsCount = 4000, hasStepsData = true, isSuccess = true, dateKey = key,
+            activeCaloriesKcal = 201.5, hasCaloriesData = true))
+        HealthSyncManager.saveLastSync(context, key, HealthSyncManager.HealthSyncResult(
+            sleepMinutesTotal = 420, hasSleepData = true, isSuccess = true, dateKey = key,
+            exerciseMinutesTotal = 32, exerciseCount = 1, hasExerciseData = true))
+        val saved = HealthSyncManager.getLastSync(context, key)!!
+        assertEquals(4000L, saved.stepsCount)
+        assertEquals(201.5, saved.activeCaloriesKcal, 0.001)
+        assertEquals(32L, saved.exerciseMinutesTotal)
+        assertEquals(1, saved.exerciseCount)
+        assertEquals(setOf("steps", "calories"), saved.staleMetrics)
+        assertTrue(saved.hasExerciseData)
+        assertTrue(saved.hasCaloriesData)
+    }
+
+    @Test fun caloriesOnlyResultCanBeCachedWithoutInventingStepsOrExercise() {
+        val key = date.toString()
+        HealthSyncManager.saveLastSync(context, key, HealthSyncManager.HealthSyncResult(
+            activeCaloriesKcal = 0.0, hasCaloriesData = true, isSuccess = true, dateKey = key))
+        val saved = HealthSyncManager.getLastSync(context, key)!!
+        assertTrue(saved.hasCaloriesData)
+        assertFalse(saved.hasStepsData)
+        assertFalse(saved.hasExerciseData)
+        assertEquals(0.0, saved.activeCaloriesKcal, 0.0)
     }
 }

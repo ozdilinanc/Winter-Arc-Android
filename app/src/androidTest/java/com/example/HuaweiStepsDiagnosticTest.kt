@@ -19,9 +19,24 @@ import org.junit.runner.RunWith
 import java.time.Instant
 import java.time.ZoneId
 
-/** Read-only device diagnostic: sleep and third-party writers are deliberately excluded. */
+/** Read-only device diagnostics; no records are inserted, changed or deleted. */
 @RunWith(AndroidJUnit4::class)
 class HuaweiStepsDiagnosticTest {
+    @Test
+    fun inspectDailyHuaweiMetrics() = runBlocking {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val context = instrumentation.targetContext
+        val result = HealthSyncManager.fetchTodayHealthData(context)
+        val permissions = if (HealthConnectClient.getSdkStatus(context) == HealthConnectClient.SDK_AVAILABLE)
+            HealthConnectClient.getOrCreate(context).permissionController.getGrantedPermissions() else emptySet()
+        instrumentation.sendStatus(0, Bundle().apply {
+            putString("stream", "Huawei daily read: date=${result.dateKey}; steps=${result.hasStepsData}; " +
+                "sleep=${result.hasSleepData}; activeCalories=${result.hasCaloriesData}; exercise=${result.hasExerciseData}; " +
+                "granted=${permissions.size}/${HealthSyncManager.REQUIRED_HEALTH_PERMISSIONS.size}. ${result.message}\n")
+        })
+        assertEquals(HealthSyncManager.HUAWEI_SOURCE, result.source)
+    }
+
     @Test
     fun inspectTodayHuaweiSteps() = runBlocking {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
