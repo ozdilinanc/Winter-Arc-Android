@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.core.app.ApplicationProvider
+import com.example.data.repository.HealthRoutineRepository
 import com.example.data.repository.PersonalTrackerRepository
 import com.example.data.repository.TrackerKind
 import com.example.ui.components.*
@@ -27,6 +28,7 @@ class SimplifiedNavigationTest {
 
     @Before fun reset() {
         context.getSharedPreferences(PersonalTrackerRepository.PREFS_NAME, Context.MODE_PRIVATE).edit().clear().commit()
+        context.getSharedPreferences(HealthRoutineRepository.PREFS_NAME, Context.MODE_PRIVATE).edit().clear().commit()
     }
 
     @Test fun mainAreasAndSoftwareArchiveAreReachable() {
@@ -71,10 +73,9 @@ class SimplifiedNavigationTest {
 
     @Test fun dailyShowsSimpleHealthAndOptionalHobbies() {
         compose.setContent { MyApplicationTheme { TodayHubView(onOpenThemePicker = {}) } }
-        compose.onNodeWithText("Sağlıklı beslenme").assertIsDisplayed()
-        compose.onNodeWithText("Yürüyüş / koşu").assertIsDisplayed()
-        compose.onNodeWithText("Düzenli uyku").assertIsDisplayed()
-        compose.onNodeWithText("Günlük su").assertIsDisplayed()
+        compose.onNodeWithText("Huawei Sağlık").assertIsDisplayed()
+        compose.onNodeWithText("Aktif kalori").assertIsDisplayed()
+        compose.onNodeWithText("Egzersiz").assertIsDisplayed()
         compose.onRoot().captureRoboImage("build/previews/winterarc-daily.png")
         compose.onNodeWithText("Düzenle").performScrollTo().performClick()
         compose.onNodeWithText("Günlük hobilerin").assertIsDisplayed()
@@ -82,5 +83,10 @@ class SimplifiedNavigationTest {
         compose.onNodeWithText("Tamam").performClick()
         compose.onNodeWithTag("daily_routines").performScrollToNode(hasText("Kart numarası çalışması"))
         compose.onNodeWithText("Kart numarası çalışması").assertIsDisplayed()
+        compose.onNodeWithTag("daily_routines").performScrollToNode(hasText("Düzenli uyku"))
+        compose.onNodeWithText("Sağlıklı beslenme").assertIsDisplayed()
+        compose.onNodeWithText("Yürüyüş / koşu").assertIsDisplayed()
+        compose.onNodeWithText("Düzenli uyku").assertIsDisplayed()
+        compose.onRoot().captureRoboImage("build/previews/winterarc-daily-lower.png")
     }
 }

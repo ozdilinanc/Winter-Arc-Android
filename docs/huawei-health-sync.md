@@ -24,7 +24,7 @@ Health Sync kullanılmayacak ve Huawei geliştirici kaydı/Health Kit onayı hen
 - Huawei Sağlık: **17.0.8.300**.
 - Winter Arc: dört Health Connect okuma izni de verilmiş durumda.
 - Huawei Sağlık: `WRITE_STEPS`, `WRITE_SLEEP`, `WRITE_ACTIVE_CALORIES_BURNED` izinleri verilmiş. Bu sürüm **`WRITE_EXERCISE` bildirmiyor**.
-- Salt okunur cihaz testinde bugünkü Huawei kaynaklı dört veri türünün hiçbiri bulunamadı. `inspectDailyHuaweiMetrics`: `steps=false; sleep=false; activeCalories=false; exercise=false; granted=4/4`.
+- Salt okunur cihaz testinde 13–19 Ekim aralığındaki yedi günün hiçbirinde Huawei kaynaklı dört veri türü bulunamadı. Gece yarısı sonrası boş bir günü aktarım hatasıyla karıştırmamak için tamamlanmış günler de kontrol edildi. `inspectDailyHuaweiMetrics`: `steps=false; sleep=false; activeCalories=false; exercise=false; granted=4/4`.
 - Kullanıcı Huawei Developer/Health Kit uygulama kaydı oluşturmadığını doğruladı. Doğrudan HMS erişimi bu nedenle henüz uygulanıp doğrulanabilir durumda değil. Health Connect okuyucusunun tamamlanmış olması, gerçek Huawei aktarımının çalıştığı anlamına gelmez.
 
 ### Doğrudan Huawei Health Kit için gereken kayıt
